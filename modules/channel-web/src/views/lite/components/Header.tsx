@@ -341,10 +341,6 @@ class Header extends React.Component<HeaderProps> {
         </div>
         {!!this.props.customButtons.length && this.renderCustomButtons()}
         {this.props.showDeleteConversationButton && this.renderDeleteConversationButton()}
-        {this.props.showResetButton && this.renderResetButton()}
-        {this.props.showDownloadButton && this.renderDownloadButton()}
-        {this.props.showConversationsButton && this.renderConvoButton()}
-        {this.props.showBotInfoButton && this.renderBotInfoButton()}
         {this.props.showCloseButton && this.renderCloseButton()}
       </div>
     )

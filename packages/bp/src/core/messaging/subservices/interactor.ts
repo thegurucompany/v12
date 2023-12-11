@@ -1,4 +1,7 @@
-import { MessagingChannel, MessagingClient } from '@botpress/messaging-client'
+import {
+  MessagingChannel,
+  MessagingClient
+} from '../../../../../../node_modules/\@botpress/messaging-client/packages/client/src'
 import { AxiosRequestConfig } from 'axios'
 import { Logger } from 'botpress/sdk'
 import { AppLifecycle, AppLifecycleEvents } from 'lifecycle'

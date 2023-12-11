@@ -111,7 +111,8 @@
   },
   "devDependencies": {
     "@types/is-elevated": "^2.0.0",
-    "@types/mustache": "^4.1.2"
+    "@types/mustache": "^4.1.2",
+    "@botpress/messaging-client": "git+https://github.com/thegurucompany/messaging.git"
   },
   "optionalDependencies": {
     "ioredis": "^4.28.5",

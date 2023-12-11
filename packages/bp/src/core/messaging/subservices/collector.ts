@@ -1,4 +1,4 @@
-import { uuid } from '@botpress/messaging-client'
+import { uuid } from '../../../../../../node_modules/\@botpress/messaging-client/packages/base/src'
 import { IO, Logger } from 'botpress/sdk'
 import { EventEngine } from 'core/events'
 import LRUCache from 'lru-cache'

@@ -2,10 +2,10 @@ import { Icon, Position, Tooltip, MenuItem as BpMenuItem, MenuDivider } from '@b
 import { IconSvgPaths16 } from '@blueprintjs/icons'
 import { lang } from 'botpress/shared'
 import cx from 'classnames'
-import _ from 'lodash'
+import _, { size } from 'lodash'
 import React, { FC, useEffect, Fragment } from 'react'
 import { MdCopyright } from 'react-icons/md'
-import { FaRobot, FaFileCode, FaLaptopCode } from 'react-icons/fa'
+import { FaRobot, FaFileCode, FaLaptopCode, FaGlobe, FaBorderAll } from 'react-icons/fa'
 import { HiSwitchHorizontal } from 'react-icons/hi'
 import { connect, ConnectedProps } from 'react-redux'
 import { generatePath, RouteComponentProps, withRouter } from 'react-router'
@@ -177,10 +177,10 @@ const Menu: FC<Props> = props => {
           <MenuItem
             text={lang.tr('admin.sideMenu.languages')}
             id="btn-menu-language"
-            icon="globe-network"
+            icon={<FaGlobe />}
             url="/server/languages"
           />
-          <MenuItem text={lang.tr('sideMenu.modules')} id="btn-menu-modules" icon="control" url="/modules" />
+          <MenuItem text={lang.tr('sideMenu.modules')} id="btn-menu-modules" icon={<FaBorderAll />} url="/modules" />
           <MenuItem
             text={lang.tr('admin.sideMenu.productionChecklist')}
             id="btn-menu-checklist"

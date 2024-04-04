@@ -32,7 +32,7 @@ body {
 }
 
 .bpw-from-user .bpw-chat-bubble .bpw-chat-bubble-content {
-  background-color: #18509C;
+  background-color: #18509c;
 }
 
 .bpw-from-bot .bpw-chat-bubble .bpw-chat-bubble-content {
@@ -40,7 +40,7 @@ body {
   color: #000000;
 }
 
-body>div:nth-child(3) {
+body > div:nth-child(3) {
   display: none;
 }
 
@@ -200,7 +200,7 @@ body>div:nth-child(3) {
   width: 100%;
 }
 
-.bpw-message-group> :not(:last-child):not(.hidden) {
+.bpw-message-group > :not(:last-child):not(.hidden) {
   margin-bottom: 2px;
 }
 
@@ -361,7 +361,7 @@ body>div:nth-child(3) {
   fill: black;
 }
 
-.bpw-message-feedback>div {
+.bpw-message-feedback > div {
   border-radius: 21px;
   border: 1px solid #f1f1f1;
   margin-top: -8px;
@@ -380,7 +380,6 @@ body>div:nth-child(3) {
 .bpw-from-user .bpw-chat-bubble-content {
   background-color: #ffa73a;
 }
-
 
 .bpw-header-title {
   font-size: 16px;
@@ -761,7 +760,7 @@ body>div:nth-child(3) {
   overflow: hidden;
   border-top: none;
   padding-left: 0.5rem;
-  background-color: #18509C;
+  background-color: #18509c;
 }
 
 .bpw-header-title-flexbox {
@@ -1164,7 +1163,6 @@ body>div:nth-child(3) {
 }
 
 @media screen and (max-device-width: 768px) {
-
   .bpw-layout {
     width: 100% !important;
   }

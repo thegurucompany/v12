@@ -1,9 +1,15 @@
+$primary: #8c00ff;
+$secondary: #0aa0fa;
+$complementary: #100146;
+$gray: #f1f3fa;
+$light-gray: #ffffff;
+
 .centered_container {
   display: table;
   position: absolute;
   height: 100%;
   width: 100%;
-  background-color: #1a2232;
+  background-color: $gray;
 
   .middle {
     display: table-cell;
@@ -18,10 +24,11 @@
   }
   .logo {
     display: block;
-    width: 320px;
+    width: 350px;
     margin: auto;
     @media (max-width: 960px) {
       width: 200px;
+      display: none;
     }
   }
 
@@ -55,15 +62,15 @@
   position: relative;
   display: -webkit-flex;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   min-width: 0;
-  background-color: #202a40;
+  background-color: #fafafc;
   background-clip: border-box;
-  border: 1px solid rgba(109, 109, 109, 0.463);
   border-radius: 0.25rem;
   justify-content: center;
   align-items: center;
-  width: 960px;
+  width: 900px;
+  border-radius: 15px;
   @media (max-width: 960px) {
     grid-template-columns: 1fr;
     width: 95%;
@@ -71,14 +78,13 @@
 }
 
 .card_body {
-  -webkit-flex: 1 1 auto;
-  flex: 1 1 auto;
-  padding: 2rem 1.25rem;
+  padding: 2rem 0rem;
 }
 
 .card_title {
-  color: #eee;
-  text-align: start;
+  color: black;
+  text-align: center;
+  padding: 1.6rem;
 }
 
 .card_text {
@@ -171,17 +177,38 @@ $excellent: green;
 }
 
 .login_subtitle {
-  color: #eee;
+  color: black;
 }
 
 .label_input {
-  color: #eee;
+  color: black;
 }
 
 .form_wrapper {
-  width: 80%;
+  width: 70%;
   margin: 0 auto;
   @media (max-width: 960px) {
     width: 95%;
   }
+}
+
+.tgc_logo_wrapper {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+.tgc_login_img {
+  width: 200px;
+}
+
+.login_btn_tgc {
+  background-color: $primary !important;
+  color: #eee !important;
+}
+
+.linea_vertical {
+  height: 90%;
+  border-left: 3px solid $gray;
 }

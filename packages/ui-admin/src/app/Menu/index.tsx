@@ -4,7 +4,9 @@ import { lang } from 'botpress/shared'
 import cx from 'classnames'
 import _ from 'lodash'
 import React, { FC, useEffect, Fragment } from 'react'
-import { MdAndroid, MdChat, MdCopyright } from 'react-icons/md'
+import { MdCopyright } from 'react-icons/md'
+import { FaRobot, FaFileCode, FaLaptopCode } from 'react-icons/fa'
+import { HiSwitchHorizontal } from 'react-icons/hi'
 import { connect, ConnectedProps } from 'react-redux'
 import { generatePath, RouteComponentProps, withRouter } from 'react-router'
 import { matchPath, Link } from 'react-router-dom'
@@ -101,7 +103,7 @@ const Menu: FC<Props> = props => {
               key={module.name}
               id={`btn-menu-${module.name}`}
               text={lang.tr(`module.${module.name}.fullName`) || module.menuText}
-              icon={module.menuIcon}
+              icon={<FaLaptopCode />}
               url={`/apps/${module.name}`}
               resource={`module.${module.name}`}
               operation="write"
@@ -120,7 +122,7 @@ const Menu: FC<Props> = props => {
         <MenuItem
           id="btn-menu-bots"
           text={lang.tr('admin.sideMenu.bots')}
-          icon={<MdAndroid />}
+          icon={<FaRobot />}
           url="/workspace/:workspaceId?/bots"
           resource="user.bots.*"
           operation="read"
@@ -149,7 +151,7 @@ const Menu: FC<Props> = props => {
         <MenuItem
           id="btn-menu-logs"
           text={lang.tr('admin.sideMenu.logs')}
-          icon="manual"
+          icon={<FaFileCode />}
           url="/workspace/:workspaceId?/logs"
           resource="admin.logs"
           operation="read"
@@ -161,7 +163,7 @@ const Menu: FC<Props> = props => {
           <MenuItem
             id="btn-menu-version"
             text={lang.tr('admin.sideMenu.sourceControl')}
-            icon="changes"
+            icon={<HiSwitchHorizontal />}
             url="/server/version"
           />
           {props?.licensing?.isPro && (

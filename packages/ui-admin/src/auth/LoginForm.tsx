@@ -41,6 +41,7 @@ export const LoginForm: FC<Props> = props => {
       </FormGroup>
 
       <Button
+        className={cx('login_btn_tgc', style.login_btn_tgc)}
         tabIndex={3}
         type="submit"
         id="btn-signin"

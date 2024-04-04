@@ -10,6 +10,7 @@ interface CssExports {
   'padding': string;
   'sidePanel': string;
   'status': string;
+  'svg_icon': string;
   'tab': string;
   'tabsContainer': string;
   'warning': string;

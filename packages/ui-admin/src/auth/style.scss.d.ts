@@ -16,14 +16,18 @@ interface CssExports {
   'homepage': string;
   'inner': string;
   'label_input': string;
+  'linea_vertical': string;
   'login_box': string;
   'login_btn': string;
+  'login_btn_tgc': string;
   'login_subtitle': string;
   'logo': string;
   'middle': string;
   'strenghtLabel': string;
   'strengthDetails': string;
   'strengthProgress': string;
+  'tgc_login_img': string;
+  'tgc_logo_wrapper': string;
 }
 export const cssExports: CssExports;
 export default cssExports;

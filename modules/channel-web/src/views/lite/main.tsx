@@ -12,7 +12,6 @@ import OverridableComponent from './components/OverridableComponent'
 import Stylesheet from './components/Stylesheet'
 import constants from './core/constants'
 import BpSocket from './core/socket'
-import ChatIcon from './icons/Chat'
 import { RootStore, StoreDef } from './store'
 import { Config, Message, Overrides, uuid } from './typings'
 import { checkLocationOrigin, initializeAnalytics, isIE, trackMessage, trackWebchatState } from './utils'
@@ -323,7 +322,6 @@ class Web extends React.Component<MainProps> {
         aria-label={this.props.intl.formatMessage({ id: 'widget.toggle' })}
         onClick={this.props.showChat.bind(this)}
       >
-        <ChatIcon />
         {this.props.hasUnreadMessages && <span className={'bpw-floating-button-unread'}>{this.props.unreadCount}</span>}
       </button>
     )

@@ -1,7 +1,14 @@
+$primary: #8c00ff;
+$secondary: #0aa0fa;
+$complementary: #100146;
+$gray: #f1f3fa;
+$light-gray: #ffffff;
+
 .table {
   border: 1px solid #e1e4e8;
   border-radius: 3px 3px 3px 3px;
   padding: 0 1px;
+  background-color: $light-gray;
 
   &Row {
     border-bottom: 1px solid #e1e4e8;

@@ -1,3 +1,9 @@
+$primary: #8c00ff;
+$secondary: #0aa0fa;
+$complementary: #100146;
+$gray: #f1f3fa;
+$light-gray: #ffffff;
+
 .status {
   padding: 10px;
 }
@@ -76,4 +82,10 @@
   bottom: 10px;
   left: 10px;
   z-index: 10;
+}
+
+.svg_icon {
+  svg {
+    color: $primary;
+  }
 }

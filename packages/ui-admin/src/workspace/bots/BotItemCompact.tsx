@@ -17,6 +17,8 @@ import cx from 'classnames'
 import { intersection } from 'lodash'
 import React, { FC } from 'react'
 import { CopyToClipboard } from 'react-copy-to-clipboard'
+import { IoIosChatbubbles } from 'react-icons/io'
+import { FaCog } from 'react-icons/fa'
 
 import AccessControl, { isChatUser, isOperationAllowed } from '~/auth/AccessControl'
 import { NeedsTrainingWarning } from './NeedsTrainingWarning'
@@ -59,7 +61,7 @@ const BotItemCompact: FC<Props> = props => {
         <AccessControl resource="admin.bots.*" operation="write">
           <Button
             text={lang.tr('admin.workspace.bots.item.config')}
-            icon="cog"
+            icon={<FaCog />}
             minimal
             onClick={() => (location.href = `${botStudioLink}/config`)}
           />
@@ -68,7 +70,7 @@ const BotItemCompact: FC<Props> = props => {
         {!props.bot.disabled && !props.hasError && (
           <AnchorButton
             text={lang.tr('admin.workspace.bots.item.openChat')}
-            icon="chat"
+            icon={<IoIosChatbubbles />}
             href={botShortLink}
             target="_blank"
             minimal

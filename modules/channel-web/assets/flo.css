@@ -1,8 +1,5 @@
 .bpw-floating-button {
   background-image: url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/flo-icon.svg');
-  box-shadow: 0 0 0 0 #213AA5;
-  animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
-  border-radius: 50%;
 }
 
 .bpw-floating-button i {

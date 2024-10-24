@@ -1,5 +1,6 @@
 #bp-web-widget{
   z-index: 99999;
+  position: relative;
 }
 
 .chato-proactive-message {

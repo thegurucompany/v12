@@ -64,6 +64,10 @@ window.chatoProactiveMessage = null;
           window.chatoProactiveMessage = proactiveMessage;
           proactiveMessage.href = '#';
           proactiveMessage.className = 'chato-proactive-message';
+          var primaryColor = window.chatoConfig.primaryColor;
+          if (primaryColor) {
+            proactiveMessage.style.backgroundColor = primaryColor;
+          }
           var proactiveMessageText = window.chatoConfig.proactiveMessage;
           if (!proactiveMessageText) {
             proactiveMessageText =

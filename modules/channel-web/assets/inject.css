@@ -4,6 +4,7 @@
 }
 
 .chato-proactive-message {
+  background-color: rgb(145, 59, 255);
   z-index: 9998;
   position: fixed;
   bottom: 2.3rem;

@@ -1,3 +1,22 @@
+#bp-web-widget{
+  z-index: 9999;
+}
+
+.chato-proactive-message {
+  z-index: 9998;
+  position: fixed;
+  bottom: 2.3rem;
+  right: 6.5rem;
+  padding: 1rem;
+  background-color: rgb(145, 59, 255);
+  color: white;
+  font-weight: bold;
+  font-size: 0.8rem;
+  line-height: 1.4em;
+  max-width: 13rem;
+  border-radius: 0.4rem;
+}
+
 .bp-widget-web {
   border: none;
   display: block;

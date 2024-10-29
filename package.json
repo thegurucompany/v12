@@ -45,6 +45,7 @@
     "axios": "^0.21.1",
     "bluebird-global": "^1.0.1",
     "chalk": "^2.4.2",
+    "chart.js": "^4.4.6",
     "chokidar": "^2.1.5",
     "fs-extra": "^9.1.0",
     "glob": "^7.1.6",

@@ -44,6 +44,7 @@
     "aws-sdk": "^2.1506.0",
     "axios": "^0.21.1",
     "bluebird-global": "^1.0.1",
+    "canvas": "2.8.0",
     "chalk": "^2.4.2",
     "chart.js": "3.5.1",
     "chartjs-node-canvas": "^4.1.6",

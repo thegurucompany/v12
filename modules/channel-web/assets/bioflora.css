@@ -1,5 +1,8 @@
 .bpw-floating-button {
   background-image: url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/bioflora_chat.svg');
+  box-shadow: 0 0 0 0 #9dc960;
+  animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
+  border-radius: 50%;
 }
 
 .bpw-floating-button i {

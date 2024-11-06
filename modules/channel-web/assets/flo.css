@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+#bpw-chat-container{
+  font-family: 'Montserrat', sans-serif;
+}
+
 .bpw-floating-button {
   background-image: url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/flo-icon.svg');
 }

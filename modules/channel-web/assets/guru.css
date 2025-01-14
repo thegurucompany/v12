@@ -1,0 +1,22 @@
+.bpw-floating-button {
+  background-image: url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/guru_chat.svg');
+  box-shadow: 0 0 0 0 #6d3996;
+  animation: pulse 1.25s infinite cubic-bezier(0.66, 0, 0, 1);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+}
+
+.bpw-header-container {
+  background-color: #6d3996;
+}
+
+.bpw-from-user .bpw-chat-bubble .bpw-chat-bubble-content {
+  background-color: #6d3996;
+}
+
+@keyframes pulse {
+  to {
+    box-shadow: 0 0 0 45px rgba(232, 76, 61, 0.01);
+  }
+}

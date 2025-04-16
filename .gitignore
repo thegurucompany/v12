@@ -41,6 +41,7 @@ node_modules
 /out
 /.out
 /tmp
+/backup
 test-report.html
 metadata.json
 edition.json

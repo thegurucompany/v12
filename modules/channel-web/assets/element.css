@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+.bpw-chat-container {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.bpw-floating-button {
+  background-image: url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/element_chat_blue.svg');
+  background-repeat: no-repeat;
+}
+
+.bpw-floating-button i {
+  display: none;
+}
+
+.bpw-header-container {
+  background-color: #192e44;
+}
+
+.bpw-from-user .bpw-chat-bubble .bpw-chat-bubble-content {
+  background-color: #192e44;
+}
+
+@keyframes pulse {
+  to {
+    box-shadow: 0 0 0 45px rgba(232, 76, 61, 0.01);
+  }
+}

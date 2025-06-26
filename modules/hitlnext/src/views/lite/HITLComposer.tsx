@@ -3,7 +3,6 @@ import ReactTextareaAutocomplete from '@webscopeio/react-textarea-autocomplete'
 import cx from 'classnames'
 import React, { FC, useEffect, useState } from 'react'
 
-import { RecordSpeechToText } from '../../../../../packages/ui-shared-lite/SpeechToTextButton'
 import { IAutoComplete, IShortcut } from '../../config'
 import { makeClient } from '../client'
 import lang from '../lang'
@@ -36,7 +35,6 @@ const ShortcutItem: FC<ShortcutItemProps> = props => (
 const HITLComposer: FC<ComposerProps> = props => {
   const [autoComplete, setAutoComplete] = useState<IAutoComplete>()
   const [isLoading, setIsLoading] = useState(true)
-  const [isRecording, setIsRecording] = useState(false)
   const [text, setText] = useState<string>('')
 
   const hitlClient = makeClient(props.store.bp)
@@ -79,28 +77,14 @@ const HITLComposer: FC<ComposerProps> = props => {
     }
   }
 
-  const onVoiceStart = () => {
-    setIsRecording(true)
-  }
-
-  const onVoiceEnd = () => {
-    setIsRecording(false)
-  }
-
-  const onVoiceText = value => {
-    if (text !== value) {
-      setText(value)
-    }
-  }
-
-  const canSendText = (): boolean => !isRecording && text.trim().length > 0
+  const canSendText = (): boolean => text.trim().length > 0
 
   return (
     !isLoading && (
       <div id="shortcutContainer" className={style.composerContainer}>
         <ReactTextareaAutocomplete
           containerClassName={cx('bpw-composer', style.composer)}
-          className={cx('bpw-composer-inner', { [style.active]: isRecording })}
+          className={cx('bpw-composer-inner')}
           dropdownClassName={style.shortcutDropdown}
           itemClassName={style.shortcutListItem}
           loadingComponent={() => null}
@@ -117,12 +101,6 @@ const HITLComposer: FC<ComposerProps> = props => {
               output: (s: IShortcut) => s.value
             }
           }}
-        />
-        <RecordSpeechToText
-          onText={onVoiceText}
-          onStart={onVoiceStart}
-          onDone={onVoiceEnd}
-          className={style.voiceButton}
         />
         <Button className={style.sendButton} disabled={!canSendText()} onClick={sendMessage}>
           {lang.tr('module.hitlnext.conversation.send')}

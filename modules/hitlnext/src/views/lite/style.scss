@@ -12,12 +12,6 @@
   margin-top: var(--spacing-x-large);
 }
 
-.voiceButton {
-  position: relative !important;
-  transform: none !important;
-  right: auto !important;
-}
-
 .composerContainer {
   display: flex;
   align-items: center;
@@ -29,9 +23,6 @@
     textarea {
       min-height: 40px;
       padding: var(--spacing-large);
-      &.active {
-        border-color: var(--ocean);
-      }
     }
 
     .shortcutDropdown {

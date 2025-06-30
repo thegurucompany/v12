@@ -45,7 +45,7 @@
       right: var(--spacing-medium);
       top: 50%;
       transform: translateY(-50%);
-      
+
       &:hover {
         background-color: var(--hover-ocean);
       }
@@ -149,15 +149,15 @@
     min-width: 30px;
     padding: 0;
     height: 30px;
-    
+
     &:not([disabled]) {
       cursor: pointer;
     }
-    
+
     path {
       fill: var(--shark);
     }
-    
+
     &:hover {
       path {
         fill: var(--ocean);

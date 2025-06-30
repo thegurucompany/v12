@@ -103,18 +103,34 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
     }
 
     // Handle file and image messages specially for WhatsApp
-    if (handoff.userChannel === 'vonage' && event.payload && (event.payload.type === 'image' || event.payload.type === 'file')) {
+    if (
+      handoff.userChannel === 'vonage' &&
+      event.payload &&
+      (event.payload.type === 'image' || event.payload.type === 'file')
+    ) {
       try {
         bp.logger.info(`Processing ${event.payload.type} message for WhatsApp handoff ${handoff.id}`)
-        
+
         const vonageService = new VonageWhatsAppService(bp)
-        
+
         if (event.payload.type === 'image' && event.payload.image) {
-          await vonageService.sendImage(handoff.userId, event.payload.image, event.payload.title || 'Image', handoff.botId, handoff.userThreadId)
+          await vonageService.sendImage(
+            handoff.userId,
+            event.payload.image,
+            event.payload.title || 'Image',
+            handoff.botId,
+            handoff.userThreadId
+          )
         } else if (event.payload.type === 'file' && event.payload.url) {
-          await vonageService.sendDocument(handoff.userId, event.payload.url, event.payload.title || 'Document', handoff.botId, handoff.userThreadId)
+          await vonageService.sendDocument(
+            handoff.userId,
+            event.payload.url,
+            event.payload.title || 'Document',
+            handoff.botId,
+            handoff.userThreadId
+          )
         }
-        
+
         bp.logger.info(`Successfully sent ${event.payload.type} via Vonage WhatsApp`)
         // Continue with normal flow to show in agent chat too
       } catch (error) {
@@ -126,7 +142,7 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
     // Handle file and image messages for web channel - ensure proper formatting for display
     if (event.payload && (event.payload.type === 'image' || event.payload.type === 'file')) {
       bp.logger.info(`Processing ${event.payload.type} message for handoff ${handoff.id}`)
-      
+
       // For images, ensure the payload is properly formatted for both agent and user chat
       if (event.payload.type === 'image' && event.payload.image) {
         // Ensure payload structure is consistent for rendering
@@ -137,13 +153,13 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             image: event.payload.image
           }
         }
-        
+
         // Ensure preview is set
         if (!event.preview) {
-          (event as any).preview = `🖼️ ${event.payload.title || 'Image'}`
+          ;(event as any).preview = `🖼️ ${event.payload.title || 'Image'}`
         }
       }
-      
+
       // For files, ensure the payload is properly formatted for both agent and user chat
       if (event.payload.type === 'file' && event.payload.url) {
         // Ensure payload structure is consistent for rendering
@@ -154,10 +170,10 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             url: event.payload.url
           }
         }
-        
+
         // Ensure preview is set
         if (!event.preview) {
-          (event as any).preview = `📎 ${event.payload.title || 'File'}`
+          ;(event as any).preview = `📎 ${event.payload.title || 'File'}`
         }
       }
     }

@@ -27,7 +27,13 @@ export class VonageWhatsAppService {
     }
   }
 
-  async sendDocument(userId: string, documentUrl: string, title: string, botId?: string, threadId?: string): Promise<void> {
+  async sendDocument(
+    userId: string,
+    documentUrl: string,
+    title: string,
+    botId?: string,
+    threadId?: string
+  ): Promise<void> {
     try {
       await this.bp.events.sendEvent(
         this.bp.IO.Event({
@@ -57,7 +63,7 @@ export class VonageWhatsAppService {
 
     try {
       const isImage = this.isImageFile(comment.uploadUrl)
-      
+
       if (isImage) {
         // Send as image message
         await this.bp.events.sendEvent(

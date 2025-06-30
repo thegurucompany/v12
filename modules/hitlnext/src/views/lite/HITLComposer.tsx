@@ -105,10 +105,10 @@ const HITLComposer: FC<ComposerProps> = props => {
       }
 
       await props.store.sendMessage()
-      
+
       // Clear the uploaded file after successful send
       setUploadedFile(null)
-      
+
       // Show confirmation message and force immediate display
       if (uploadedFile.type.startsWith('image/')) {
         props.store.bp.toast?.show({
@@ -127,7 +127,7 @@ const HITLComposer: FC<ComposerProps> = props => {
       // Send text message
       props.store.composer.updateMessage(text.trim())
       await props.store.sendMessage()
-      
+
       // Show confirmation message for text
       props.store.bp.toast?.show({
         message: lang.tr('module.hitlnext.composer.messageSent'),

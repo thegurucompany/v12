@@ -438,7 +438,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       const { v4: uuidv4 } = require('uuid')
 
       const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, req.params.botId)
-      
+
       if (!config.s3Config) {
         return res.status(500).json({ error: 'S3 configuration not found' })
       }
@@ -481,7 +481,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
           }
 
           const result = await s3.upload(uploadParams).promise()
-          
+
           res.json({
             uploadUrl: result.Location,
             fileName: req.file.originalname,

@@ -67,12 +67,12 @@ const FileUpload: FC<Props> = ({ bp, onUploadComplete, disabled }) => {
     setUploadProgress({ loaded: 0, total: file.size })
 
     try {
-      const result = await hitlClient.uploadFile(file, (progress) => {
+      const result = await hitlClient.uploadFile(file, progress => {
         setUploadProgress(progress)
       })
-      
+
       onUploadComplete(result.uploadUrl, file.name, file.type)
-      
+
       bp.toast?.show({
         message: lang.tr('module.hitlnext.fileUpload.uploadSuccess'),
         intent: Intent.SUCCESS
@@ -115,27 +115,19 @@ const FileUpload: FC<Props> = ({ bp, onUploadComplete, disabled }) => {
         accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.xls,.xlsx"
         disabled={disabled || isUploading}
       />
-      
+
       {isUploading ? (
         <div className={style.uploadingState}>
           <Spinner size={16} />
           {uploadProgress && (
             <div className={style.progressContainer}>
-              <ProgressBar
-                value={getProgressPercentage() / 100}
-                className={style.progressBar}
-              />
-              <span className={style.progressText}>
-                {getProgressPercentage()}%
-              </span>
+              <ProgressBar value={getProgressPercentage() / 100} className={style.progressBar} />
+              <span className={style.progressText}>{getProgressPercentage()}%</span>
             </div>
           )}
         </div>
       ) : (
-        <Tooltip
-          content={lang.tr('module.hitlnext.fileUpload.attachFile')}
-          position="top"
-        >
+        <Tooltip content={lang.tr('module.hitlnext.fileUpload.attachFile')} position="top">
           <Button
             className={style.uploadButton}
             icon="paperclip"

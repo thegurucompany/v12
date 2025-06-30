@@ -71,6 +71,13 @@
     "composerPlaceholder": "Responder al usuario",
     "send": "Enviar"
   },
+  "fileUpload": {
+    "attachFile": "Adjuntar Archivo",
+    "fileTooLarge": "El archivo es demasiado grande. El tamaño máximo es 10MB.",
+    "unsupportedFileType": "Tipo de archivo no soportado. Por favor, sube una imagen, PDF o documento.",
+    "uploadSuccess": "¡Archivo subido exitosamente!",
+    "uploadError": "Error al subir el archivo. Por favor, inténtalo de nuevo."
+  },
   "handoffs": {
     "empty": "No hay conversaciones pendientes."
   },
@@ -91,5 +98,10 @@
     "empty": "Las etiquetas no están habilitadas para este bot.",
     "placeholder": "Agregar o quitar etiquetas",
     "noResults": "No hubo resultados."
+  },
+  "composer": {
+    "messageSent": "Mensaje enviado",
+    "imageSent": "Imagen enviada",
+    "fileSent": "Archivo enviado"
   }
 }

@@ -27,6 +27,7 @@ import {
   UpdateHandoffSchema,
   validateHandoffStatusRule
 } from './validation'
+import { VonageWhatsAppService } from './vonage-whatsapp'
 
 type HITLBPRequest = BPRequest & { agentId: string | undefined }
 
@@ -34,6 +35,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
   const router = bp.http.createRouterForBot(MODULE_NAME)
   const realtime = Socket(bp)
   const service = new Service(bp, state, repository, realtime)
+  const vonageService = new VonageWhatsAppService(bp)
 
   // Enforces for an agent to be 'online' before executing an action
   const agentOnlineMiddleware = async (req: HITLBPRequest, res: Response, next) => {
@@ -372,7 +374,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
       const handoff = await repository.findHandoff(req.params.botId, req.params.id)
 
-      const payload: Pick<IComment, 'content' | 'handoffId' | 'threadId' | 'agentId'> = {
+      const payload: Pick<IComment, 'content' | 'uploadUrl' | 'handoffId' | 'threadId' | 'agentId'> = {
         ...req.body,
         handoffId: handoff.id,
         threadId: handoff.userThreadId,
@@ -383,6 +385,15 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
       const comment = await repository.createComment(payload)
       handoff.comments = [...handoff.comments, comment]
+
+      // Forward file to user via WhatsApp if there's an uploaded file
+      if (comment.uploadUrl) {
+        try {
+          await vonageService.forwardFileToUser(comment, req.params.botId, handoff.userThreadId)
+        } catch (error) {
+          bp.logger.error('Failed to forward file to WhatsApp user:', error)
+        }
+      }
 
       service.sendPayload(req.params.botId, {
         resource: 'handoff',
@@ -409,6 +420,79 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       )
 
       res.send(messages)
+    })
+  )
+
+  router.post(
+    '/upload',
+    (req: any, res: Response, next) => {
+      bp.logger.info('Upload endpoint hit')
+      bp.logger.info('Authorization header:', req.headers.authorization)
+      bp.logger.info('User token:', req.tokenUser?.email)
+      next()
+    },
+    // Temporalmente sin hasPermission para debug
+    errorMiddleware(async (req: any, res: Response) => {
+      const multer = require('multer')
+      const AWS = require('aws-sdk')
+      const { v4: uuidv4 } = require('uuid')
+
+      const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, req.params.botId)
+      
+      if (!config.s3Config) {
+        return res.status(500).json({ error: 'S3 configuration not found' })
+      }
+
+      // Configure AWS
+      const s3 = new AWS.S3({
+        accessKeyId: config.s3Config.accessKeyId,
+        secretAccessKey: config.s3Config.secretAccessKey,
+        region: config.s3Config.region
+      })
+
+      // Configure multer for memory storage
+      const upload = multer({
+        storage: multer.memoryStorage(),
+        limits: {
+          fileSize: 10 * 1024 * 1024 // 10MB limit
+        }
+      })
+
+      upload.single('file')(req, res, async (error: any) => {
+        if (error) {
+          return res.status(400).json({ error: 'File upload error: ' + error.message })
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ error: 'No file provided' })
+        }
+
+        try {
+          const fileExtension = req.file.originalname.split('.').pop()
+          const fileName = `${uuidv4()}.${fileExtension}`
+          const key = `hitlnext/${req.params.botId}/${fileName}`
+
+          const uploadParams = {
+            Bucket: config.s3Config.bucket,
+            Key: key,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: 'public-read'
+          }
+
+          const result = await s3.upload(uploadParams).promise()
+          
+          res.json({
+            uploadUrl: result.Location,
+            fileName: req.file.originalname,
+            fileType: req.file.mimetype,
+            fileSize: req.file.size
+          })
+        } catch (uploadError) {
+          bp.logger.error('S3 upload error:', uploadError)
+          res.status(500).json({ error: 'Failed to upload file to S3' })
+        }
+      })
     })
   )
 }

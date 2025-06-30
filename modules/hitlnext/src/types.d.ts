@@ -57,6 +57,7 @@ export interface IComment {
   handoffId: string
   threadId: string
   content: string
+  uploadUrl?: string
   createdAt: Date
   updatedAt: Date
 }

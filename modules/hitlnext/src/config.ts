@@ -67,6 +67,28 @@ export interface Config {
    * @default {}
    */
   eventsWebHook?: Webhook
+
+  /**
+   * @param s3Config Configuration for Amazon S3 file uploads
+   */
+  s3Config?: {
+    /**
+     * @param accessKeyId AWS Access Key ID
+     */
+    accessKeyId: string
+    /**
+     * @param secretAccessKey AWS Secret Access Key
+     */
+    secretAccessKey: string
+    /**
+     * @param region AWS Region
+     */
+    region: string
+    /**
+     * @param bucket S3 Bucket name
+     */
+    bucket: string
+  }
 }
 
 export interface IShortcut {

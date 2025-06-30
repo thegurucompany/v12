@@ -71,6 +71,13 @@
     "composerPlaceholder": "Reply to user",
     "send": "Send"
   },
+  "fileUpload": {
+    "attachFile": "Attach File",
+    "fileTooLarge": "File is too large. Maximum size is 10MB.",
+    "unsupportedFileType": "Unsupported file type. Please upload an image, PDF, or document.",
+    "uploadSuccess": "File uploaded successfully!",
+    "uploadError": "Failed to upload file. Please try again."
+  },
   "handoffs": {
     "empty": "Thanks to you and your team, there are no pending handoffs right now."
   },
@@ -91,5 +98,10 @@
     "empty": "Tags are not enabled for this bot.",
     "placeholder": "Add or remove labels",
     "noResults": "No results."
+  },
+  "composer": {
+    "messageSent": "Message sent",
+    "imageSent": "Image sent",
+    "fileSent": "File sent"
   }
 }

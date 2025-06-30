@@ -4,7 +4,8 @@ export const CreateCommentSchema = Joi.object({
   handoffId: Joi.number().required(),
   agentId: Joi.string().required(),
   threadId: Joi.string().required(),
-  content: Joi.string().required()
+  content: Joi.string().required(),
+  uploadUrl: Joi.string().optional()
 })
 
 export const CreateHandoffSchema = Joi.object({

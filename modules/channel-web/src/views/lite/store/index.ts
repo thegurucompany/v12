@@ -292,26 +292,61 @@ class RootStore {
 
   /** Sends the specified message, or fetch the message in the composer */
   @action.bound
-  async sendMessage(message?: string): Promise<void> {
+  async sendMessage(message?: string | object): Promise<void> {
     if (message) {
-      return this.sendData({ type: 'text', text: message })
+      if (typeof message === 'string') {
+        return this.sendData({ type: 'text', text: message })
+      } else {
+        return this.sendData(message)
+      }
     }
 
     const userMessage = this.composer.message
-    if (!userMessage || !userMessage.length) {
+    
+    // Handle object messages (files, images, etc.)
+    if (typeof userMessage === 'object' && userMessage !== null) {
+      this.composer.updateMessage('')
+      try {
+        await this.sendData(userMessage)
+        trackMessage('sent')
+        
+        // Add to history based on message type for display purposes
+        const historyText = this.getMessageDisplayText(userMessage)
+        if (historyText) {
+          this.composer.addMessageToHistory(historyText)
+        }
+      } catch (e) {
+        this.composer.updateMessage(userMessage)
+        throw e
+      }
+      return
+    }
+
+    // Handle text messages
+    if (!userMessage || (typeof userMessage === 'string' && !userMessage.length)) {
       return
     }
 
     this.composer.updateMessage('')
     try {
-      await this.sendData({ type: 'text', text: userMessage })
+      await this.sendData({ type: 'text', text: userMessage as string })
       trackMessage('sent')
 
-      this.composer.addMessageToHistory(userMessage)
+      this.composer.addMessageToHistory(userMessage as string)
     } catch (e) {
       this.composer.updateMessage(userMessage)
       throw e
     }
+  }
+
+  /** Helper method to get display text for different message types */
+  private getMessageDisplayText(message: any): string | null {
+    if (message.type === 'image') {
+      return `[Imagen: ${message.title || message.fileName || 'imagen'}]`
+    } else if (message.type === 'file') {
+      return `[Archivo: ${message.title || message.fileName || 'archivo'}]`
+    }
+    return null
   }
 
   /** Sends an event to start conversation & hide the bot info page */

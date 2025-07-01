@@ -34,7 +34,9 @@ const SUPPORTED_MESSAGES = [
   'visit',
   'request_start_conversation',
   'postback',
-  'voice'
+  'voice',
+  'image',
+  'file'
 ]
 
 const WEBCHAT_CUSTOM_ID_KEY = 'webchatCustomId'

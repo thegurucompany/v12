@@ -193,8 +193,8 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   const incomingHandler = async (event: sdk.IO.IncomingEvent, next: sdk.IO.MiddlewareNextCallback) => {
     updateHitlStatus(event)
 
-    // TODO we might want to handle other types
-    if (event.type !== 'text') {
+    // Handle text, image, and file types for HITL
+    if (!['text', 'image', 'file'].includes(event.type)) {
       return next(undefined, false, true)
     }
 

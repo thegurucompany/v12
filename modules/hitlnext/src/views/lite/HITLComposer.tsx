@@ -18,6 +18,10 @@ interface ComposerProps {
     bp: any
     composer: any
     sendMessage: () => Promise<void>
+    currentConversation?: {
+      id: string
+      userId: string
+    }
   }
 }
 
@@ -39,6 +43,7 @@ const HITLComposer: FC<ComposerProps> = props => {
   const [text, setText] = useState<string>('')
   const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: string } | null>(null)
   const [currentAgent, setCurrentAgent] = useState<any>(null)
+  const [activeHandoff, setActiveHandoff] = useState<any>(null)
 
   const hitlClient = makeClient(props.store.bp)
 
@@ -60,6 +65,24 @@ const HITLComposer: FC<ComposerProps> = props => {
     }
   }
 
+  const fetchActiveHandoff = async () => {
+    try {
+      if (!props.store.currentConversation?.userId) {
+        return
+      }
+
+      const handoffs = await hitlClient.getHandoffs()
+      const activeHandoff = handoffs.find(
+        h => h.userId === props.store.currentConversation?.userId &&
+             (h.status === 'assigned' || h.status === 'pending')
+      )
+      
+      setActiveHandoff(activeHandoff)
+    } catch (error) {
+      console.error('Error fetching active handoff:', error)
+    }
+  }
+
   function hasPermission(): boolean {
     return currentAgent?.online === true
   }
@@ -69,19 +92,44 @@ const HITLComposer: FC<ComposerProps> = props => {
     fetchShortcuts().finally(() => setIsLoading(false))
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchCurrentAgent()
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchActiveHandoff()
   }, [])
 
-  const sendMessage = async (): Promise<void> => {
-    if (!canSendMessage()) {
+  const sendHitlComment = async (content: string, uploadUrl?: string): Promise<void> => {
+    if (!activeHandoff) {
+      console.error('No active handoff found')
       return
     }
 
+    try {
+      await hitlClient.createComment(activeHandoff.id, {
+        content,
+        uploadUrl
+      })
+
+      // Show success message
+      props.store.bp.toast?.show({
+        message: lang.tr('module.hitlnext.composer.messageSent'),
+        intent: 'success'
+      })
+    } catch (error) {
+      console.error('Error sending HITL comment:', error)
+      props.store.bp.toast?.show({
+        message: lang.tr('module.hitlnext.composer.messageError'),
+        intent: 'danger'
+      })
+    }
+  }
+
+  const sendWebchatMessage = async (): Promise<void> => {
     if (uploadedFile) {
       // Send file message directly through the composer
       if (uploadedFile.type.startsWith('image/')) {
         // For images, send as image message
         props.store.composer.updateMessage({
           type: 'image',
+          text: `Imagen: ${uploadedFile.name}`,
           title: uploadedFile.name,
           image: uploadedFile.url,
           metadata: {
@@ -94,6 +142,7 @@ const HITLComposer: FC<ComposerProps> = props => {
         // For other files, send as file message
         props.store.composer.updateMessage({
           type: 'file',
+          text: `Archivo: ${uploadedFile.name}`,
           title: uploadedFile.name,
           url: uploadedFile.url,
           metadata: {
@@ -135,6 +184,30 @@ const HITLComposer: FC<ComposerProps> = props => {
       })
 
       setText('')
+    }
+  }
+
+  const sendMessage = async (): Promise<void> => {
+    if (!canSendMessage()) {
+      return
+    }
+
+    // Si hay un handoff activo, usar el sistema de comentarios
+    if (activeHandoff && (activeHandoff.status === 'assigned' || activeHandoff.status === 'pending')) {
+      if (uploadedFile) {
+        const content = uploadedFile.type.startsWith('image/')
+          ? `Imagen: ${uploadedFile.name}`
+          : `Archivo: ${uploadedFile.name}`
+        
+        await sendHitlComment(content, uploadedFile.url)
+        setUploadedFile(null)
+      } else if (text.trim()) {
+        await sendHitlComment(text.trim())
+        setText('')
+      }
+    } else {
+      // Si no hay handoff activo, usar el webchat normal
+      await sendWebchatMessage()
     }
   }
 

@@ -395,6 +395,55 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         }
       }
 
+      // Send comment as message to user via webchat using the same pattern as middleware
+      try {
+        const eventDestination = toEventDestination(req.params.botId, handoff)
+        
+        // Create message payload based on content type
+        let messagePayload: any = {
+          type: 'text',
+          text: comment.content
+        }
+
+        // If there's an upload URL, determine message type
+        if (comment.uploadUrl) {
+          // Check if it's an image based on content
+          if (comment.content.includes('Imagen:')) {
+            messagePayload = {
+              type: 'image',
+              text: comment.content,
+              image: comment.uploadUrl,
+              title: comment.content.replace('Imagen: ', '')
+            }
+          } else if (comment.content.includes('Archivo:')) {
+            messagePayload = {
+              type: 'file',
+              text: comment.content,
+              url: comment.uploadUrl,
+              title: comment.content.replace('Archivo: ', '')
+            }
+          }
+        }
+
+        // Create a mock incoming event to pipe to user (same pattern as middleware)
+        const mockEvent = {
+          botId: req.params.botId,
+          channel: handoff.userChannel,
+          target: handoff.userId,
+          threadId: handoff.userThreadId,
+          payload: messagePayload,
+          id: `hitl-comment-${comment.id}`,
+          direction: 'incoming',
+          type: messagePayload.type,
+          createdOn: new Date()
+        } as sdk.IO.IncomingEvent
+
+        // Use the same pipe pattern as the middleware to avoid triggering bot responses
+        await bp.events.replyToEvent(eventDestination, [messagePayload])
+      } catch (error) {
+        bp.logger.error('Failed to send comment to user via webchat:', error)
+      }
+
       service.sendPayload(req.params.botId, {
         resource: 'handoff',
         type: 'update',

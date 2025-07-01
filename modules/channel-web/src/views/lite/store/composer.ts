@@ -13,7 +13,7 @@ class ComposerStore {
   private rootStore: RootStore
 
   @observable
-  public message: string = ''
+  public message: string | object = ''
 
   @observable
   public locked: boolean = false
@@ -46,7 +46,7 @@ class ComposerStore {
   }
 
   @action.bound
-  updateMessage(msg: string) {
+  updateMessage(msg: string | object) {
     this.message = msg
   }
 

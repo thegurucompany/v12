@@ -1,6 +1,6 @@
 export default {
   /** These types are sent using the /message/ endpoint */
-  MESSAGE_TYPES: ['text', 'quick_reply', 'form', 'login_prompt', 'postback'],
+  MESSAGE_TYPES: ['text', 'quick_reply', 'form', 'login_prompt', 'postback', 'image', 'file'],
   /** The duration of the hide / show chat */
   ANIM_DURATION: 300,
   MIN_TIME_BETWEEN_SOUNDS: 1000,

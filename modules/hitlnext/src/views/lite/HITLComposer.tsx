@@ -187,10 +187,9 @@ const HITLComposer: FC<ComposerProps> = props => {
     if (uploadedFile) {
       // Send file message directly through the composer
       if (uploadedFile.type.startsWith('image/')) {
-        // For images, send as image message
+        // For images, send as image message without text to avoid duplicate messages
         props.store.composer.updateMessage({
           type: 'image',
-          text: `Imagen: ${uploadedFile.name}`,
           title: uploadedFile.name,
           image: uploadedFile.url,
           metadata: {

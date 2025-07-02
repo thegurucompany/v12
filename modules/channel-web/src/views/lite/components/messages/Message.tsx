@@ -18,8 +18,15 @@ class Message extends Component<MessageProps> {
     showMore: false
   }
 
-  static getDerivedStateFromError(_error: Error) {
+  static getDerivedStateFromError(error: Error) {
+    console.error('Message rendering error:', error)
     return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Message component error details:', error, errorInfo)
+    console.error('Payload that caused error:', this.props.payload)
+    console.error('Message type:', this.props.type)
   }
 
   render_text(textMessage?: string) {
@@ -83,11 +90,112 @@ class Message extends Component<MessageProps> {
   }
 
   render_image() {
-    return <FileMessage file={this.props.payload} escapeTextHTML={this.props.store.escapeHTML} />
+    try {
+      const { payload } = this.props
+      
+      // Handle different payload structures
+      let fileData = null
+      
+      if (payload?.image || payload?.url) {
+        // Standard image payload structure
+        fileData = {
+          url: payload.image || payload.url,
+          title: payload.title || payload.name || 'Imagen',
+          storage: payload.storage || 's3',
+          text: payload.text || ''
+        }
+      } else if (payload?.file) {
+        // Alternative structure where image data is in file property
+        fileData = {
+          url: payload.file.url || payload.file.image,
+          title: payload.file.title || payload.file.name || 'Imagen',
+          storage: payload.file.storage || 's3',
+          text: payload.file.text || payload.text || ''
+        }
+      } else {
+        // Fallback to the original payload structure
+        fileData = this.props.payload
+      }
+
+      if (!fileData || (!fileData.url && !fileData.image)) {
+        console.warn('Image message missing URL/image property:', payload)
+        return (
+          <div style={{ padding: '8px', backgroundColor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: '4px' }}>
+            <span style={{ color: '#c62828' }}>❌ No se pudo cargar la imagen</span>
+            {payload?.title && <div style={{ fontSize: '12px', color: '#666' }}>{payload.title}</div>}
+          </div>
+        )
+      }
+
+      // Ensure the image URL is in the correct property
+      if (fileData.image && !fileData.url) {
+        fileData.url = fileData.image
+      }
+
+      return <FileMessage file={fileData} escapeTextHTML={this.props.store.escapeHTML} />
+    } catch (error) {
+      console.error('Error rendering image message:', error, this.props.payload)
+      return (
+        <div style={{ padding: '8px', backgroundColor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: '4px' }}>
+          <span style={{ color: '#c62828' }}>❌ Error al renderizar imagen</span>
+        </div>
+      )
+    }
   }
 
   render_file() {
-    return <FileMessage file={this.props.payload} escapeTextHTML={this.props.store.escapeHTML} />
+    try {
+      const { payload } = this.props
+      
+      // Handle different payload structures
+      let fileData = null
+      
+      if (payload?.url || payload?.file) {
+        // Standard file payload structure
+        fileData = {
+          url: payload.url || payload.file,
+          title: payload.title || payload.name || payload.filename || 'Archivo',
+          storage: payload.storage || 's3',
+          text: payload.text || ''
+        }
+      } else if (payload?.file && typeof payload.file === 'object') {
+        // Alternative structure where file data is nested in file property
+        fileData = {
+          url: payload.file.url,
+          title: payload.file.title || payload.file.name || payload.file.filename || 'Archivo',
+          storage: payload.file.storage || 's3',
+          text: payload.file.text || payload.text || ''
+        }
+      } else {
+        // Fallback to the original payload structure
+        fileData = this.props.payload
+      }
+
+      if (!fileData || !fileData.url) {
+        console.warn('File message missing URL property:', payload)
+        return (
+          <div style={{ padding: '8px', backgroundColor: '#fff3e0', border: '1px solid #ffcc02', borderRadius: '4px' }}>
+            <span style={{ color: '#ef6c00' }}>📎 No se pudo cargar el archivo</span>
+            {payload?.title && <div style={{ fontSize: '12px', color: '#666' }}>{payload.title}</div>}
+          </div>
+        )
+      }
+
+      // Check if it's actually an image file
+      if (fileData.url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+        // If it's an image, add image property for FileMessage to handle it correctly
+        fileData.image = fileData.url
+      }
+
+      return <FileMessage file={fileData} escapeTextHTML={this.props.store.escapeHTML} />
+    } catch (error) {
+      console.error('Error rendering file message:', error, this.props.payload)
+      return (
+        <div style={{ padding: '8px', backgroundColor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: '4px' }}>
+          <span style={{ color: '#c62828' }}>❌ Error al renderizar archivo</span>
+        </div>
+      )
+    }
   }
 
   render_voice() {
@@ -154,6 +262,49 @@ class Message extends Component<MessageProps> {
 
   render_dropdown() {
     return <Dropdown {...this.props} {...this.props.payload} escapeHTML={this.props.store.escapeHTML}></Dropdown>
+  }
+
+  // Enhanced handlers for file and image messages from WhatsApp/Vonage
+  render_whatsapp_image() {
+    const { payload } = this.props
+
+    // Handle different payload structures from WhatsApp/Vonage
+    const imageUrl = payload?.image || payload?.url
+    const title = payload?.title || payload?.name || 'Image'
+
+    if (!imageUrl) {
+      return this.render_unsupported()
+    }
+
+    const fileData = {
+      url: imageUrl,
+      title,
+      storage: 's3', // Default to s3 since you're using S3 integration
+      text: payload?.text || ''
+    }
+
+    return <FileMessage file={fileData} escapeTextHTML={this.props.store.escapeHTML} />
+  }
+
+  render_whatsapp_file() {
+    const { payload } = this.props
+
+    // Handle different payload structures from WhatsApp/Vonage
+    const fileUrl = payload?.url || payload?.file || payload?.document
+    const title = payload?.title || payload?.name || payload?.filename || 'File'
+
+    if (!fileUrl) {
+      return this.render_unsupported()
+    }
+
+    const fileData = {
+      url: fileUrl,
+      title,
+      storage: 's3', // Default to s3 since you're using S3 integration
+      text: payload?.text || ''
+    }
+
+    return <FileMessage file={fileData} escapeTextHTML={this.props.store.escapeHTML} />
   }
 
   handleContextMenu = e => {

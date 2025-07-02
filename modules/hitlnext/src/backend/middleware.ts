@@ -51,6 +51,63 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   }
 
   const handleIncomingFromUser = async (handoff: IHandoff, event: sdk.IO.IncomingEvent) => {
+    // Ensure proper payload structure for file and image messages from users
+    if (event.type === 'image' || event.type === 'file') {
+      bp.logger.info(`Processing ${event.type} message from user to agent. Handoff: ${handoff.id}`, {
+        type: event.type,
+        payload: event.payload,
+        hasImage: !!event.payload.image,
+        hasUrl: !!event.payload.url
+      })
+
+      // Ensure the payload is properly structured for agent chat display
+      if (event.type === 'image') {
+        // Make sure image URL is accessible
+        const imageUrl = event.payload.image || event.payload.url
+        if (imageUrl) {
+          // Ensure both properties are set for maximum compatibility
+          event.payload.image = imageUrl
+          event.payload.url = imageUrl
+
+          if (!event.payload.title) {
+            event.payload.title = 'Imagen del usuario'
+          }
+
+          // Ensure storage is set
+          if (!event.payload.storage) {
+            event.payload.storage = 's3'
+          }
+
+          bp.logger.info('User image processed for agent display:', {
+            title: event.payload.title,
+            imageUrl: event.payload.image,
+            url: event.payload.url,
+            storage: event.payload.storage
+          })
+        } else {
+          bp.logger.warn('User image message missing URL/image property:', event.payload)
+        }
+      }
+
+      if (event.type === 'file') {
+        // Make sure file URL is accessible
+        const fileUrl = event.payload.url || event.payload.file
+        if (fileUrl) {
+          event.payload.url = fileUrl
+          if (!event.payload.title) {
+            event.payload.title = 'Archivo del usuario'
+          }
+
+          // Check if this file is actually an image
+          if (fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+            // If it's an image file, also set the image property
+            event.payload.image = fileUrl
+            bp.logger.info('File detected as image, setting image property:', fileUrl)
+          }
+        }
+      }
+    }
+
     // There only is an agentId & agentThreadId after assignation
     if (handoff.status === 'assigned') {
       const userId = await repository.mapVisitor(handoff.botId, handoff.agentId)
@@ -185,13 +242,98 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       channel: handoff.userChannel
     })
 
-    bp.logger.info(`Successfully processed message from agent to user. Type: ${event.payload?.type || 'text'}`)
-
     await extendAgentSession(repository, realtime, event.botId, handoff.agentId)
   }
 
   const incomingHandler = async (event: sdk.IO.IncomingEvent, next: sdk.IO.MiddlewareNextCallback) => {
     updateHitlStatus(event)
+
+    // Normalize file and image messages from Vonage/WhatsApp
+    if (event.channel === 'vonage' && (event.type === 'image' || event.type === 'file')) {
+      try {
+        // Normalize image messages
+        if (event.type === 'image') {
+          // Ensure the payload has the expected structure for the web chat
+          if (!event.payload.image && event.payload.url) {
+            event.payload.image = event.payload.url
+          }
+
+          if (!event.payload.title && event.payload.name) {
+            event.payload.title = event.payload.name
+          }
+
+          // Set default title if none exists
+          if (!event.payload.title) {
+            event.payload.title = 'Imagen de WhatsApp'
+          }
+
+          // Ensure preview exists with image emoji
+          if (!event.preview) {
+            ;(event as any).preview = `🖼️ ${event.payload.title}`
+          }
+
+          // Force storage to be 's3' for better compatibility
+          if (!event.payload.storage) {
+            event.payload.storage = 's3'
+          }
+
+          // IMPORTANT: Ensure we have a valid URL for the image
+          if (!event.payload.url && event.payload.image) {
+            event.payload.url = event.payload.image
+          }
+
+          bp.logger.info('Normalized image payload for user preview:', {
+            type: event.payload.type,
+            hasImage: !!event.payload.image,
+            hasUrl: !!event.payload.url,
+            title: event.payload.title,
+            storage: event.payload.storage,
+            finalUrl: event.payload.url || event.payload.image
+          })
+        }
+
+        // Normalize file messages
+        if (event.type === 'file') {
+          // Ensure the payload has the expected structure for the web chat
+          if (!event.payload.url && event.payload.file) {
+            event.payload.url = event.payload.file
+          }
+
+          if (!event.payload.title && event.payload.name) {
+            event.payload.title = event.payload.name
+          }
+
+          if (!event.payload.title && event.payload.filename) {
+            event.payload.title = event.payload.filename
+          }
+
+          // Set default title if none exists
+          if (!event.payload.title) {
+            event.payload.title = 'Archivo de WhatsApp'
+          }
+
+          // Force storage to be 's3' for better compatibility
+          if (!event.payload.storage) {
+            event.payload.storage = 's3'
+          }
+
+          // Determine if this is actually an image file
+          const isImageFile = event.payload.url && event.payload.url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+
+          // If it's an image file but came as 'file' type, keep it as file but add image property
+          if (isImageFile) {
+            event.payload.image = event.payload.url
+            ;(event as any).preview = `🖼️ ${event.payload.title}`
+          } else {
+            // Ensure preview exists for non-image files
+            ;(event as any).preview = `📎 ${event.payload.title}`
+          }
+        }
+      } catch (error) {
+        bp.logger.error(`Error normalizing ${event.type} message from Vonage:`, error)
+        // Continue processing even if normalization fails
+      }
+    }
 
     // Handle text, image, and file types for HITL
     if (!['text', 'image', 'file'].includes(event.type)) {

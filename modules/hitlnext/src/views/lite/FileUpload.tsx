@@ -73,11 +73,6 @@ const FileUpload: FC<Props> = ({ bp, onUploadComplete, disabled }) => {
 
       onUploadComplete(result.uploadUrl, file.name, file.type)
 
-      bp.toast?.show({
-        message: lang.tr('module.hitlnext.fileUpload.uploadSuccess'),
-        intent: Intent.SUCCESS
-      })
-
       // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = ''

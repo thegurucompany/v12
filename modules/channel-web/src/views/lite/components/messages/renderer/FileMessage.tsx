@@ -40,7 +40,7 @@ export const FileMessage = (props: Renderer.FileMessage) => {
   if (mime.includes('image/')) {
     return (
       <a href={url} target={'_blank'}>
-        <img src={url} title={title} />
+        <img src={url} title={title} style={{ maxWidth: '194px' }} />
       </a>
     )
   } else if (mime.includes('audio/')) {

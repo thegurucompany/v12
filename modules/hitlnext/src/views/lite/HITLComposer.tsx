@@ -10,6 +10,72 @@ import lang from '../lang'
 import FileUpload from './FileUpload'
 import style from './style.scss'
 
+// Helper function to get appropriate emoji for file types
+const getFileEmoji = (fileType: string, fileExtension: string): string => {
+  // Check by MIME type first
+  if (fileType.startsWith('image/')) {
+    return '🖼️'
+  }
+  if (fileType.startsWith('video/')) {
+    return '🎥'
+  }
+  if (fileType.startsWith('audio/')) {
+    return '🎵'
+  }
+  if (fileType.includes('pdf')) {
+    return '📋'
+  }
+  if (fileType.includes('word') || fileType.includes('document')) {
+    return '📝'
+  }
+  if (fileType.includes('excel') || fileType.includes('spreadsheet')) {
+    return '📊'
+  }
+  if (fileType.includes('powerpoint') || fileType.includes('presentation')) {
+    return '📈'
+  }
+  if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('compressed')) {
+    return '🗜️'
+  }
+
+  // Check by file extension if MIME type doesn't match
+  switch (fileExtension) {
+    case 'pdf':
+      return '📋'
+    case 'doc':
+    case 'docx':
+      return '📝'
+    case 'xls':
+    case 'xlsx':
+      return '📊'
+    case 'ppt':
+    case 'pptx':
+      return '📈'
+    case 'zip':
+    case 'rar':
+    case '7z':
+      return '🗜️'
+    case 'txt':
+      return '📄'
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'webp':
+      return '🖼️'
+    case 'mp4':
+    case 'avi':
+    case 'mov':
+      return '🎥'
+    case 'mp3':
+    case 'wav':
+    case 'flac':
+      return '🎵'
+    default:
+      return '📁'
+  }
+}
+
 // store here is the whole webchat store
 // reference here: modules/channel-web/src/views/lite/store/index.ts
 interface ComposerProps {
@@ -73,10 +139,9 @@ const HITLComposer: FC<ComposerProps> = props => {
 
       const handoffs = await hitlClient.getHandoffs()
       const activeHandoff = handoffs.find(
-        h => h.userId === props.store.currentConversation?.userId &&
-             (h.status === 'assigned' || h.status === 'pending')
+        h => h.userId === props.store.currentConversation?.userId && (h.status === 'assigned' || h.status === 'pending')
       )
-      
+
       setActiveHandoff(activeHandoff)
     } catch (error) {
       console.error('Error fetching active handoff:', error)
@@ -115,10 +180,6 @@ const HITLComposer: FC<ComposerProps> = props => {
       })
     } catch (error) {
       console.error('Error sending HITL comment:', error)
-      props.store.bp.toast?.show({
-        message: lang.tr('module.hitlnext.composer.messageError'),
-        intent: 'danger'
-      })
     }
   }
 
@@ -139,10 +200,19 @@ const HITLComposer: FC<ComposerProps> = props => {
           }
         })
       } else {
-        // For other files, send as file message
+        // For other files, send as file message with attractive copy
+        const fileExtension =
+          uploadedFile.name
+            .split('.')
+            .pop()
+            ?.toLowerCase() || 'archivo'
+        const fileEmoji = getFileEmoji(uploadedFile.type, fileExtension)
+
         props.store.composer.updateMessage({
           type: 'file',
-          text: `Archivo: ${uploadedFile.name}`,
+          text: `${fileEmoji} *Archivo compartido:* ${uploadedFile.name}\n\n📄 ${
+            uploadedFile.url
+          }\n\n*Tipo: ${fileExtension.toUpperCase()}*`,
           title: uploadedFile.name,
           url: uploadedFile.url,
           metadata: {
@@ -157,31 +227,10 @@ const HITLComposer: FC<ComposerProps> = props => {
 
       // Clear the uploaded file after successful send
       setUploadedFile(null)
-
-      // Show confirmation message and force immediate display
-      if (uploadedFile.type.startsWith('image/')) {
-        props.store.bp.toast?.show({
-          message: lang.tr('module.hitlnext.composer.imageSent'),
-          intent: 'success'
-        })
-      } else {
-        props.store.bp.toast?.show({
-          message: lang.tr('module.hitlnext.composer.fileSent'),
-          intent: 'success'
-        })
-      }
-
-      setUploadedFile(null)
     } else if (text.trim()) {
       // Send text message
       props.store.composer.updateMessage(text.trim())
       await props.store.sendMessage()
-
-      // Show confirmation message for text
-      props.store.bp.toast?.show({
-        message: lang.tr('module.hitlnext.composer.messageSent'),
-        intent: 'success'
-      })
 
       setText('')
     }
@@ -198,7 +247,7 @@ const HITLComposer: FC<ComposerProps> = props => {
         const content = uploadedFile.type.startsWith('image/')
           ? `Imagen: ${uploadedFile.name}`
           : `Archivo: ${uploadedFile.name}`
-        
+
         await sendHitlComment(content, uploadedFile.url)
         setUploadedFile(null)
       } else if (text.trim()) {

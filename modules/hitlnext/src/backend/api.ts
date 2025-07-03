@@ -398,7 +398,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       // Send comment as message to user via webchat using the same pattern as middleware
       try {
         const eventDestination = toEventDestination(req.params.botId, handoff)
-        
+
         // Create message payload based on content type
         let messagePayload: any = {
           type: 'text',
@@ -424,19 +424,6 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
             }
           }
         }
-
-        // Create a mock incoming event to pipe to user (same pattern as middleware)
-        const mockEvent = {
-          botId: req.params.botId,
-          channel: handoff.userChannel,
-          target: handoff.userId,
-          threadId: handoff.userThreadId,
-          payload: messagePayload,
-          id: `hitl-comment-${comment.id}`,
-          direction: 'incoming',
-          type: messagePayload.type,
-          createdOn: new Date()
-        } as sdk.IO.IncomingEvent
 
         // Use the same pipe pattern as the middleware to avoid triggering bot responses
         await bp.events.replyToEvent(eventDestination, [messagePayload])

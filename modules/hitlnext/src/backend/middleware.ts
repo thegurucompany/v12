@@ -10,6 +10,8 @@ import { StateType } from './index'
 import { IAgent, IHandoff } from './../types'
 import { extendAgentSession, measure } from './helpers'
 import Repository from './repository'
+import { S3FileService } from './s3-image-service'
+import { logS3Status } from './s3-test-utils'
 import Socket from './socket'
 import { VonageWhatsAppService } from './vonage-whatsapp'
 
@@ -28,6 +30,24 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   const handoffCache = new LRU<string, string>({ max: 1000, maxAge: ms('1 day') })
   const repository = new Repository(bp, state.timeouts)
   const realtime = Socket(bp)
+
+  // Log S3 configuration status on startup
+  bp.logger.info('🤖 HITL Next middleware initializing...')
+
+  // Check S3 configuration for all bots
+  try {
+    const botIds = await bp.bots.getAllBots()
+    for (const botId of Object.keys(botIds)) {
+      try {
+        const config = await bp.config.getModuleConfigForBot('hitlnext', botId)
+        logS3Status(bp, config)
+      } catch (error) {
+        // Bot might not have hitlnext config yet
+      }
+    }
+  } catch (error) {
+    bp.logger.warn('Could not check S3 configuration on startup:', error.message)
+  }
 
   const pipeEvent = async (event: sdk.IO.IncomingEvent, eventDestination: sdk.IO.EventDestination) => {
     debug.forBot(event.botId, 'Piping event', eventDestination)
@@ -53,12 +73,52 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   const handleIncomingFromUser = async (handoff: IHandoff, event: sdk.IO.IncomingEvent) => {
     // Ensure proper payload structure for file and image messages from users
     if (event.type === 'image' || event.type === 'file') {
-      bp.logger.info(`Processing ${event.type} message from user to agent. Handoff: ${handoff.id}`, {
-        type: event.type,
-        payload: event.payload,
-        hasImage: !!event.payload.image,
-        hasUrl: !!event.payload.url
-      })
+      // Handle Vonage file/image upload to S3
+      if ((event.type === 'image' || event.type === 'file') && handoff.userChannel === 'vonage') {
+        const fileUrl = event.payload.image || event.payload.url || event.payload.file
+        if (fileUrl && fileUrl.includes('api.vonage.com')) {
+          bp.logger.info(`Detected Vonage ${event.type}, attempting S3 upload:`, { fileUrl, handoffId: handoff.id })
+
+          try {
+            const config = await bp.config.getModuleConfigForBot('hitlnext', handoff.botId)
+
+            if (config?.s3?.accessKeyId && config?.s3?.secretAccessKey && config?.s3?.region && config?.s3?.bucket) {
+              const s3Service = new S3FileService(bp, config.s3)
+
+              // Upload to S3 (works for both images and files)
+              const s3Url = await s3Service.uploadVonageFileToS3(
+                fileUrl,
+                handoff.botId,
+                event.payload.title || (event.type === 'image' ? 'WhatsApp Image' : 'WhatsApp File'),
+                event.type
+              )
+
+              // Replace the temporary Vonage URL with the permanent S3 URL
+              if (event.type === 'image') {
+                event.payload.image = s3Url
+              } else {
+                event.payload.file = s3Url
+              }
+              event.payload.url = s3Url
+              event.payload.storage = 's3'
+            } else {
+              bp.logger.warn('S3 not configured for bot, using temporary Vonage URL (expires in 10 minutes):', {
+                botId: handoff.botId,
+                handoffId: handoff.id,
+                fileType: event.type
+              })
+            }
+          } catch (error) {
+            bp.logger.error(`Failed to upload Vonage ${event.type} to S3, using original URL:`, {
+              error: error.message,
+              fileUrl,
+              handoffId: handoff.id,
+              fileType: event.type
+            })
+            // Continue with the original URL as fallback
+          }
+        }
+      }
 
       // Ensure the payload is properly structured for agent chat display
       if (event.type === 'image') {
@@ -166,8 +226,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       (event.payload.type === 'image' || event.payload.type === 'file')
     ) {
       try {
-        bp.logger.info(`Processing ${event.payload.type} message for WhatsApp handoff ${handoff.id}`)
-
         const vonageService = new VonageWhatsAppService(bp)
 
         if (event.payload.type === 'image' && event.payload.image) {
@@ -198,8 +256,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
     // Handle file and image messages for web channel - ensure proper formatting for display
     if (event.payload && (event.payload.type === 'image' || event.payload.type === 'file')) {
-      bp.logger.info(`Processing ${event.payload.type} message for handoff ${handoff.id}`)
-
       // For images, ensure the payload is properly formatted for both agent and user chat
       if (event.payload.type === 'image' && event.payload.image) {
         // Ensure payload structure is consistent for rendering
@@ -251,8 +307,47 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
     // Normalize file and image messages from Vonage/WhatsApp
     if (event.channel === 'vonage' && (event.type === 'image' || event.type === 'file')) {
       try {
+        // Obtener la configuración de S3 para subir imágenes de Vonage
+        const config = await bp.config.getModuleConfigForBot('hitlnext', event.botId)
+        let s3Service: S3FileService | null = null
+
+        if (config.s3Config && config.s3Config.accessKeyId) {
+          s3Service = new S3FileService(bp, config.s3Config)
+        } else {
+          bp.logger.warn('S3 configuration not found - Vonage images will use temporary URLs')
+        }
+
         // Normalize image messages
         if (event.type === 'image') {
+          const originalImageUrl = event.payload.image || event.payload.url
+
+          // Subir imagen a S3 si está configurado
+          if (s3Service && s3Service.isConfigured() && originalImageUrl) {
+            try {
+              bp.logger.info('Uploading Vonage image to S3:', { originalUrl: originalImageUrl })
+
+              const s3Url = await s3Service.uploadVonageFileToS3(
+                originalImageUrl,
+                event.botId,
+                event.payload.title || event.payload.name || 'Imagen de WhatsApp',
+                'image'
+              )
+
+              // Actualizar el payload con la nueva URL de S3
+              event.payload.image = s3Url
+              event.payload.url = s3Url
+              event.payload.originalVonageUrl = originalImageUrl
+
+              bp.logger.info('Successfully uploaded Vonage image to S3:', {
+                originalUrl: originalImageUrl,
+                s3Url
+              })
+            } catch (uploadError) {
+              bp.logger.error('Failed to upload Vonage image to S3, using original URL:', uploadError)
+              // Continuar con la URL original si falla la subida a S3
+            }
+          }
+
           // Ensure the payload has the expected structure for the web chat
           if (!event.payload.image && event.payload.url) {
             event.payload.image = event.payload.url
@@ -281,19 +376,39 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           if (!event.payload.url && event.payload.image) {
             event.payload.url = event.payload.image
           }
-
-          bp.logger.info('Normalized image payload for user preview:', {
-            type: event.payload.type,
-            hasImage: !!event.payload.image,
-            hasUrl: !!event.payload.url,
-            title: event.payload.title,
-            storage: event.payload.storage,
-            finalUrl: event.payload.url || event.payload.image
-          })
         }
 
         // Normalize file messages
         if (event.type === 'file') {
+          const originalFileUrl = event.payload.file || event.payload.url
+
+          // Subir archivo a S3 si está configurado
+          if (s3Service && s3Service.isConfigured() && originalFileUrl) {
+            try {
+              bp.logger.info('Uploading Vonage file to S3:', { originalUrl: originalFileUrl })
+
+              const s3Url = await s3Service.uploadVonageFileToS3(
+                originalFileUrl,
+                event.botId,
+                event.payload.title || event.payload.name || event.payload.filename || 'Archivo de WhatsApp',
+                'file'
+              )
+
+              // Actualizar el payload con la nueva URL de S3
+              event.payload.file = s3Url
+              event.payload.url = s3Url
+              event.payload.originalVonageUrl = originalFileUrl
+
+              bp.logger.info('Successfully uploaded Vonage file to S3:', {
+                originalUrl: originalFileUrl,
+                s3Url
+              })
+            } catch (uploadError) {
+              bp.logger.error('Failed to upload Vonage file to S3, using original URL:', uploadError)
+              // Continuar con la URL original si falla la subida a S3
+            }
+          }
+
           // Ensure the payload has the expected structure for the web chat
           if (!event.payload.url && event.payload.file) {
             event.payload.url = event.payload.file
@@ -328,6 +443,17 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             // Ensure preview exists for non-image files
             ;(event as any).preview = `📎 ${event.payload.title}`
           }
+
+          bp.logger.info('Normalized file payload for user preview:', {
+            type: event.payload.type,
+            hasFile: !!event.payload.file,
+            hasUrl: !!event.payload.url,
+            title: event.payload.title,
+            storage: event.payload.storage,
+            finalUrl: event.payload.url || event.payload.file,
+            isS3Upload: !!event.payload.originalVonageUrl,
+            isImageFile
+          })
         }
       } catch (error) {
         bp.logger.error(`Error normalizing ${event.type} message from Vonage:`, error)

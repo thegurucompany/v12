@@ -21,21 +21,7 @@ export const FileMessage = (props: Renderer.FileMessage) => {
   const fileUrl = image || url
   const fileTitle = title || 'Archivo'
 
-  // Debug logging for development (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    // eslint-disable-next-line no-console
-    console.log('FileMessage rendering:', {
-      hasUrl: !!url,
-      hasImage: !!image,
-      finalUrl: fileUrl,
-      title: fileTitle,
-      storage,
-      originalFile: props.file
-    })
-  }
-
   if (!fileUrl) {
-    console.warn('FileMessage: No URL or image provided', props.file)
     return (
       <div className={'bpw-file-message'}>
         <div>No se pudo cargar el archivo</div>

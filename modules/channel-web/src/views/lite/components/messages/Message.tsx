@@ -92,10 +92,10 @@ class Message extends Component<MessageProps> {
   render_image() {
     try {
       const { payload } = this.props
-      
+
       // Handle different payload structures
       let fileData = null
-      
+
       if (payload?.image || payload?.url) {
         // Standard image payload structure
         fileData = {
@@ -118,7 +118,6 @@ class Message extends Component<MessageProps> {
       }
 
       if (!fileData || (!fileData.url && !fileData.image)) {
-        console.warn('Image message missing URL/image property:', payload)
         return (
           <div style={{ padding: '8px', backgroundColor: '#ffebee', border: '1px solid #ffcdd2', borderRadius: '4px' }}>
             <span style={{ color: '#c62828' }}>❌ No se pudo cargar la imagen</span>
@@ -146,10 +145,10 @@ class Message extends Component<MessageProps> {
   render_file() {
     try {
       const { payload } = this.props
-      
+
       // Handle different payload structures
       let fileData = null
-      
+
       if (payload?.url || payload?.file) {
         // Standard file payload structure
         fileData = {
@@ -172,7 +171,6 @@ class Message extends Component<MessageProps> {
       }
 
       if (!fileData || !fileData.url) {
-        console.warn('File message missing URL property:', payload)
         return (
           <div style={{ padding: '8px', backgroundColor: '#fff3e0', border: '1px solid #ffcc02', borderRadius: '4px' }}>
             <span style={{ color: '#ef6c00' }}>📎 No se pudo cargar el archivo</span>

@@ -3,7 +3,16 @@
 interface CssExports {
   'composer': string;
   'composerContainer': string;
+  'fileIcon': string;
+  'filePreview': string;
+  'fileUploadContainer': string;
   'handoffAssigned': string;
+  'imagePreview': string;
+  'inputRow': string;
+  'progressBar': string;
+  'progressContainer': string;
+  'progressText': string;
+  'removeFileButton': string;
   'selected': string;
   'sendButton': string;
   'shortcutDropdown': string;
@@ -11,6 +20,8 @@ interface CssExports {
   'shortcutKey': string;
   'shortcutListItem': string;
   'shortcutValue': string;
+  'uploadButton': string;
+  'uploadingState': string;
 }
 declare var cssExports: CssExports;
 export = cssExports;

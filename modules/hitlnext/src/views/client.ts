@@ -51,6 +51,10 @@ export interface HitlClient {
   updateHandoff: (id: string, data: Partial<IHandoff>) => Promise<IHandoff>
   deleteMessagesInChannelWeb: (id: string, userId: string) => Promise<void>
   getMessages: (id: string, column?: string, desc?: boolean, limit?: number) => Promise<IEvent[]>
+  uploadFile: (
+    file: File,
+    onProgress?: (progress: { loaded: number; total: number }) => void
+  ) => Promise<{ uploadUrl: string }>
 }
 
 export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
@@ -111,6 +115,29 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
     getMessages: async (id, column?, desc?, limit?) =>
       bp.axios
         .get(`/conversations/${id}/messages`, { ...config, params: { desc, column, limit } })
+        .then(res => res.data),
+    uploadFile: async (file, onProgress?) => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      return bp.axios
+        .post('/upload', formData, {
+          ...config,
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          onUploadProgress: onProgress
+            ? progressEvent => {
+                if (progressEvent.lengthComputable) {
+                  onProgress({
+                    loaded: progressEvent.loaded,
+                    total: progressEvent.total
+                  })
+                }
+              }
+            : undefined
+        })
         .then(res => res.data)
+    }
   }
 }

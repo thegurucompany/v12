@@ -14,9 +14,51 @@
 
 .composerContainer {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+
+  .filePreview {
+    padding: var(--spacing-medium);
+    border-bottom: 1px solid var(--light-gray);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-medium);
+    position: relative;
+
+    .imagePreview {
+      max-width: 60px;
+      max-height: 60px;
+      border-radius: var(--spacing-small);
+      object-fit: cover;
+    }
+
+    .fileIcon {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-small);
+      font-size: 12px;
+      color: var(--shark);
+    }
+
+    .removeFileButton {
+      position: absolute;
+      right: var(--spacing-medium);
+      top: 50%;
+      transform: translateY(-50%);
+
+      &:hover {
+        background-color: var(--hover-ocean);
+      }
+    }
+  }
+
+  .inputRow {
+    display: flex;
+    align-items: center;
+  }
+
   .composer {
-    width: calc(100% - 50px);
+    width: calc(100% - 80px);
     padding: var(--spacing-large) var(--spacing-medium);
     display: flex;
     flex-direction: column-reverse;
@@ -89,6 +131,61 @@
     &:hover {
       path {
         fill: var(--ocean);
+      }
+    }
+  }
+}
+
+.fileUploadContainer {
+  display: flex;
+  align-items: center;
+  margin-right: var(--spacing-small);
+
+  .uploadButton {
+    background: none;
+    border: none;
+    box-shadow: none;
+    font-size: 14px;
+    min-width: 30px;
+    padding: 0;
+    height: 30px;
+
+    &:not([disabled]) {
+      cursor: pointer;
+    }
+
+    path {
+      fill: var(--shark);
+    }
+
+    &:hover {
+      path {
+        fill: var(--ocean);
+      }
+    }
+  }
+
+  .uploadingState {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-small);
+
+    .progressContainer {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-small);
+      min-width: 80px;
+
+      .progressBar {
+        flex: 1;
+        height: 4px;
+      }
+
+      .progressText {
+        font-size: 10px;
+        color: var(--shark);
+        min-width: 25px;
+        text-align: right;
       }
     }
   }

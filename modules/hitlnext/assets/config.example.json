@@ -1,0 +1,38 @@
+{
+  "agentSessionTimeout": "10m",
+  "messageCount": 10,
+  "handoffAlert": 5,
+  "defaultUsername": false,
+  "tags": [],
+  "enableConversationDeletion": false,
+  "transferMessage": {
+    "en": "You are being transferred to an agent.",
+    "fr": "Vous êtes transféré à un agent.",
+    "es": "Se le está transfiriendo a un agente."
+  },
+  "assignMessage": {
+    "en": "You have been assigned to our agent {{agentName}}.",
+    "fr": "Vous avez été assigné à notre agent(e) {{agentName}}.",
+    "es": "Ha sido asignado al agente {{agentName}}."
+  },
+  "eventsWebHook": {},
+  "s3Config": {
+    "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",
+    "secretAccessKey": "YOUR_AWS_SECRET_ACCESS_KEY",
+    "region": "us-east-1",
+    "bucket": "your-hitlnext-uploads-bucket"
+  },
+  "autoComplete": {
+    "trigger": ":",
+    "shortcuts": [
+      {
+        "name": "hello",
+        "value": "Hello! How can I help you today?"
+      },
+      {
+        "name": "thanks",
+        "value": "Thank you for contacting us. Have a great day!"
+      }
+    ]
+  }
+}

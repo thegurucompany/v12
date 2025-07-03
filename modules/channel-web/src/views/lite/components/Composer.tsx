@@ -105,8 +105,9 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
     }
 
     let direction
-    if (this.props.message) {
-      direction = isRTLText.test(this.props.message) ? 'rtl' : 'ltr'
+    const messageText = typeof this.props.message === 'string' ? this.props.message : ''
+    if (messageText) {
+      direction = isRTLText.test(messageText) ? 'rtl' : 'ltr'
     }
 
     const placeholder =
@@ -128,7 +129,7 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
               onFocus={this.props.setFocus.bind(this, 'input')}
               placeholder={placeholder}
               onChange={this.handleMessageChanged}
-              value={this.props.message}
+              value={messageText}
               onKeyPress={this.handleKeyPress}
               onKeyDown={this.handleKeyDown}
               aria-label={this.props.intl.formatMessage({
@@ -159,7 +160,7 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
             >
               <button
                 className={'bpw-send-button'}
-                disabled={!this.props.message.length || this.props.composerLocked || this.state.isRecording}
+                disabled={!messageText.length || this.props.composerLocked || this.state.isRecording}
                 onClick={this.props.sendMessage.bind(this, undefined)}
                 aria-label={this.props.intl.formatMessage({
                   id: 'composer.send',

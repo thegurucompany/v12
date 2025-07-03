@@ -34,7 +34,9 @@ const SUPPORTED_MESSAGES = [
   'visit',
   'request_start_conversation',
   'postback',
-  'voice'
+  'voice',
+  'image',
+  'file'
 ]
 
 const WEBCHAT_CUSTOM_ID_KEY = 'webchatCustomId'
@@ -415,7 +417,8 @@ export default async (bp: typeof sdk, db: Database) => {
       }
     } else if (
       (!payload.text || !_.isString(payload.text) || payload.text.length > config.maxMessageLength) &&
-      payload.type !== 'postback'
+      payload.type !== 'postback' &&
+      payload.type !== 'image'
     ) {
       throw new Error(`Text must be a valid string of less than ${config.maxMessageLength} chars`)
     }

@@ -44,7 +44,7 @@ const handoffColumns = [
   'updatedAt'
 ]
 
-const commentColumns = ['id', 'agentId', 'handoffId', 'threadId', 'content', 'createdAt', 'updatedAt']
+const commentColumns = ['id', 'agentId', 'handoffId', 'threadId', 'content', 'uploadUrl', 'createdAt', 'updatedAt']
 
 const eventColumns = ['id', 'direction', 'botId', 'channel', 'success', 'createdOn', 'threadId', 'type', 'event']
 

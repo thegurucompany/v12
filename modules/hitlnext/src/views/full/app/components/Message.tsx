@@ -7,6 +7,69 @@ import style from '../../style.scss'
 
 const renderPayload = (event: IO.Event) => {
   const { payload } = event
+
+  // Handle image messages - check multiple possible structures
+  if ((payload.type === 'image' || payload.payload?.type === 'image') && (payload.image || payload.payload?.image)) {
+    const imageUrl = payload.image || payload.payload?.image
+    const title = payload.title || payload.payload?.title || 'Image'
+
+    return (
+      <div className="image-message">
+        <img
+          src={imageUrl}
+          alt={title}
+          style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', display: 'block' }}
+          onError={e => {
+            console.error('Failed to load image:', imageUrl)
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+        <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{title}</div>
+      </div>
+    )
+  }
+
+  // Handle file messages - check multiple possible structures
+  if ((payload.type === 'file' || payload.payload?.type === 'file') && (payload.url || payload.payload?.url)) {
+    const fileUrl = payload.url || payload.payload?.url
+    const fileName = payload.title || payload.payload?.title || 'File'
+    const fileExtension = fileName
+      .split('.')
+      .pop()
+      ?.toLowerCase()
+
+    return (
+      <div className="file-message">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            backgroundColor: '#f9f9f9'
+          }}
+        >
+          <div style={{ fontSize: '24px', marginRight: '8px' }}>📄</div>
+          <div>
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none', color: '#0066cc', fontWeight: 'bold' }}
+            >
+              {fileName}
+            </a>
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              {fileExtension ? fileExtension.toUpperCase() : 'FILE'}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Default rendering for other message types
   try {
     return (
       <Collapsible name={`type: ${payload.type}`}>

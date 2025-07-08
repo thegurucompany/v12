@@ -56,6 +56,30 @@ export class VonageWhatsAppService {
     }
   }
 
+  async sendVideo(userId: string, videoUrl: string, title: string, botId?: string, threadId?: string): Promise<void> {
+    try {
+      await this.bp.events.sendEvent(
+        this.bp.IO.Event({
+          direction: 'outgoing',
+          botId,
+          channel: 'whatsapp',
+          threadId,
+          target: userId,
+          type: 'video',
+          payload: {
+            type: 'video',
+            title,
+            video: videoUrl,
+            url: videoUrl
+          }
+        } as sdk.IO.EventCtorArgs)
+      )
+    } catch (error) {
+      this.bp.logger.error('Failed to send video via Vonage WhatsApp:', error)
+      throw error
+    }
+  }
+
   async forwardFileToUser(comment: IComment, botId: string, threadId: string): Promise<void> {
     if (!comment.uploadUrl) {
       return
@@ -63,6 +87,7 @@ export class VonageWhatsAppService {
 
     try {
       const isImage = this.isImageFile(comment.uploadUrl)
+      const isVideo = this.isVideoFile(comment.uploadUrl)
 
       if (isImage) {
         // Send as image message
@@ -77,6 +102,23 @@ export class VonageWhatsAppService {
               type: 'image',
               title: this.getFileNameFromUrl(comment.uploadUrl),
               image: comment.uploadUrl
+            }
+          } as sdk.IO.EventCtorArgs)
+        )
+      } else if (isVideo) {
+        // Send as video message
+        await this.bp.events.sendEvent(
+          this.bp.IO.Event({
+            direction: 'outgoing',
+            botId,
+            channel: 'whatsapp',
+            threadId,
+            type: 'video',
+            payload: {
+              type: 'video',
+              title: this.getFileNameFromUrl(comment.uploadUrl),
+              video: comment.uploadUrl,
+              url: comment.uploadUrl
             }
           } as sdk.IO.EventCtorArgs)
         )
@@ -124,6 +166,12 @@ export class VonageWhatsAppService {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
     const lowerUrl = url.toLowerCase()
     return imageExtensions.some(ext => lowerUrl.includes(ext))
+  }
+
+  private isVideoFile(url: string): boolean {
+    const videoExtensions = ['.mp4', '.mpeg', '.mov', '.avi', '.webm', '.3gp', '.flv', '.mkv', '.wmv']
+    const lowerUrl = url.toLowerCase()
+    return videoExtensions.some(ext => lowerUrl.includes(ext))
   }
 
   private getFileNameFromUrl(url: string): string {

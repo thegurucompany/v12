@@ -32,6 +32,30 @@
       object-fit: cover;
     }
 
+    .videoPreview {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-small);
+
+      .videoPreviewPlayer {
+        max-width: 60px;
+        max-height: 60px;
+        border-radius: var(--spacing-small);
+        object-fit: cover;
+      }
+
+      .videoInfo {
+        display: flex;
+        flex-direction: column;
+
+        .videoName {
+          font-size: 12px;
+          color: var(--shark);
+          font-weight: 500;
+        }
+      }
+    }
+
     .fileIcon {
       display: flex;
       align-items: center;

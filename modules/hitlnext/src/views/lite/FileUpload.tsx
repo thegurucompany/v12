@@ -47,6 +47,11 @@ const FileUpload: FC<Props> = ({ bp, onUploadComplete, disabled }) => {
       'image/png',
       'image/gif',
       'image/webp',
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/3gpp',
       'application/pdf',
       'text/plain',
       'application/msword',
@@ -107,7 +112,7 @@ const FileUpload: FC<Props> = ({ bp, onUploadComplete, disabled }) => {
         type="file"
         style={{ display: 'none' }}
         onChange={handleFileSelect}
-        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.doc,.docx,.xls,.xlsx"
+        accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.3gp,.pdf,.txt,.doc,.docx,.xls,.xlsx"
         disabled={disabled || isUploading}
       />
 

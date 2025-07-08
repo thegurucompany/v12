@@ -22,6 +22,10 @@ interface CssExports {
   'shortcutValue': string;
   'uploadButton': string;
   'uploadingState': string;
+  'videoInfo': string;
+  'videoName': string;
+  'videoPreview': string;
+  'videoPreviewPlayer': string;
 }
 declare var cssExports: CssExports;
 export = cssExports;

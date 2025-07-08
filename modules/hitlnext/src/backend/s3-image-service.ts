@@ -1,6 +1,6 @@
-import * as sdk from 'botpress/sdk'
 import AWS from 'aws-sdk'
 import axios from 'axios'
+import * as sdk from 'botpress/sdk'
 import path from 'path'
 import { URL } from 'url'
 import { v4 as uuidv4 } from 'uuid'
@@ -39,10 +39,15 @@ export class S3FileService {
    * @param fileUrl URL temporal de Vonage (válida por 10 minutos)
    * @param botId ID del bot
    * @param title Título del archivo
-   * @param fileType Tipo de archivo ('image' o 'file')
+   * @param fileType Tipo de archivo ('image', 'file' o 'video')
    * @returns URL permanente en S3
    */
-  async uploadVonageFileToS3(fileUrl: string, botId: string, title?: string, fileType: 'image' | 'file' = 'file'): Promise<string> {
+  async uploadVonageFileToS3(
+    fileUrl: string,
+    botId: string,
+    title?: string,
+    fileType: 'image' | 'file' | 'video' = 'file'
+  ): Promise<string> {
     try {
       this.bp.logger.info(`Downloading ${fileType} from Vonage:`, { fileUrl, botId })
 
@@ -65,7 +70,16 @@ export class S3FileService {
 
       // Generar nombre único para el archivo
       const fileName = `${uuidv4()}${extension}`
-      const folderName = fileType === 'image' ? 'vonage-images' : 'vonage-files'
+      let folderName: string
+
+      if (fileType === 'image') {
+        folderName = 'vonage-images'
+      } else if (fileType === 'video') {
+        folderName = 'vonage-videos'
+      } else {
+        folderName = 'vonage-files'
+      }
+
       const key = `${folderName}/${botId}/${fileName}`
 
       // Subir a S3
@@ -77,7 +91,7 @@ export class S3FileService {
         ACL: 'public-read',
         Metadata: {
           'original-title': title || `${fileType === 'image' ? 'Imagen' : 'Archivo'} de WhatsApp`,
-          'source': 'vonage-whatsapp',
+          source: 'vonage-whatsapp',
           'bot-id': botId,
           'file-type': fileType,
           'upload-date': new Date().toISOString(),
@@ -101,7 +115,6 @@ export class S3FileService {
       })
 
       return result.Location
-
     } catch (error) {
       this.bp.logger.error(`Failed to upload Vonage ${fileType} to S3:`, error)
       throw error
@@ -142,7 +155,11 @@ export class S3FileService {
       'audio/ogg': '.ogg',
       'video/mp4': '.mp4',
       'video/avi': '.avi',
-      'video/quicktime': '.mov'
+      'video/quicktime': '.mov',
+      'video/webm': '.webm',
+      'video/x-msvideo': '.avi',
+      'video/3gpp': '.3gp',
+      'video/x-matroska': '.mkv'
     }
 
     return contentTypeExtensions[contentType] || '.bin'
@@ -151,20 +168,21 @@ export class S3FileService {
   /**
    * Obtiene el tipo de contenido por defecto según el tipo de archivo
    */
-  private getDefaultContentType(fileType: 'image' | 'file'): string {
-    return fileType === 'image' ? 'image/jpeg' : 'application/octet-stream'
+  private getDefaultContentType(fileType: 'image' | 'file' | 'video'): string {
+    if (fileType === 'image') {
+      return 'image/jpeg'
+    } else if (fileType === 'video') {
+      return 'video/mp4'
+    } else {
+      return 'application/octet-stream'
+    }
   }
 
   /**
    * Verifica si la configuración de S3 está completa
    */
   isConfigured(): boolean {
-    return !!(
-      this.config.accessKeyId &&
-      this.config.secretAccessKey &&
-      this.config.region &&
-      this.config.bucket
-    )
+    return !!(this.config.accessKeyId && this.config.secretAccessKey && this.config.region && this.config.bucket)
   }
 
   /**

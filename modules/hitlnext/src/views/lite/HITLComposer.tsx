@@ -198,6 +198,19 @@ const HITLComposer: FC<ComposerProps> = props => {
             fileType: uploadedFile.type
           }
         })
+      } else if (uploadedFile.type.startsWith('video/')) {
+        // For videos, send as video message
+        props.store.composer.updateMessage({
+          type: 'video',
+          title: uploadedFile.name,
+          video: uploadedFile.url,
+          url: uploadedFile.url,
+          metadata: {
+            uploadUrl: uploadedFile.url,
+            fileName: uploadedFile.name,
+            fileType: uploadedFile.type
+          }
+        })
       } else {
         // For other files, send as file message with attractive copy
         const fileExtension =
@@ -288,6 +301,17 @@ const HITLComposer: FC<ComposerProps> = props => {
           <div className={style.filePreview}>
             {uploadedFile.type.startsWith('image/') ? (
               <img src={uploadedFile.url} alt={uploadedFile.name} className={style.imagePreview} />
+            ) : uploadedFile.type.startsWith('video/') ? (
+              <div className={style.fileIcon}>
+                <video
+                  src={uploadedFile.url}
+                  style={{ maxWidth: '60px', maxHeight: '60px', borderRadius: '4px', objectFit: 'cover' }}
+                  controls={false}
+                  muted
+                  preload="metadata"
+                />
+                🎥 {uploadedFile.name}
+              </div>
             ) : (
               <div className={style.fileIcon}>📎 {uploadedFile.name}</div>
             )}

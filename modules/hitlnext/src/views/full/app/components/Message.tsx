@@ -29,6 +29,39 @@ const renderPayload = (event: IO.Event) => {
     )
   }
 
+  // Handle video messages - check multiple possible structures
+  if (
+    (payload.type === 'video' || payload.payload?.type === 'video') &&
+    (payload.video || payload.url || payload.payload?.video || payload.payload?.url)
+  ) {
+    const videoUrl = payload.video || payload.url || payload.payload?.video || payload.payload?.url
+    const title = payload.title || payload.payload?.title || 'Video'
+
+    return (
+      <div className="video-message">
+        <video
+          controls
+          style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', display: 'block' }}
+          onError={e => {
+            console.error('Failed to load video:', videoUrl)
+            e.currentTarget.style.display = 'none'
+          }}
+        >
+          <source src={videoUrl} type="video/mp4" />
+          <source src={videoUrl} type="video/webm" />
+          <source src={videoUrl} type="video/quicktime" />
+          Tu navegador no soporta el elemento de video.
+        </video>
+        <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{title}</div>
+        <div style={{ fontSize: '10px', color: '#999' }}>
+          <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0066cc' }}>
+            Descargar video
+          </a>
+        </div>
+      </div>
+    )
+  }
+
   // Handle file messages - check multiple possible structures
   if ((payload.type === 'file' || payload.payload?.type === 'file') && (payload.url || payload.payload?.url)) {
     const fileUrl = payload.url || payload.payload?.url
@@ -37,6 +70,35 @@ const renderPayload = (event: IO.Event) => {
       .split('.')
       .pop()
       ?.toLowerCase()
+
+    // Check if this file is actually a video
+    const isVideo = fileExtension && ['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v', '3gp'].includes(fileExtension)
+
+    if (isVideo) {
+      return (
+        <div className="video-message">
+          <video
+            controls
+            style={{ maxWidth: '300px', maxHeight: '200px', borderRadius: '8px', display: 'block' }}
+            onError={e => {
+              console.error('Failed to load video:', fileUrl)
+              e.currentTarget.style.display = 'none'
+            }}
+          >
+            <source src={fileUrl} type="video/mp4" />
+            <source src={fileUrl} type="video/webm" />
+            <source src={fileUrl} type="video/quicktime" />
+            Tu navegador no soporta el elemento de video.
+          </video>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>{fileName}</div>
+          <div style={{ fontSize: '10px', color: '#999' }}>
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#0066cc' }}>
+              Descargar video
+            </a>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="file-message">

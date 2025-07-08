@@ -68,6 +68,10 @@ class Service {
   async resolveHandoff(handoff: IHandoff, botId: string, payload) {
     const eventDestination = toEventDestination(botId, handoff)
     const updated = await this.updateHandoff(handoff.id, botId, payload)
+    
+    // Limpiar toda la caché cuando se resuelve el handoff
+    await this.clearUserCache(botId, handoff)
+    
     await this.transferToBot(eventDestination, 'handoffResolved')
 
     return updated
@@ -121,6 +125,46 @@ class Service {
   sendPayload(botId: string, data: { resource: string; type: string; id: string; payload: any }) {
     this.realtime.sendPayload(botId, data)
     void this.webhook.send({ botId, ...data })
+  }
+
+  async clearUserCache(botId: string, handoff: IHandoff) {
+    const eventDestination = toEventDestination(botId, handoff)
+    
+    try {
+      // Crear sessionId usando la información del handoff
+      const sessionId = this.bp.dialog.createId({
+        botId,
+        target: handoff.userId,
+        threadId: handoff.userThreadId,
+        channel: handoff.userChannel
+      })
+
+      // Eliminar sesión completa del motor de diálogo
+      await this.bp.dialog.deleteSession(sessionId, botId)
+      
+      // Limpiar atributos del usuario (mantener solo información básica)
+      await this.bp.users.updateAttributes(handoff.userChannel, handoff.userId, {})
+      
+      // Limpiar también la caché específica del handoff
+      this.state.expireHandoff(botId, handoff.userThreadId)
+      if (handoff.agentThreadId) {
+        this.state.expireHandoff(botId, handoff.agentThreadId)
+      }
+      
+      this.bp.logger.forBot(botId).info(`Cache cleared for user ${handoff.userId} after handoff resolution`, {
+        handoffId: handoff.id,
+        userId: handoff.userId,
+        channel: handoff.userChannel,
+        threadId: handoff.userThreadId,
+        agentThreadId: handoff.agentThreadId
+      })
+    } catch (error) {
+      this.bp.logger.forBot(botId).error('Error clearing user cache after handoff resolution', {
+        error: error.message,
+        handoffId: handoff.id,
+        userId: handoff.userId
+      })
+    }
   }
 }
 

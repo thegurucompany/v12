@@ -15,6 +15,11 @@
     "fr": "Vous avez été assigné à notre agent(e) {{agentName}}.",
     "es": "Ha sido asignado al agente {{agentName}}."
   },
+  "resolveMessage": {
+    "en": "You are being transferred back to the bot.",
+    "fr": "Vous êtes transféré au bot.",
+    "es": "Se le está transfiriendo de vuelta al bot."
+  },
   "eventsWebHook": {},
   "s3Config": {
     "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",

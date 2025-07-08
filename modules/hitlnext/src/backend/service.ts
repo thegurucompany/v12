@@ -66,12 +66,20 @@ class Service {
   }
 
   async resolveHandoff(handoff: IHandoff, botId: string, payload) {
+    const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
     const eventDestination = toEventDestination(botId, handoff)
     const updated = await this.updateHandoff(handoff.id, botId, payload)
-    
+
+    // Enviar mensaje de resolución al usuario antes de transferir de vuelta al bot
+    if (config.resolveMessage) {
+      const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+      const language = attributes.language
+      await this.sendMessageToUser(config.resolveMessage, eventDestination, language)
+    }
+
     // Limpiar toda la caché cuando se resuelve el handoff
     await this.clearUserCache(botId, handoff)
-    
+
     await this.transferToBot(eventDestination, 'handoffResolved')
 
     return updated
@@ -129,7 +137,7 @@ class Service {
 
   async clearUserCache(botId: string, handoff: IHandoff) {
     const eventDestination = toEventDestination(botId, handoff)
-    
+
     try {
       // Crear sessionId usando la información del handoff
       const sessionId = this.bp.dialog.createId({
@@ -141,16 +149,16 @@ class Service {
 
       // Eliminar sesión completa del motor de diálogo
       await this.bp.dialog.deleteSession(sessionId, botId)
-      
+
       // Limpiar atributos del usuario (mantener solo información básica)
       await this.bp.users.updateAttributes(handoff.userChannel, handoff.userId, {})
-      
+
       // Limpiar también la caché específica del handoff
       this.state.expireHandoff(botId, handoff.userThreadId)
       if (handoff.agentThreadId) {
         this.state.expireHandoff(botId, handoff.agentThreadId)
       }
-      
+
       this.bp.logger.forBot(botId).info(`Cache cleared for user ${handoff.userId} after handoff resolution`, {
         handoffId: handoff.id,
         userId: handoff.userId,

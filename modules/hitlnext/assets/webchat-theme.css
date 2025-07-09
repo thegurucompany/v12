@@ -700,17 +700,23 @@
   }
 
   .bpw-send-button {
-    position: absolute;
-    right: -45px;
-    top: 50%;
-    transform: translate(0, -50%);
-    border: none;
-    border-radius: 5px;
-    background: #fff;
-    padding: 5px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
+    position: absolute !important;
+    right: -45px !important;
+    top: 50% !important;
+    transform: translate(0, -50%) !important;
+    border: none !important;
+    border-radius: 5px !important;
+    background: #fff !important;
+    padding: 5px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999 !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
   }
 
   .bpw-send-button path {
@@ -1031,13 +1037,40 @@
     margin: 0.2rem 0.5rem;
     width: 200px;
   }
+
+  /* Additional styles to ensure send button is always visible */
+  .bpw-send-button,
+  button[class*="sendButton"],
+  .hitlnext__style__sendButton___2bUtx {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 1000 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Ensure the composer container has proper layout */
+  .bpw-composer {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  /* Force visibility on any send-related buttons */
+  *[class*="send"]:not(.hidden),
+  *[class*="Send"]:not(.hidden) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 .bpw-emulator-header-tab + div {
   line-height: 0;
 }
 
-.bpw-emulator .bpw-chat-quick_reply-dropdown {
+.bpw-emulator .bpw-chat-quick_reply_dropdown {
   margin-top: 5px;
   zoom: 0.8 !important;
 }

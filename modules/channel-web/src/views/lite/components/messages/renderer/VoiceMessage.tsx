@@ -33,7 +33,7 @@ export const VoiceMessage: FC<Props> = (props: Props) => {
 
   return (
     <audio controls ref={audioRef}>
-      <source src={audio} type={mime} />
+      <source src={audio} type="audio/ogg" />
     </audio>
   )
 }

@@ -35,6 +35,17 @@ export class S3FileService {
   }
 
   /**
+   * Descarga un audio desde Vonage y lo sube a S3
+   * @param audioUrl URL temporal de Vonage (válida por 10 minutos)
+   * @param botId ID del bot
+   * @param title Título del audio
+   * @returns URL permanente en S3
+   */
+  async uploadVonageAudioToS3(audioUrl: string, botId: string, title?: string): Promise<string> {
+    return this.uploadVonageFileToS3(audioUrl, botId, title, 'file')
+  }
+
+  /**
    * Descarga un archivo desde Vonage y lo sube a S3
    * @param fileUrl URL temporal de Vonage (válida por 10 minutos)
    * @param botId ID del bot
@@ -146,6 +157,14 @@ export class S3FileService {
       'audio/mpeg': '.mp3',
       'audio/wav': '.wav',
       'audio/ogg': '.ogg',
+      'audio/aac': '.aac',
+      'audio/mp4': '.m4a',
+      'audio/x-m4a': '.m4a',
+      'audio/webm': '.webm',
+      'audio/flac': '.flac',
+      'audio/x-wav': '.wav',
+      'audio/amr': '.amr',
+      'audio/3gpp': '.3gp',
       'video/mp4': '.mp4',
       'video/mpeg': '.mpeg',
       'video/quicktime': '.mov',
@@ -195,6 +214,15 @@ export class S3FileService {
     const videoExtensions = ['.mp4', '.mpeg', '.mov', '.avi', '.webm', '.3gp', '.flv', '.mkv', '.wmv']
     const lowerUrl = url.toLowerCase()
     return videoExtensions.some(ext => lowerUrl.includes(ext))
+  }
+
+  /**
+   * Determina si una URL es un audio basándose en la extensión
+   */
+  isAudioUrl(url: string): boolean {
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.aac', '.m4a', '.webm', '.flac', '.amr', '.3gp']
+    const lowerUrl = url.toLowerCase()
+    return audioExtensions.some(ext => lowerUrl.includes(ext))
   }
 
   /**

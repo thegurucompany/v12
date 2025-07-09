@@ -71,14 +71,15 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   }
 
   const handleIncomingFromUser = async (handoff: IHandoff, event: sdk.IO.IncomingEvent) => {
-    // Ensure proper payload structure for file, image, and video messages from users
-    if (event.type === 'image' || event.type === 'file' || event.type === 'video') {
-      // Handle Vonage file/image/video upload to S3
+    // Ensure proper payload structure for file, image, video and voice messages from users
+    if (event.type === 'image' || event.type === 'file' || event.type === 'video' || event.type === 'voice') {
+      // Handle Vonage file/image/video/voice upload to S3
       if (
-        (event.type === 'image' || event.type === 'file' || event.type === 'video') &&
+        (event.type === 'image' || event.type === 'file' || event.type === 'video' || event.type === 'voice') &&
         handoff.userChannel === 'vonage'
       ) {
-        const fileUrl = event.payload.image || event.payload.url || event.payload.file || event.payload.video
+        const fileUrl =
+          event.payload.image || event.payload.url || event.payload.file || event.payload.video || event.payload.audio
         if (fileUrl && fileUrl.includes('api.vonage.com')) {
           bp.logger.info(`Detected Vonage ${event.type}, attempting S3 upload:`, { fileUrl, handoffId: handoff.id })
 
@@ -88,7 +89,7 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             if (config?.s3?.accessKeyId && config?.s3?.secretAccessKey && config?.s3?.region && config?.s3?.bucket) {
               const s3Service = new S3FileService(bp, config.s3)
 
-              // Upload to S3 (works for images, files, and videos)
+              // Upload to S3 (works for images, files, videos and audios)
               const s3Url = await s3Service.uploadVonageFileToS3(
                 fileUrl,
                 handoff.botId,
@@ -97,8 +98,10 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
                     ? 'WhatsApp Image'
                     : event.type === 'video'
                     ? 'WhatsApp Video'
+                    : event.type === 'voice'
+                    ? 'Audio de WhatsApp.mp3'
                     : 'WhatsApp File'),
-                event.type === 'video' ? 'video' : event.type
+                event.type === 'video' ? 'video' : event.type === 'voice' ? 'file' : event.type
               )
 
               // Replace the temporary Vonage URL with the permanent S3 URL
@@ -106,6 +109,9 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
                 event.payload.image = s3Url
               } else if (event.type === 'video') {
                 event.payload.video = s3Url
+                event.payload.url = s3Url
+              } else if (event.type === 'voice') {
+                event.payload.audio = s3Url
                 event.payload.url = s3Url
               } else {
                 event.payload.file = s3Url
@@ -177,7 +183,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           } else if (fileUrl.match(/\.(mp4|mpeg|mov|avi|webm|3gp|flv|mkv|wmv)$/i)) {
             // If it's a video file, also set the video property
             event.payload.video = fileUrl
-            bp.logger.info('File detected as video, setting video property:', fileUrl)
           }
         }
       }
@@ -198,15 +203,29 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           if (!event.payload.storage) {
             event.payload.storage = 's3'
           }
-
-          bp.logger.info('User video processed for agent display:', {
-            title: event.payload.title,
-            videoUrl: event.payload.video,
-            url: event.payload.url,
-            storage: event.payload.storage
-          })
         } else {
           bp.logger.warn('User video message missing URL/video property:', event.payload)
+        }
+      }
+
+      if (event.type === 'voice') {
+        // Make sure audio URL is accessible
+        const audioUrl = event.payload.audio || event.payload.url
+        if (audioUrl) {
+          // Ensure both properties are set for maximum compatibility
+          event.payload.audio = audioUrl
+          event.payload.url = audioUrl
+
+          if (!event.payload.title) {
+            event.payload.title = 'Audio del usuario.mp3'
+          }
+
+          // Ensure storage is set
+          if (!event.payload.storage) {
+            event.payload.storage = 's3'
+          }
+        } else {
+          bp.logger.warn('User audio message missing URL/audio property:', event.payload)
         }
       }
     }
@@ -262,11 +281,14 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       _.set(event, 'payload.channel.web.avatarUrl', avatarUrl)
     }
 
-    // Handle file, image, and video messages specially for WhatsApp
+    // Handle file, image, video and voice messages specially for WhatsApp
     if (
       handoff.userChannel === 'vonage' &&
       event.payload &&
-      (event.payload.type === 'image' || event.payload.type === 'file' || event.payload.type === 'video')
+      (event.payload.type === 'image' ||
+        event.payload.type === 'file' ||
+        event.payload.type === 'video' ||
+        event.payload.type === 'voice')
     ) {
       try {
         const vonageService = new VonageWhatsAppService(bp)
@@ -295,6 +317,15 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             handoff.botId,
             handoff.userThreadId
           )
+        } else if (event.payload.type === 'voice' && event.payload.audio) {
+          // Send audio using the new sendAudio method
+          await vonageService.sendAudio(
+            handoff.userId,
+            event.payload.audio,
+            event.payload.title || 'Audio',
+            handoff.botId,
+            handoff.userThreadId
+          )
         }
 
         bp.logger.info(`Successfully sent ${event.payload.type} via Vonage WhatsApp`)
@@ -305,10 +336,13 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       }
     }
 
-    // Handle file, image, and video messages for web channel - ensure proper formatting for display
+    // Handle file, image, video and voice messages for web channel - ensure proper formatting for display
     if (
       event.payload &&
-      (event.payload.type === 'image' || event.payload.type === 'file' || event.payload.type === 'video')
+      (event.payload.type === 'image' ||
+        event.payload.type === 'file' ||
+        event.payload.type === 'video' ||
+        event.payload.type === 'voice')
     ) {
       // For images, ensure the payload is properly formatted for both agent and user chat
       if (event.payload.type === 'image' && event.payload.image) {
@@ -361,6 +395,24 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           ;(event as any).preview = `📎 ${event.payload.title || 'File'}`
         }
       }
+
+      // For voice/audio messages, ensure the payload is properly formatted for both agent and user chat
+      if (event.payload.type === 'voice' && event.payload.audio) {
+        // Ensure payload structure is consistent for rendering
+        if (!event.payload.payload) {
+          event.payload.payload = {
+            type: 'voice',
+            title: event.payload.title || 'Audio',
+            audio: event.payload.audio,
+            url: event.payload.url || event.payload.audio
+          }
+        }
+
+        // Ensure preview is set
+        if (!event.preview) {
+          ;(event as any).preview = `� ${event.payload.title || 'Audio'}`
+        }
+      }
     }
 
     await pipeEvent(event, {
@@ -375,8 +427,11 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
   const incomingHandler = async (event: sdk.IO.IncomingEvent, next: sdk.IO.MiddlewareNextCallback) => {
     updateHitlStatus(event)
-    // Normalize file, image, and video messages from Vonage/WhatsApp
-    if (event.channel === 'vonage' && (event.type === 'image' || event.type === 'file' || event.type === 'video')) {
+    // Normalize file, image, video and voice messages from Vonage/WhatsApp
+    if (
+      event.channel === 'vonage' &&
+      (event.type === 'image' || event.type === 'file' || event.type === 'video' || event.type === 'voice')
+    ) {
       try {
         // Obtener la configuración de S3 para subir imágenes de Vonage
         const config = await bp.config.getModuleConfigForBot('hitlnext', event.botId)
@@ -514,17 +569,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
             // Ensure preview exists for non-image files
             ;(event as any).preview = `📎 ${event.payload.title}`
           }
-
-          bp.logger.info('Normalized file payload for user preview:', {
-            type: event.payload.type,
-            hasFile: !!event.payload.file,
-            hasUrl: !!event.payload.url,
-            title: event.payload.title,
-            storage: event.payload.storage,
-            finalUrl: event.payload.url || event.payload.file,
-            isS3Upload: !!event.payload.originalVonageUrl,
-            isImageFile
-          })
         }
 
         // Normalize video messages
@@ -534,8 +578,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           // Subir video a S3 si está configurado
           if (s3Service && s3Service.isConfigured() && originalVideoUrl) {
             try {
-              bp.logger.info('Uploading Vonage video to S3:', { originalUrl: originalVideoUrl })
-
               const s3Url = await s3Service.uploadVonageFileToS3(
                 originalVideoUrl,
                 event.botId,
@@ -547,11 +589,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
               event.payload.video = s3Url
               event.payload.url = s3Url
               event.payload.originalVonageUrl = originalVideoUrl
-
-              bp.logger.info('Successfully uploaded Vonage video to S3:', {
-                originalUrl: originalVideoUrl,
-                s3Url
-              })
             } catch (uploadError) {
               bp.logger.error('Failed to upload Vonage video to S3, using original URL:', uploadError)
               // Continuar con la URL original si falla la subida a S3
@@ -585,6 +622,68 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
           if (!event.payload.video && event.payload.url) {
             event.payload.video = event.payload.url
           }
+
+          // Set preview for videos
+          if (!event.preview) {
+            ;(event as any).preview = `🎥 Video: ${event.payload.title}`
+          }
+        }
+
+        // Normalize voice/audio messages
+        if (event.type === 'voice') {
+          const originalAudioUrl = event.payload.audio || event.payload.url
+
+          // Subir audio a S3 si está configurado
+          if (s3Service && s3Service.isConfigured() && originalAudioUrl) {
+            try {
+              const s3Url = await s3Service.uploadVonageFileToS3(
+                originalAudioUrl,
+                event.botId,
+                event.payload.title || event.payload.name || 'Audio de WhatsApp.mp3',
+                'file' // Audio se trata como file para S3
+              )
+
+              // Actualizar el payload con la nueva URL de S3
+              event.payload.audio = s3Url
+              event.payload.url = s3Url
+              event.payload.originalVonageUrl = originalAudioUrl
+            } catch (uploadError) {
+              bp.logger.error('Failed to upload Vonage audio to S3, using original URL:', uploadError)
+            }
+          }
+
+          // Ensure the payload has the expected structure for the web chat
+          if (!event.payload.url && event.payload.audio) {
+            event.payload.url = event.payload.audio
+          }
+
+          if (!event.payload.title && event.payload.name) {
+            event.payload.title = event.payload.name
+          }
+
+          if (!event.payload.title && event.payload.filename) {
+            event.payload.title = event.payload.filename
+          }
+
+          // Set default title if none exists
+          if (!event.payload.title) {
+            event.payload.title = 'Audio de WhatsApp.mp3'
+          }
+
+          // Force storage to be 's3' for better compatibility
+          if (!event.payload.storage) {
+            event.payload.storage = 's3'
+          }
+
+          // Ensure the audio property is set correctly
+          if (!event.payload.audio && event.payload.url) {
+            event.payload.audio = event.payload.url
+          }
+
+          // Set preview for audio
+          if (!event.preview) {
+            ;(event as any).preview = `� ${event.payload.title}`
+          }
         }
       } catch (error) {
         bp.logger.error(`Error normalizing ${event.type} message from Vonage:`, error)
@@ -592,8 +691,8 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       }
     }
 
-    // Handle text, image, file, and video types for HITL
-    if (!['text', 'image', 'file', 'video'].includes(event.type)) {
+    // Handle text, image, file, video and voice types for HITL
+    if (!['text', 'image', 'file', 'video', 'voice'].includes(event.type)) {
       return next(undefined, false, true)
     }
 

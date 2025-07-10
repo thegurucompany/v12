@@ -29,7 +29,7 @@ const FileDisplay: FC<FileDisplayProps> = props => {
         <div className={style.audioWrapper}>
           <div className={style.audioWrapperActions}>{deletable && deletableFile()}</div>
           <audio controls className={style.audioWrapperSource}>
-            <source src={url} type={mimeType} />
+            <source src={url} type="audio/ogg" />
             Your browser does not support the audio element.
           </audio>
         </div>

@@ -63,6 +63,14 @@ export interface Config {
   }
 
   /**
+   * @param resolveMessage The message sent to the user when the conversation is resolved and they are being transferred back to the bot.
+   * @default { "en": "You are being transferred back to the bot.", "fr": "Vous êtes transféré au bot.", "es": "Se le está transfiriendo de vuelta al bot."}
+   */
+  resolveMessage?: {
+    [Key: string]: string
+  }
+
+  /**
    * @param eventsWebHook
    * @default {}
    */

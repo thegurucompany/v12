@@ -1,6 +1,6 @@
-import * as sdk from 'botpress/sdk'
 import AWS from 'aws-sdk'
 import axios from 'axios'
+import * as sdk from 'botpress/sdk'
 import path from 'path'
 import { URL } from 'url'
 import { v4 as uuidv4 } from 'uuid'
@@ -35,14 +35,30 @@ export class S3FileService {
   }
 
   /**
+   * Descarga un audio desde Vonage y lo sube a S3
+   * @param audioUrl URL temporal de Vonage (válida por 10 minutos)
+   * @param botId ID del bot
+   * @param title Título del audio
+   * @returns URL permanente en S3
+   */
+  async uploadVonageAudioToS3(audioUrl: string, botId: string, title?: string): Promise<string> {
+    return this.uploadVonageFileToS3(audioUrl, botId, title, 'file')
+  }
+
+  /**
    * Descarga un archivo desde Vonage y lo sube a S3
    * @param fileUrl URL temporal de Vonage (válida por 10 minutos)
    * @param botId ID del bot
    * @param title Título del archivo
-   * @param fileType Tipo de archivo ('image' o 'file')
+   * @param fileType Tipo de archivo ('image', 'file', o 'video')
    * @returns URL permanente en S3
    */
-  async uploadVonageFileToS3(fileUrl: string, botId: string, title?: string, fileType: 'image' | 'file' = 'file'): Promise<string> {
+  async uploadVonageFileToS3(
+    fileUrl: string,
+    botId: string,
+    title?: string,
+    fileType: 'image' | 'file' | 'video' = 'file'
+  ): Promise<string> {
     try {
       this.bp.logger.info(`Downloading ${fileType} from Vonage:`, { fileUrl, botId })
 
@@ -65,7 +81,8 @@ export class S3FileService {
 
       // Generar nombre único para el archivo
       const fileName = `${uuidv4()}${extension}`
-      const folderName = fileType === 'image' ? 'vonage-images' : 'vonage-files'
+      const folderName =
+        fileType === 'image' ? 'vonage-images' : fileType === 'video' ? 'vonage-videos' : 'vonage-files'
       const key = `${folderName}/${botId}/${fileName}`
 
       // Subir a S3
@@ -76,8 +93,9 @@ export class S3FileService {
         ContentType: contentType,
         ACL: 'public-read',
         Metadata: {
-          'original-title': title || `${fileType === 'image' ? 'Imagen' : 'Archivo'} de WhatsApp`,
-          'source': 'vonage-whatsapp',
+          'original-title':
+            title || `${fileType === 'image' ? 'Imagen' : fileType === 'video' ? 'Video' : 'Archivo'} de WhatsApp`,
+          source: 'vonage-whatsapp',
           'bot-id': botId,
           'file-type': fileType,
           'upload-date': new Date().toISOString(),
@@ -101,7 +119,6 @@ export class S3FileService {
       })
 
       return result.Location
-
     } catch (error) {
       this.bp.logger.error(`Failed to upload Vonage ${fileType} to S3:`, error)
       throw error
@@ -140,9 +157,21 @@ export class S3FileService {
       'audio/mpeg': '.mp3',
       'audio/wav': '.wav',
       'audio/ogg': '.ogg',
+      'audio/aac': '.aac',
+      'audio/mp4': '.m4a',
+      'audio/x-m4a': '.m4a',
+      'audio/webm': '.webm',
+      'audio/flac': '.flac',
+      'audio/x-wav': '.wav',
+      'audio/amr': '.amr',
+      'audio/3gpp': '.3gp',
       'video/mp4': '.mp4',
-      'video/avi': '.avi',
-      'video/quicktime': '.mov'
+      'video/mpeg': '.mpeg',
+      'video/quicktime': '.mov',
+      'video/x-msvideo': '.avi',
+      'video/webm': '.webm',
+      'video/3gpp': '.3gp',
+      'video/x-flv': '.flv'
     }
 
     return contentTypeExtensions[contentType] || '.bin'
@@ -151,20 +180,22 @@ export class S3FileService {
   /**
    * Obtiene el tipo de contenido por defecto según el tipo de archivo
    */
-  private getDefaultContentType(fileType: 'image' | 'file'): string {
-    return fileType === 'image' ? 'image/jpeg' : 'application/octet-stream'
+  private getDefaultContentType(fileType: 'image' | 'file' | 'video'): string {
+    switch (fileType) {
+      case 'image':
+        return 'image/jpeg'
+      case 'video':
+        return 'video/mp4'
+      default:
+        return 'application/octet-stream'
+    }
   }
 
   /**
    * Verifica si la configuración de S3 está completa
    */
   isConfigured(): boolean {
-    return !!(
-      this.config.accessKeyId &&
-      this.config.secretAccessKey &&
-      this.config.region &&
-      this.config.bucket
-    )
+    return !!(this.config.accessKeyId && this.config.secretAccessKey && this.config.region && this.config.bucket)
   }
 
   /**
@@ -174,6 +205,24 @@ export class S3FileService {
     const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
     const lowerUrl = url.toLowerCase()
     return imageExtensions.some(ext => lowerUrl.includes(ext))
+  }
+
+  /**
+   * Determina si una URL es un video basándose en la extensión
+   */
+  isVideoUrl(url: string): boolean {
+    const videoExtensions = ['.mp4', '.mpeg', '.mov', '.avi', '.webm', '.3gp', '.flv', '.mkv', '.wmv']
+    const lowerUrl = url.toLowerCase()
+    return videoExtensions.some(ext => lowerUrl.includes(ext))
+  }
+
+  /**
+   * Determina si una URL es un audio basándose en la extensión
+   */
+  isAudioUrl(url: string): boolean {
+    const audioExtensions = ['.mp3', '.wav', '.ogg', '.aac', '.m4a', '.webm', '.flac', '.amr', '.3gp']
+    const lowerUrl = url.toLowerCase()
+    return audioExtensions.some(ext => lowerUrl.includes(ext))
   }
 
   /**

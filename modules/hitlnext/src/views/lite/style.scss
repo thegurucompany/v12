@@ -53,18 +53,22 @@
   }
 
   .inputRow {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    position: relative !important;
   }
 
   .composer {
-    width: calc(100% - 80px);
-    padding: var(--spacing-large) var(--spacing-medium);
-    display: flex;
-    flex-direction: column-reverse;
+    width: calc(100% - 80px) !important;
+    padding: var(--spacing-large) var(--spacing-medium) !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    flex: 1 !important;
     textarea {
-      min-height: 40px;
-      padding: var(--spacing-large);
+      min-height: 40px !important;
+      padding: var(--spacing-large) !important;
     }
 
     .shortcutDropdown {
@@ -114,23 +118,29 @@
     }
   }
   :global(.bp3-button).sendButton {
-    background: none;
-    border: none;
-    box-shadow: none;
-    font-size: 14px;
-    font-weight: 500;
-    min-width: 40px;
-    padding: 0;
-    height: 40px;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    min-width: 40px !important;
+    padding: 0 !important;
+    height: 40px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 999 !important;
+    flex-shrink: 0 !important;
     &:not([disabled]) {
-      cursor: pointer;
+      cursor: pointer !important;
     }
     path {
-      fill: var(--shark);
+      fill: var(--shark) !important;
     }
     &:hover {
       path {
-        fill: var(--ocean);
+        fill: var(--ocean) !important;
       }
     }
   }

@@ -111,10 +111,12 @@ export const FileMessage = (props: Renderer.FileMessage) => {
     )
   } else if (mime.includes('audio/')) {
     return (
-      <audio controls>
-        <source src={fileUrl} type={mime} />
-        Tu navegador no soporta el elemento de audio.
-      </audio>
+      <div className={'bpw-file-message'}>
+        <span>🎵 Audio: </span>
+        <a href={fileUrl} target={'_blank'} rel="noopener noreferrer">
+          {fileTitle}
+        </a>
+      </div>
     )
   } else if (mime.includes('video/')) {
     return (

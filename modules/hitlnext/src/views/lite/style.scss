@@ -200,3 +200,16 @@
     }
   }
 }
+
+/* Ocultar barras de desplazamiento para la vista lite también */
+:global(.hitl-lite-container),
+:global(.hitl-conversation),
+:global(.lite-messages) {
+  &::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

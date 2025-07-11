@@ -261,11 +261,21 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         })
       }
 
-      // TODO replace this by messaging api once all channels have been ported
       const recentUserConversationEvents = await bp.events.findEvents(
         { botId, threadId: handoff.userThreadId },
-        { count: 10, sortOrder: [{ column: 'id', desc: true }] }
+        { count: 32, sortOrder: [{ column: 'createdOn', desc: true }] }
       )
+
+      const messageEvents = recentUserConversationEvents.filter(e => {
+        const p = e.event?.payload
+        return p && (p.text || p.image || p.file || p.type === 'text' || p.type === 'image' || p.type === 'file')
+      })
+
+      const orderedEvents = messageEvents
+        .sort((a, b) => new Date(a.event.createdOn).getTime() - new Date(b.event.createdOn).getTime())
+        .slice(-20)
+
+      bp.logger.info(`[hitlnext] Asignando handoff ${handoff.id}: Copiando ${orderedEvents.length} mensajes al thread del agente`)
 
       const baseEvent: Partial<sdk.IO.EventCtorArgs> = {
         direction: 'outgoing',
@@ -275,14 +285,18 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         threadId: handoff.agentThreadId
       }
 
-      await Promise.mapSeries(recentUserConversationEvents.reverse(), async event => {
-        await bp.messaging
-          .forBot(handoff.botId)
-          .createMessage(
-            handoff.agentThreadId,
-            event.direction === 'incoming' ? undefined : event.target,
-            event.event.payload
-          )
+      await Promise.mapSeries(orderedEvents, async event => {
+        try {
+          await bp.messaging
+            .forBot(handoff.botId)
+            .createMessage(
+              handoff.agentThreadId,
+              event.direction === 'incoming' ? undefined : event.target,
+              event.event.payload
+            )
+        } catch (err) {
+          bp.logger.warn(`[hitlnext] No se pudo copiar el mensaje ${event.id} al thread del agente:`, err.message)
+        }
         await Bluebird.delay(5)
       })
 

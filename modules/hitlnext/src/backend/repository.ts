@@ -363,6 +363,29 @@ export default class Repository {
     })
   }
 
+  /**
+   * Get the first available agent for auto-assignment
+   */
+  getAvailableAgent = async (botId: string): Promise<Omit<IAgent, 'online'> | null> => {
+    try {
+      const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
+      const agents = await this.listAgents(workspace)
+
+      // Find the first online agent
+      for (const agent of agents) {
+        const isOnline = await this.getAgentOnline(botId, agent.agentId)
+        if (isOnline) {
+          return agent
+        }
+      }
+
+      return null
+    } catch (error) {
+      debug.forBot(botId, 'Error getting available agent:', error.message)
+      return null
+    }
+  }
+
   async getAgent(agentId: string): Promise<Omit<IAgent, 'online'>> {
     if (!this.agentCache[agentId]) {
       //temp hack because there is no get user in the workspace sdk

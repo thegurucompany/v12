@@ -3,6 +3,7 @@
   "messageCount": 10,
   "handoffAlert": 5,
   "defaultUsername": false,
+  "autoAssignConversations": false,
   "tags": [],
   "enableConversationDeletion": false,
   "transferMessage": {

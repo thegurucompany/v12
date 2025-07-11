@@ -46,6 +46,12 @@ export interface Config {
   enableConversationDeletion: boolean
 
   /**
+   * @param autoAssignConversations Whether or not to automatically assign conversations to available agents
+   * @default false
+   */
+  autoAssignConversations: boolean
+
+  /**
    * @param transferMessage The message sent to the user when he is being transferred to an agent. E.g. ̀`{ "lang": "message"}`.
    * @default { "en": "You are being transferred to an agent.", "fr": "Vous êtes transféré à un agent.", "es": "Se le está transfiriendo a un agente."}
    */

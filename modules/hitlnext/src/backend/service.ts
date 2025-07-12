@@ -79,7 +79,9 @@ class Service {
   }
 
   /**
-   * Auto-assign a handoff to an available agent
+   * Auto-assign a handoff to an available agent using equitable distribution.
+   * The system now assigns conversations to the agent with the least number
+   * of currently assigned (active) conversations to ensure fair workload distribution.
    */
   async autoAssignHandoff(botId: string, handoff: IHandoff) {
     try {

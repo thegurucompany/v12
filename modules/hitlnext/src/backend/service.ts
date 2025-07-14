@@ -1,3 +1,4 @@
+import Bluebird from 'bluebird'
 import * as sdk from 'botpress/sdk'
 import _ from 'lodash'
 
@@ -51,6 +52,18 @@ class Service {
 
     this.sendPayload(botId, { resource: 'handoff', type: 'create', id: handoff.id, payload: handoff })
 
+    // Auto-assign to available agent if enabled
+    if (config.autoAssignConversations && handoff.status === 'pending') {
+      this.bp.logger.forBot(botId).info(`Auto-assignment enabled, attempting to assign handoff ${handoff.id}`)
+      setTimeout(async () => {
+        try {
+          await this.autoAssignHandoff(botId, handoff)
+        } catch (error) {
+          this.bp.logger.forBot(botId).error('Error in auto-assignment:', error.message)
+        }
+      }, 1000) // Small delay to ensure handoff is fully created
+    }
+
     if (timeoutDelay !== undefined && timeoutDelay > 0) {
       setTimeout(async () => {
         const userHandoff = await this.repository.getHandoff(handoff.id)
@@ -63,6 +76,113 @@ class Service {
     }
 
     return handoff
+  }
+
+  /**
+   * Auto-assign a handoff to an available agent using equitable distribution.
+   * The system now assigns conversations to the agent with the least number
+   * of currently assigned (active) conversations to ensure fair workload distribution.
+   */
+  async autoAssignHandoff(botId: string, handoff: IHandoff) {
+    try {
+      // Check if handoff is still pending
+      const currentHandoff = await this.repository.getHandoff(handoff.id)
+      if (currentHandoff.status !== 'pending') {
+        this.bp.logger.forBot(botId).info(`Handoff ${handoff.id} is no longer pending, skipping auto-assignment`)
+        return
+      }
+
+      // Find available agent
+      const availableAgent = await this.repository.getAvailableAgent(botId)
+      if (!availableAgent) {
+        this.bp.logger.forBot(botId).info(`No available agents found for auto-assignment of handoff ${handoff.id}`)
+        return
+      }
+
+      this.bp.logger.forBot(botId).info(`Auto-assigning handoff ${handoff.id} to agent ${availableAgent.agentId}`)
+
+      // Create agent conversation
+      const userId = await this.repository.mapVisitor(botId, availableAgent.agentId)
+      const conversation = await this.bp.messaging.forBot(botId).createConversation(userId)
+
+      const agentThreadId = conversation.id
+      const payload: Pick<IHandoff, 'agentId' | 'agentThreadId' | 'assignedAt' | 'status'> = {
+        agentId: availableAgent.agentId,
+        agentThreadId,
+        assignedAt: new Date(),
+        status: 'assigned'
+      }
+
+      // Update handoff
+      const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+      this.state.cacheHandoff(botId, agentThreadId, updatedHandoff)
+
+      // Send assignment message to user
+      const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+      if (config.assignMessage) {
+        const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+        const language = attributes.language
+        const eventDestination = toEventDestination(botId, handoff)
+
+        await this.sendMessageToUser(config.assignMessage, eventDestination, language, {
+          agentName: availableAgent.attributes?.firstname || availableAgent.agentId
+        })
+      }
+
+      // Copy recent conversation history to agent thread
+      await this.copyConversationHistory(botId, handoff, agentThreadId, userId)
+
+      // Update realtime
+      this.updateRealtimeHandoff(botId, updatedHandoff)
+
+      this.bp.logger
+        .forBot(botId)
+        .info(`Successfully auto-assigned handoff ${handoff.id} to agent ${availableAgent.agentId}`)
+    } catch (error) {
+      this.bp.logger.forBot(botId).error(`Failed to auto-assign handoff ${handoff.id}:`, error.message)
+    }
+  }
+
+  /**
+   * Copy conversation history to agent thread
+   */
+  async copyConversationHistory(botId: string, handoff: IHandoff, agentThreadId: string, agentUserId: string) {
+    try {
+      const recentUserConversationEvents = await this.bp.events.findEvents(
+        { botId, threadId: handoff.userThreadId },
+        { count: 32, sortOrder: [{ column: 'createdOn', desc: true }] }
+      )
+
+      const messageEvents = recentUserConversationEvents.filter(e => {
+        const p = e.event?.payload
+        return p && (p.text || p.image || p.file || p.type === 'text' || p.type === 'image' || p.type === 'file')
+      })
+
+      const orderedEvents = messageEvents
+        .sort((a, b) => new Date(a.event.createdOn).getTime() - new Date(b.event.createdOn).getTime())
+        .slice(-20)
+
+      this.bp.logger
+        .forBot(botId)
+        .info(`[hitlnext] Auto-assignment: Copiando ${orderedEvents.length} mensajes al thread del agente`)
+
+      await Promise.mapSeries(orderedEvents, async event => {
+        try {
+          await this.bp.messaging
+            .forBot(botId)
+            .createMessage(
+              agentThreadId,
+              event.direction === 'incoming' ? undefined : event.target,
+              event.event.payload
+            )
+        } catch (err) {
+          this.bp.logger.warn(`[hitlnext] No se pudo copiar el mensaje ${event.id} al thread del agente:`, err.message)
+        }
+        await Bluebird.delay(5)
+      })
+    } catch (error) {
+      this.bp.logger.forBot(botId).error('Error copying conversation history during auto-assignment:', error.message)
+    }
   }
 
   async resolveHandoff(handoff: IHandoff, botId: string, payload) {

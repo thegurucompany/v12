@@ -363,6 +363,109 @@ export default class Repository {
     })
   }
 
+  /**
+   * Count active (assigned) handoffs for a specific agent
+   */
+  getAssignedHandoffCount = async (botId: string, agentId: string): Promise<number> => {
+    try {
+      const result = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .andWhere('agentId', agentId)
+        .andWhere('status', 'assigned')
+        .count('* as count')
+        .first()
+
+      return Number(Object.values(result || {})[0]) || 0
+    } catch (error) {
+      debug.forBot(botId, 'Error counting assigned handoffs for agent:', { agentId, error: error.message })
+      return 0
+    }
+  }
+
+  /**
+   * Get the agent with the least number of assigned conversations for equitable distribution
+   */
+  getAvailableAgent = async (botId: string): Promise<Omit<IAgent, 'online'> | null> => {
+    try {
+      const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
+      const agents = await this.listAgents(workspace)
+
+      // Filter only online agents
+      const onlineAgents = []
+      for (const agent of agents) {
+        const isOnline = await this.getAgentOnline(botId, agent.agentId)
+        if (isOnline) {
+          onlineAgents.push(agent)
+        }
+      }
+
+      if (onlineAgents.length === 0) {
+        return null
+      }
+
+      // If only one agent is online, return it
+      if (onlineAgents.length === 1) {
+        return onlineAgents[0]
+      }
+
+      // Get conversation counts for all online agents
+      const agentsWithCounts = await Promise.all(
+        onlineAgents.map(async agent => {
+          const handoffCount = await this.getAssignedHandoffCount(botId, agent.agentId)
+          return {
+            agent,
+            handoffCount
+          }
+        })
+      )
+
+      // Sort by handoff count (ascending) to get agent with least conversations first
+      agentsWithCounts.sort((a, b) => a.handoffCount - b.handoffCount)
+
+      const selectedAgent = agentsWithCounts[0].agent
+      const selectedCount = agentsWithCounts[0].handoffCount
+
+      this.bp.logger
+        .forBot(botId)
+        .info(
+          `Auto-assignment: Selected agent ${selectedAgent.agentId} with ${selectedCount} assigned conversations. ` +
+            `Available agents and counts: ${agentsWithCounts
+              .map(ac => `${ac.agent.agentId}(${ac.handoffCount})`)
+              .join(', ')}`
+        )
+
+      return selectedAgent
+    } catch (error) {
+      debug.forBot(botId, 'Error getting available agent:', error.message)
+      return null
+    }
+  }
+
+  /**
+   * Get the first available agent for auto-assignment (legacy method - deprecated)
+   * @deprecated Use getAvailableAgent instead for equitable distribution
+   */
+  getFirstAvailableAgent = async (botId: string): Promise<Omit<IAgent, 'online'> | null> => {
+    try {
+      const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
+      const agents = await this.listAgents(workspace)
+
+      // Find the first online agent
+      for (const agent of agents) {
+        const isOnline = await this.getAgentOnline(botId, agent.agentId)
+        if (isOnline) {
+          return agent
+        }
+      }
+
+      return null
+    } catch (error) {
+      debug.forBot(botId, 'Error getting available agent:', error.message)
+      return null
+    }
+  }
+
   async getAgent(agentId: string): Promise<Omit<IAgent, 'online'>> {
     if (!this.agentCache[agentId]) {
       //temp hack because there is no get user in the workspace sdk

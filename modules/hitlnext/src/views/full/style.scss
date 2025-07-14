@@ -418,3 +418,33 @@
     }
   }
 }
+
+/* Ocultar barras de desplazamiento pero mantener funcionalidad de scroll */
+.sidebarContainer,
+.handoffList,
+.messageList {
+  /* Para navegadores webkit (Chrome, Safari, Edge) */
+  &::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  /* Para Firefox */
+  scrollbar-width: none;
+
+  /* Para IE y Edge más antiguos */
+  -ms-overflow-style: none;
+}
+
+/* Aplicar también a elementos globales de conversación */
+:global(.conversation-container),
+:global(.chat-container),
+:global(.messages-container) {
+  &::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

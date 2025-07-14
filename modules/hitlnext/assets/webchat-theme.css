@@ -1040,7 +1040,7 @@
 
   /* Additional styles to ensure send button is always visible */
   .bpw-send-button,
-  button[class*="sendButton"],
+  button[class*='sendButton'],
   .hitlnext__style__sendButton___2bUtx {
     display: block !important;
     visibility: visible !important;
@@ -1058,19 +1058,38 @@
   }
 
   /* Force visibility on any send-related buttons */
-  *[class*="send"]:not(.hidden),
-  *[class*="Send"]:not(.hidden) {
+  *[class*='send']:not(.hidden),
+  *[class*='Send']:not(.hidden) {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+
+  .bpw-emulator .bpw-chat-quick_reply_dropdown {
+    margin-top: 5px;
+    zoom: 0.8 !important;
+  }
+
+  /* Ocultar barras de desplazamiento en el webchat */
+  .bpw-chat-container,
+  .bpw-msg-list,
+  .bpw-messages-container,
+  .bpw-conversation-container {
+    /* Para navegadores webkit (Chrome, Safari, Edge) */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  .bpw-chat-container::-webkit-scrollbar,
+  .bpw-msg-list::-webkit-scrollbar,
+  .bpw-messages-container::-webkit-scrollbar,
+  .bpw-conversation-container::-webkit-scrollbar {
+    width: 0px !important;
+    background: transparent !important;
+    display: none !important;
   }
 }
 
 .bpw-emulator-header-tab + div {
   line-height: 0;
-}
-
-.bpw-emulator .bpw-chat-quick_reply_dropdown {
-  margin-top: 5px;
-  zoom: 0.8 !important;
 }

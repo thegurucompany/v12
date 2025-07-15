@@ -134,6 +134,27 @@ export default class Repository {
           const record = _.mapKeys(_.pick(row, userColumnsPrefixed), (v, k) => _.split(k, ':').pop())
           record.attributes = this.bp.database.json.get(record.attributes)
 
+          // Handle cases where userId might be an object string from webchat initialization
+          // This prevents React rendering errors when userId is something like "{prop1: 'value1', prop2: 'value2'}"
+          let safeUserId = record.id
+          if (typeof record.id === 'string' && record.id.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(record.id)
+              // If it's an object, get the first non-null/non-undefined value as display ID
+              const values = Object.values(parsed).filter(val => val != null && val !== '')
+              if (values.length > 0) {
+                safeUserId = String(values[0])
+              } else {
+                // If no valid values, use the JSON string truncated
+                safeUserId = record.id.substring(0, 50)
+              }
+            } catch (e) {
+              // If parsing fails, just use the original (truncated for safety)
+              safeUserId = record.id.substring(0, 50)
+            }
+          }
+
+          record.id = safeUserId
           memo[row.id].user = record
         }
 

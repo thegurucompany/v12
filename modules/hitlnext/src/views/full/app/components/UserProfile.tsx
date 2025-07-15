@@ -11,11 +11,19 @@ import UserName from './UserName'
 const UserProfile: FC<IUser> = user => {
   const [expanded, setExpanded] = useState(true)
 
+  // Safety check to ensure user data is valid
+  if (!user || typeof user !== 'object') {
+    return <div>Usuario no disponible</div>
+  }
+
+  // Ensure user.attributes exists and is an object
+  const userAttributes = user.attributes && typeof user.attributes === 'object' ? user.attributes : {}
+
   return (
     <div>
       <div className={style.profileHeader}>
         <UserName user={user} />
-        {user.attributes?.email && <p>{user.attributes?.email}</p>}
+        {(userAttributes as any)?.email && <p>{String((userAttributes as any).email)}</p>}
       </div>
       <Collapsible
         opened={expanded}
@@ -23,7 +31,7 @@ const UserProfile: FC<IUser> = user => {
         name={lang.tr('module.hitlnext.user.variables.heading')}
         ownProps={{ transitionDuration: 10 }}
       >
-        {!_.isEmpty(user.attributes) && (
+        {!_.isEmpty(userAttributes) && (
           <table className={style.table}>
             <thead>
               <tr>
@@ -32,12 +40,31 @@ const UserProfile: FC<IUser> = user => {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(user.attributes).map((entry, index) => (
-                <tr key={index}>
-                  <td>{entry[0]}</td>
-                  <td>{_.isObject(entry[1]) ? flatten(entry[1]) : entry[1]}</td>
-                </tr>
-              ))}
+              {Object.entries(userAttributes).map((entry, index) => {
+                const [key, value] = entry
+                let displayValue = value
+
+                // Handle different types of values safely
+                if (_.isObject(value)) {
+                  try {
+                    const flattened = flatten(value)
+                    displayValue = JSON.stringify(flattened)
+                  } catch (e) {
+                    displayValue = JSON.stringify(value)
+                  }
+                } else if (value === null || value === undefined) {
+                  displayValue = 'N/A'
+                } else {
+                  displayValue = String(value)
+                }
+
+                return (
+                  <tr key={index}>
+                    <td>{String(key)}</td>
+                    <td>{displayValue}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}

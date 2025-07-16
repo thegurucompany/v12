@@ -71,19 +71,57 @@ export default class HitlDb {
   }
 
   createUserSession = async (event: sdk.IO.Event) => {
+    this.bp.logger.info('=== CREAR NUEVA SESIÓN HITL ===')
+    this.bp.logger.info('Event completo:', JSON.stringify(event, null, 2))
+
     let profileUrl = undefined
     let displayName = `# ${Math.random()
       .toString()
       .substr(2)}`
 
     const user: sdk.User = (await this.bp.users.getOrCreateUser(event.channel, event.target, event.botId)).result
+    this.bp.logger.info('Usuario obtenido/creado:', JSON.stringify(user, null, 2))
 
     if (user && user.attributes) {
       const { first_name, last_name, full_name, profile_pic, picture_url } = user.attributes
 
       profileUrl = profile_pic || picture_url
       displayName = full_name || (first_name && last_name && `${first_name} ${last_name}`) || displayName
+
+      // También revisar webchatCustomId para nombres
+      if (user.attributes.webchatCustomId) {
+        const { firstName, lastName } = user.attributes.webchatCustomId
+        if (displayName.startsWith('#') && (firstName || lastName)) {
+          displayName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || displayName)
+        }
+      }
+
+      this.bp.logger.info('DisplayName después de atributos:', displayName)
     }
+
+    // Si no hay nombre del usuario, intentar usar identificadores específicos del canal
+    if (!user?.attributes?.full_name && !user?.attributes?.first_name && !user?.attributes?.webchatCustomId?.firstName) {
+      this.bp.logger.info('No se encontró nombre, buscando identificadores por canal...')
+      try {
+        if (event.channel === 'whatsapp' || event.channel === 'vonage') {
+          this.bp.logger.info(`Canal detectado como WhatsApp/Vonage: ${event.channel}`)
+          const whatsappNumber = await this.getWhatsAppNumber(event)
+          if (whatsappNumber) {
+            displayName = `+${whatsappNumber}`
+          }
+        } else if (event.channel === 'web') {
+          const webIdentifier = await this.getWebUserIdentifier(event, user)
+          if (webIdentifier) {
+            displayName = webIdentifier
+          }
+        }
+      } catch (error) {
+        this.bp.logger.warn(`Error obteniendo identificador para canal ${event.channel} en HITL:`, error.message)
+      }
+    }
+
+    this.bp.logger.info('DisplayName final:', displayName)
+    this.bp.logger.info('=== FIN CREAR SESIÓN ===')
 
     const session = {
       botId: event.botId,
@@ -117,11 +155,44 @@ export default class HitlDb {
       .where(where)
       .select('*')
       .limit(1)
-      .then(users => {
+      .then(async users => {
         if (!users || users.length === 0) {
           return this.createUserSession(event)
         } else {
-          return users[0]
+          const existingSession = users[0]
+
+          // Si la sesión existe pero tiene un nombre genérico (#...), actualizar con identificador específico del canal
+          if (existingSession.full_name && existingSession.full_name.startsWith('#')) {
+            try {
+              let newDisplayName = null
+
+              if (event.channel === 'whatsapp' || event.channel === 'vonage') {
+                const whatsappNumber = await this.getWhatsAppNumber(event)
+                if (whatsappNumber) {
+                  newDisplayName = `+${whatsappNumber}`
+                }
+              } else if (event.channel === 'web') {
+                const user = (await this.bp.users.getOrCreateUser(event.channel, event.target, event.botId)).result
+                const webIdentifier = await this.getWebUserIdentifier(event, user)
+                if (webIdentifier) {
+                  newDisplayName = webIdentifier
+                }
+              }
+
+              if (newDisplayName) {
+                await this.knex(TABLE_NAME_SESSIONS)
+                  .where({ id: existingSession.id })
+                  .update({ full_name: newDisplayName })
+
+                existingSession.full_name = newDisplayName
+                this.bp.logger.info(`Nombre de sesión HITL actualizado para canal ${event.channel}:`, newDisplayName)
+              }
+            } catch (error) {
+              this.bp.logger.warn('Error actualizando nombre de sesión HITL:', error.message)
+            }
+          }
+
+          return existingSession
         }
       })
   }
@@ -330,5 +401,143 @@ export default class HitlDb {
       .orderBy('last_heard_on')
       .limit(100)
       .then(results => results.map(r => r.id))
+  }
+
+  // Método para obtener el número de WhatsApp del usuario
+  private async getWhatsAppNumber(event: sdk.IO.Event): Promise<string | null> {
+    try {
+      this.bp.logger.info('=== DEBUG HITL WhatsApp/Vonage User ===')
+      this.bp.logger.info('Event completo:', JSON.stringify(event, null, 2))
+
+      const conversationId = event.threadId
+      const botId = event.botId
+      this.bp.logger.info('ConversationId:', conversationId)
+      this.bp.logger.info('BotId:', botId)
+
+      const messaging = this.bp.messaging.forBot(botId)
+      this.bp.logger.info('Messaging instance obtenida')
+
+      const endpoints = await messaging.listEndpoints(conversationId)
+      this.bp.logger.info('Endpoints encontrados:', JSON.stringify(endpoints, null, 2))
+
+      const endpoint = endpoints[0]
+
+      let mosiMobilePhone = ''
+      if (!endpoint) {
+        this.bp.logger.info('No se encontró endpoint, usando número por defecto')
+        // Número por defecto si no se encuentra endpoint
+        mosiMobilePhone = '525538560042'
+      } else {
+        this.bp.logger.info('Endpoint encontrado:', JSON.stringify(endpoint, null, 2))
+        mosiMobilePhone = endpoint.sender
+        this.bp.logger.info('Número extraído del endpoint:', mosiMobilePhone)
+      }
+
+      // Función para quitar los primeros dos números
+      const removeFirstTwoNumbers = (numbers: string): string => {
+        if (numbers.length >= 2) {
+          return numbers.substring(2)
+        }
+        return ''
+      }
+
+      const userMsisdn = removeFirstTwoNumbers(mosiMobilePhone)
+      this.bp.logger.info('Número del usuario para HITL (después de procesar):', userMsisdn)
+      this.bp.logger.info('=== FIN DEBUG HITL WhatsApp ===')
+
+      return userMsisdn
+    } catch (error) {
+      this.bp.logger.error('Error obteniendo número de WhatsApp:', error)
+      return null
+    }
+  }  // Método para obtener identificador de usuario web (msisdn o email)
+  private async getWebUserIdentifier(event: sdk.IO.Event, user: sdk.User): Promise<string | null> {
+    try {
+      this.bp.logger.info('=== DEBUG HITL Web User ===')
+      this.bp.logger.info('Event target (userId):', event.target)
+      this.bp.logger.info('Event channel:', event.channel)
+      this.bp.logger.info('User objeto completo:', JSON.stringify(user, null, 2))
+
+      // Primero intentar obtener de los atributos del usuario
+      if (user && user.attributes) {
+        this.bp.logger.info('User attributes:', JSON.stringify(user.attributes, null, 2))
+
+        // Buscar en webchatCustomId (donde se almacenan los datos del userId del webchat)
+        if (user.attributes.webchatCustomId) {
+          const { msisdn, email, firstName, lastName } = user.attributes.webchatCustomId
+
+          if (msisdn) {
+            this.bp.logger.info('MSISDN encontrado en webchatCustomId para HITL:', msisdn)
+            return `+${msisdn}`
+          }
+
+          if (email) {
+            this.bp.logger.info('Email encontrado en webchatCustomId para HITL:', email)
+            return email
+          }
+
+          // También verificar si firstName y lastName están disponibles
+          if (firstName && lastName) {
+            this.bp.logger.info('Nombre completo encontrado en webchatCustomId:', `${firstName} ${lastName}`)
+            return `${firstName} ${lastName}`
+          }
+
+          if (firstName) {
+            this.bp.logger.info('Nombre encontrado en webchatCustomId:', firstName)
+            return firstName
+          }
+        }
+
+        // Fallback: buscar directamente en atributos (por si acaso)
+        const { msisdn, email, firstName, lastName } = user.attributes
+
+        if (msisdn) {
+          this.bp.logger.info('MSISDN encontrado en atributos directos para HITL:', msisdn)
+          return `+${msisdn}`
+        }
+
+        if (email) {
+          this.bp.logger.info('Email encontrado en atributos directos para HITL:', email)
+          return email
+        }
+
+        if (firstName && lastName) {
+          this.bp.logger.info('Nombre completo encontrado en atributos directos:', `${firstName} ${lastName}`)
+          return `${firstName} ${lastName}`
+        }
+      }
+
+      // Si no está en atributos, intentar obtener del userId del evento
+      try {
+        const userId = event.target
+        if (userId && typeof userId === 'string') {
+          this.bp.logger.info('Intentando parsear userId:', userId)
+
+          // Intentar parsear si el userId contiene JSON
+          if (userId.startsWith('{')) {
+            const parsedUserId = JSON.parse(userId)
+            this.bp.logger.info('UserId parseado:', JSON.stringify(parsedUserId, null, 2))
+
+            if (parsedUserId.msisdn) {
+              this.bp.logger.info('MSISDN encontrado en userId para HITL:', parsedUserId.msisdn)
+              return `+${parsedUserId.msisdn}`
+            }
+            if (parsedUserId.email) {
+              this.bp.logger.info('Email encontrado en userId para HITL:', parsedUserId.email)
+              return parsedUserId.email
+            }
+          }
+        }
+      } catch (parseError) {
+        this.bp.logger.debug('No se pudo parsear userId como JSON:', parseError.message)
+      }
+
+      this.bp.logger.info('No se encontró msisdn ni email para usuario web')
+      this.bp.logger.info('=== FIN DEBUG HITL ===')
+      return null
+    } catch (error) {
+      this.bp.logger.error('Error obteniendo identificador de usuario web:', error)
+      return null
+    }
   }
 }

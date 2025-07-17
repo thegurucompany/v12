@@ -144,33 +144,18 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
           </div>
 
           <div className={'bpw-send-buttons'}>
-            <ToolTip
-              childId="btn-send"
-              content={
-                this.props.isEmulator
-                  ? this.props.intl.formatMessage({
-                      id: 'composer.interact',
-                      defaultMessage: 'Interact with your chatbot'
-                    })
-                  : this.props.intl.formatMessage({
-                      id: 'composer.sendMessage',
-                      defaultMessage: 'Send Message'
-                    })
-              }
+            <button
+              className={'bpw-send-button'}
+              disabled={!messageText.length || this.props.composerLocked || this.state.isRecording}
+              onClick={this.props.sendMessage.bind(this, undefined)}
+              aria-label={this.props.intl.formatMessage({
+                id: 'composer.send',
+                defaultMessage: 'Send'
+              })}
+              id="btn-send"
             >
-              <button
-                className={'bpw-send-button'}
-                disabled={!messageText.length || this.props.composerLocked || this.state.isRecording}
-                onClick={this.props.sendMessage.bind(this, undefined)}
-                aria-label={this.props.intl.formatMessage({
-                  id: 'composer.send',
-                  defaultMessage: 'Send'
-                })}
-                id="btn-send"
-              >
-                <FormattedMessage id={'composer.send'} />
-              </button>
-            </ToolTip>
+              <FormattedMessage id={'composer.send'} />
+            </button>
             {this.props.enableVoiceComposer && (
               <VoiceRecorder
                 onStart={this.onVoiceStart}

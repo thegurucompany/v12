@@ -83,6 +83,32 @@ export default class HitlDb {
 
       profileUrl = profile_pic || picture_url
       displayName = full_name || (first_name && last_name && `${first_name} ${last_name}`) || displayName
+
+      if (user.attributes.webchatCustomId) {
+        const { firstName, lastName } = user.attributes.webchatCustomId
+        if (displayName.startsWith('#') && (firstName || lastName)) {
+          displayName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || displayName)
+        }
+      }
+    }
+
+    if (!user?.attributes?.full_name && !user?.attributes?.first_name && !user?.attributes?.webchatCustomId?.firstName) {
+      try {
+        if (event.channel === 'whatsapp' || event.channel === 'vonage') {
+          this.bp.logger.info(`Canal detectado como WhatsApp/Vonage: ${event.channel}`)
+          const whatsappNumber = await this.getWhatsAppNumber(event)
+          if (whatsappNumber) {
+            displayName = `+${whatsappNumber}`
+          }
+        } else if (event.channel === 'web') {
+          const webIdentifier = await this.getWebUserIdentifier(event, user)
+          if (webIdentifier) {
+            displayName = webIdentifier
+          }
+        }
+      } catch (error) {
+        this.bp.logger.warn(`Error obteniendo identificador para canal ${event.channel} en HITL:`, error.message)
+      }
     }
 
     const session = {
@@ -117,11 +143,42 @@ export default class HitlDb {
       .where(where)
       .select('*')
       .limit(1)
-      .then(users => {
+      .then(async users => {
         if (!users || users.length === 0) {
           return this.createUserSession(event)
         } else {
-          return users[0]
+          const existingSession = users[0]
+
+          if (existingSession.full_name && existingSession.full_name.startsWith('#')) {
+            try {
+              let newDisplayName = null
+
+              if (event.channel === 'whatsapp' || event.channel === 'vonage') {
+                const whatsappNumber = await this.getWhatsAppNumber(event)
+                if (whatsappNumber) {
+                  newDisplayName = `+${whatsappNumber}`
+                }
+              } else if (event.channel === 'web') {
+                const user = (await this.bp.users.getOrCreateUser(event.channel, event.target, event.botId)).result
+                const webIdentifier = await this.getWebUserIdentifier(event, user)
+                if (webIdentifier) {
+                  newDisplayName = webIdentifier
+                }
+              }
+
+              if (newDisplayName) {
+                await this.knex(TABLE_NAME_SESSIONS)
+                  .where({ id: existingSession.id })
+                  .update({ full_name: newDisplayName })
+
+                existingSession.full_name = newDisplayName
+              }
+            } catch (error) {
+              this.bp.logger.warn('Error actualizando nombre de sesión HITL:', error.message)
+            }
+          }
+
+          return existingSession
         }
       })
   }
@@ -309,26 +366,174 @@ export default class HitlDb {
   }
 
   async searchSessions(searchTerm: string): Promise<string[]> {
-    const query = this.knex(TABLE_NAME_SESSIONS)
-      .join('srv_channel_users', this.knex.raw('srv_channel_users.user_id'), `${TABLE_NAME_SESSIONS}.userId`)
-      .where('full_name', 'like', `%${searchTerm}%`)
-      .orWhere('srv_channel_users.user_id', 'like', `%${searchTerm}%`)
+    try {
+      const cleanSearchTerm = searchTerm.trim()
+      if (!cleanSearchTerm) {
+        return []
+      }
 
-    if (this.knex.isLite) {
-      query.orWhere('attr_fullName', 'like', `%${searchTerm}%`)
-      query.select(
-        this.knex.raw(
-          `${TABLE_NAME_SESSIONS}.id, json_extract(srv_channel_users.attributes, '$.full_name') as attr_fullName`
-        )
-      )
-    } else {
-      query.orWhereRaw(`srv_channel_users.attributes ->>'full_name' like '%${searchTerm}%'`)
-      query.select(this.knex.raw(`${TABLE_NAME_SESSIONS}.id`))
+      let query = this.knex(TABLE_NAME_SESSIONS)
+        .where('full_name', 'like', `%${cleanSearchTerm}%`)
+        .orWhere('userId', 'like', `%${cleanSearchTerm}%`)
+
+      if (cleanSearchTerm.match(/^\+?\d+$/)) {
+        const numberOnly = cleanSearchTerm.replace(/^\+/, '')
+        query = query
+          .orWhere('full_name', 'like', `%${numberOnly}%`)
+          .orWhere('full_name', 'like', `%+${numberOnly}%`)
+      }
+
+      try {
+        const tableExists = await this.knex.schema.hasTable('srv_channel_users')
+
+        if (tableExists) {
+          if (this.knex.isLite) {
+            query = query
+              .leftJoin('srv_channel_users', function() {
+                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`)
+                  .andOn('srv_channel_users.channel', '=', `${TABLE_NAME_SESSIONS}.channel`)
+              })
+              .orWhere('srv_channel_users.user_id', 'like', `%${cleanSearchTerm}%`)
+
+            if (cleanSearchTerm.length > 2) {
+              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.full_name') like '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.firstName') like '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.lastName') like '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.email') like '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.msisdn') like '%${cleanSearchTerm}%'`)
+            }
+          } else {
+            query = query
+              .leftJoin('srv_channel_users', function() {
+                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`)
+                  .andOn('srv_channel_users.channel', '=', `${TABLE_NAME_SESSIONS}.channel`)
+              })
+              .orWhere('srv_channel_users.user_id', 'like', `%${cleanSearchTerm}%`)
+
+            if (cleanSearchTerm.length > 2) {
+              query = query.orWhereRaw(`srv_channel_users.attributes ->>'full_name' ilike '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'firstName' ilike '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'lastName' ilike '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'email' ilike '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'msisdn' ilike '%${cleanSearchTerm}%'`)
+            }
+          }
+        } else {
+          this.bp.logger.warn('Tabla srv_channel_users no existe, búsqueda limitada a sessions')
+        }
+      } catch (joinError) {
+        this.bp.logger.warn('Error al hacer join con srv_channel_users:', joinError.message)
+      }
+
+      const results = await query
+        .select(`${TABLE_NAME_SESSIONS}.id`)
+        .distinct()
+        .orderBy(`${TABLE_NAME_SESSIONS}.last_heard_on`, 'desc')
+        .limit(100)
+
+      const sessionIds = results.map(r => r.id.toString())
+
+      return sessionIds
+
+    } catch (error) {
+      this.bp.logger.error('Error en searchSessions:', error)
+      try {
+        const fallbackResults = await this.knex(TABLE_NAME_SESSIONS)
+          .where('full_name', 'like', `%${searchTerm}%`)
+          .select('id')
+          .orderBy('last_heard_on', 'desc')
+          .limit(100)
+
+        return fallbackResults.map(r => r.id.toString())
+      } catch (fallbackError) {
+        this.bp.logger.error('Error en búsqueda fallback:', fallbackError)
+        return []
+      }
     }
+  }
 
-    return query
-      .orderBy('last_heard_on')
-      .limit(100)
-      .then(results => results.map(r => r.id))
+  private async getWhatsAppNumber(event: sdk.IO.Event): Promise<string | null> {
+    try {
+      const conversationId = event.threadId
+      const botId = event.botId
+      const messaging = this.bp.messaging.forBot(botId)
+      const endpoints = await messaging.listEndpoints(conversationId)
+      const endpoint = endpoints[0]
+
+      let mosiMobilePhone = ''
+      mosiMobilePhone = endpoint.sender
+      const removeFirstTwoNumbers = (numbers: string): string => {
+        if (numbers.length >= 2) {
+          return numbers.substring(2)
+        }
+        return ''
+      }
+
+      const userMsisdn = removeFirstTwoNumbers(mosiMobilePhone)
+
+      return userMsisdn
+    } catch (error) {
+      return null
+    }
+  }
+  private async getWebUserIdentifier(event: sdk.IO.Event, user: sdk.User): Promise<string | null> {
+    try {
+      if (user && user.attributes) {
+        this.bp.logger.info('User attributes:', JSON.stringify(user.attributes, null, 2))
+
+        if (user.attributes.webchatCustomId) {
+          const { msisdn, email, firstName, lastName } = user.attributes.webchatCustomId
+          if (msisdn) {
+            return `+${msisdn}`
+          }
+          if (email) {
+            return email
+          }
+          if (firstName && lastName) {
+            return `${firstName} ${lastName}`
+          }
+          if (firstName) {
+            return firstName
+          }
+        }
+
+        const { msisdn, email, firstName, lastName } = user.attributes
+
+        if (msisdn) {
+          return `+${msisdn}`
+        }
+
+        if (email) {
+          return email
+        }
+
+        if (firstName && lastName) {
+          return `${firstName} ${lastName}`
+        }
+      }
+
+      try {
+        const userId = event.target
+        if (userId && typeof userId === 'string') {
+          if (userId.startsWith('{')) {
+            const parsedUserId = JSON.parse(userId)
+
+            if (parsedUserId.msisdn) {
+              return `+${parsedUserId.msisdn}`
+            }
+            if (parsedUserId.email) {
+              return parsedUserId.email
+            }
+          }
+        }
+      } catch (parseError) {
+        this.bp.logger.debug('No se pudo parsear userId como JSON:', parseError.message)
+      }
+
+      return null
+    } catch (error) {
+      this.bp.logger.error('Error obteniendo identificador de usuario web:', error)
+      return null
+    }
   }
 }

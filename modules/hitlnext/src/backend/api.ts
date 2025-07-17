@@ -275,8 +275,6 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         .sort((a, b) => new Date(a.event.createdOn).getTime() - new Date(b.event.createdOn).getTime())
         .slice(-20)
 
-      bp.logger.info(`[hitlnext] Asignando handoff ${handoff.id}: Copiando ${orderedEvents.length} mensajes al thread del agente`)
-
       const baseEvent: Partial<sdk.IO.EventCtorArgs> = {
         direction: 'outgoing',
         channel: 'web',
@@ -399,51 +397,6 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
       const comment = await repository.createComment(payload)
       handoff.comments = [...handoff.comments, comment]
-
-      // Forward file to user via WhatsApp if there's an uploaded file
-      if (comment.uploadUrl) {
-        try {
-          await vonageService.forwardFileToUser(comment, req.params.botId, handoff.userThreadId)
-        } catch (error) {
-          bp.logger.error('Failed to forward file to WhatsApp user:', error)
-        }
-      }
-
-      // Send comment as message to user via webchat using the same pattern as middleware
-      try {
-        const eventDestination = toEventDestination(req.params.botId, handoff)
-
-        // Create message payload based on content type
-        let messagePayload: any = {
-          type: 'text',
-          text: comment.content
-        }
-
-        // If there's an upload URL, determine message type
-        if (comment.uploadUrl) {
-          // Check if it's an image based on content
-          if (comment.content.includes('Imagen:')) {
-            messagePayload = {
-              type: 'image',
-              text: comment.content,
-              image: comment.uploadUrl,
-              title: comment.content.replace('Imagen: ', '')
-            }
-          } else if (comment.content.includes('Archivo:')) {
-            messagePayload = {
-              type: 'file',
-              text: comment.content,
-              url: comment.uploadUrl,
-              title: comment.content.replace('Archivo: ', '')
-            }
-          }
-        }
-
-        // Use the same pipe pattern as the middleware to avoid triggering bot responses
-        await bp.events.replyToEvent(eventDestination, [messagePayload])
-      } catch (error) {
-        bp.logger.error('Failed to send comment to user via webchat:', error)
-      }
 
       service.sendPayload(req.params.botId, {
         resource: 'handoff',

@@ -24,7 +24,9 @@
     "getOnline": "Se connecter",
     "getOffline": "Se déconnecter",
     "onlineSuccess": "Vous êtes maintenant connecté",
-    "offlineSuccess": "Vous êtes maintenant déconnecté"
+    "offlineSuccess": "Vous êtes maintenant déconnecté",
+    "reassignAll": "Réassigner toutes mes conversations",
+    "reassignStarted": "Réassignation de toutes les conversations..."
   },
   "handoff": {
     "created": "Créée {date}",
@@ -43,6 +45,9 @@
     "assigned": "L'escalation {id} a été assignée avec succès",
     "resolved": "L'escalation {id} a été résoulue avec succès",
     "rejected": "L'escalation {id} a été rejeté avec succès",
+    "reassignNotice": "L'agent {agentName} a réassigné votre conversation. Recherche d'un autre agent disponible, veuillez patienter.",
+    "reassignedAgent": "Votre conversation a été réassignée à l'agent {agentName}",
+    "reassignedBot": "Désolé, aucun agent n'est disponible. Votre conversation a été retournée vers moi. Je vais tenter de vous aider ou créer un ticket pour vous.",
     "noPreviousAgent": "Aucun agent précédent",
     "you": "Vous",
     "from": "Via {channel}"

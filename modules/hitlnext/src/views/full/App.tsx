@@ -146,7 +146,7 @@ const App: FC<Props> = ({ bp }) => {
     <div className={style.app}>
       <div className={style.mainNav}>
         <AgentList loading={loading} agents={state.agents} />
-        <AgentStatus setOnline={setOnline} loading={loading} {...state.currentAgent} />
+        <AgentStatus api={api} setOnline={setOnline} loading={loading} {...state.currentAgent} />
       </div>
 
       <div className={style.mainContent}>

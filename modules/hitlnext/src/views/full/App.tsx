@@ -122,6 +122,29 @@ const App: FC<Props> = ({ bp }) => {
     }
   }
 
+  async function handleReassignAll() {
+    try {
+      const confirmed = window.confirm(lang.tr('module.hitlnext.reassignAll.confirmationMessage'))
+      if (!confirmed) {
+        return
+      }
+
+      const result = await api.reassignAllConversations()
+      
+      if (result.success) {
+        toast.success(lang.tr('module.hitlnext.reassignAll.success', { 
+          reassignedCount: result.reassignedCount, 
+          returnedToBotCount: result.returnedToBotCount 
+        }))
+        
+        // Refresh handoffs to reflect the changes
+        await getHandoffs()
+      }
+    } catch (error) {
+      dispatch({ type: 'setError', payload: error })
+    }
+  }
+
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     Promise.all([getCurrentAgent(), getAgents(), getHandoffs(), getConfig()]).then(() => {
@@ -151,7 +174,12 @@ const App: FC<Props> = ({ bp }) => {
 
       <div className={style.mainContent}>
         <div className={cx(style.sidebar, style.column)}>
-          <HandoffList tags={state.config?.tags} handoffs={state.handoffs} loading={loading} />
+          <HandoffList 
+            tags={state.config?.tags} 
+            handoffs={state.handoffs} 
+            loading={loading} 
+            onReassignAll={handleReassignAll}
+          />
         </div>
         {!state.selectedHandoffId && <EmptyConversation />}
         {state.selectedHandoffId && <ConversationContainer bp={bp} api={api} />}

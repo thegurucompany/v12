@@ -92,5 +92,13 @@
     "empty": "Les étiquettes ne sont pas activées pour ce bot.",
     "placeholder": "Ajoutez ou suprimmez des étiquettes",
     "noResults": "Aucun résultat."
-  }
+  },
+  "composer": {
+    "messageSent": "Message envoyé",
+    "imageSent": "Image envoyée",
+    "fileSent": "Fichier envoyé"
+  },
+  "reassignAll": "Réassigner Toutes Mes Conversations",
+  "reassignAll.confirmationMessage": "Toutes les conversations seront réassignées à un agent disponible ou renvoyées au bot. Êtes-vous sûr de vouloir continuer ? Cette action ne peut pas être annulée.",
+  "reassignAll.success": "Réassignation réussie de {reassignedCount} conversations à d'autres agents et renvoi de {returnedToBotCount} conversations au bot."
 }

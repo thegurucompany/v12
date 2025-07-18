@@ -12,8 +12,6 @@ import { COMMENT_TABLE_NAME, HANDOFF_TABLE_NAME, MODULE_NAME } from '../constant
 import { IAgent, IComment, IEvent, IHandoff } from './../types'
 import { makeAgentId } from './helpers'
 
-const debug = DEBUG(MODULE_NAME)
-
 export interface CollectionConditions extends Partial<sdk.SortOrder> {
   limit?: number
 }
@@ -297,7 +295,7 @@ export default class Repository {
         const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
 
         await this.registerTimeout(workspace, botId, agentId, callback).then(() => {
-          debug.forBot(botId, 'Registering timeout', { agentId })
+          this.bp.logger.forBot(botId).debug('Registering timeout', { agentId })
         })
       })
 
@@ -399,7 +397,7 @@ export default class Repository {
 
       return Number(Object.values(result || {})[0]) || 0
     } catch (error) {
-      debug.forBot(botId, 'Error counting assigned handoffs for agent:', { agentId, error: error.message })
+      this.bp.logger.forBot(botId).error('Error counting assigned handoffs for agent:', { agentId, error: error.message })
       return 0
     }
   }
@@ -596,6 +594,38 @@ export default class Repository {
       .limit(1)
       .then(this.hydrateHandoffs.bind(this))
       .then(data => _.head(data))
+  }
+
+  /**
+   * Get all assigned handoffs for a specific agent
+   */
+  getHandoffsByAgent = (botId: string, agentId: string, trx?: Knex.Transaction) => {
+    const execute = async (trx: Knex.Transaction) => {
+      const data = await this.handoffsWithAssociationsQuery(botId)
+        .andWhere(`${HANDOFF_TABLE_NAME}.agentId`, agentId)
+        .andWhere(`${HANDOFF_TABLE_NAME}.status`, 'assigned')
+        .transacting(trx)
+        .then(this.hydrateHandoffs.bind(this))
+
+      const hydrated = this.hydrateEvents(
+        await this.userEventsQuery()
+          .where(`${HANDOFF_TABLE_NAME}.botId`, botId)
+          .andWhere(`${HANDOFF_TABLE_NAME}.agentId`, agentId)
+          .andWhere(`${HANDOFF_TABLE_NAME}.status`, 'assigned')
+          .transacting(trx),
+        data,
+        'userConversation'
+      )
+
+      return hydrated
+    }
+
+    // Either join an existing transaction or start one
+    if (trx) {
+      return execute(trx)
+    } else {
+      return this.bp.database.transaction(trx => execute(trx))
+    }
   }
 
   createHandoff = async (botId: string, attributes: Partial<IHandoff>) => {

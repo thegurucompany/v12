@@ -55,6 +55,7 @@ export interface HitlClient {
     file: File,
     onProgress?: (progress: { loaded: number; total: number }) => void
   ) => Promise<{ uploadUrl: string }>
+  reassignAllConversations: () => Promise<{ success: boolean; reassignedCount: number; returnedToBotCount: number }>
 }
 
 export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
@@ -138,6 +139,10 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
             : undefined
         })
         .then(res => res.data)
-    }
+    },
+    reassignAllConversations: async () =>
+      bp.axios
+        .post('/agents/me/reassign-all', {}, config)
+        .then(res => res.data)
   }
 }

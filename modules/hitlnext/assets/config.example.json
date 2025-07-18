@@ -21,6 +21,21 @@
     "fr": "Vous êtes transféré au bot.",
     "es": "Se le está transfiriendo de vuelta al bot."
   },
+  "reassignMessage": {
+    "en": "Agent {{agentName}} has reassigned your conversation. Looking for another available agent, please wait a moment.",
+    "fr": "L'agent {{agentName}} a réassigné votre conversation. Recherche d'un autre agent disponible, veuillez patienter un instant.",
+    "es": "El agente {{agentName}} ha reasignado su conversación. Buscando otro agente disponible, espere un momento."
+  },
+  "reassignedMessage": {
+    "en": "Your conversation has been reassigned to agent {{agentName}}.",
+    "fr": "Votre conversation a été réassignée à l'agent {{agentName}}.",
+    "es": "Su conversación ha sido reasignada al agente {{agentName}}."
+  },
+  "returnToBotMessage": {
+    "en": "Sorry, no agents are currently available. Your conversation has been returned to me. I'll try to help you resolve your issue or can create a ticket for you.",
+    "fr": "Désolé, aucun agent n'est actuellement disponible. Votre conversation m'a été renvoyée. Je vais essayer de vous aider à résoudre votre problème ou je peux créer un ticket pour vous.",
+    "es": "Lo siento, no hay agentes disponibles actualmente. Su conversación me ha sido devuelta. Intentaré ayudarlo a resolver su problema o puedo crear un ticket para usted."
+  },
   "eventsWebHook": {},
   "s3Config": {
     "accessKeyId": "YOUR_AWS_ACCESS_KEY_ID",

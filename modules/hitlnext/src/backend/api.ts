@@ -498,4 +498,22 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       })
     })
   )
+
+  router.post(
+    '/agents/me/reassign-all',
+    agentOnlineMiddleware,
+    errorMiddleware(async (req: HITLBPRequest, res: Response) => {
+      const { email, strategy } = req.tokenUser!
+      const agentId = makeAgentId(strategy, email)
+
+      try {
+        const result = await service.reassignAllAgentConversations(req.params.botId, agentId)
+        await extendAgentSession(repository, realtime, req.params.botId, agentId)
+        res.send(result)
+      } catch (error) {
+        bp.logger.forBot(req.params.botId).error(`Failed to reassign all conversations for agent ${agentId}:`, error.message)
+        throw error
+      }
+    })
+  )
 }

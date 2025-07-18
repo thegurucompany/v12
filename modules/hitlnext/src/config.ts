@@ -77,6 +77,32 @@ export interface Config {
   }
 
   /**
+   * @param reassignMessage The message sent to the user when an agent is reassigning their conversation.
+   * @argument agentName It is possible to specify the agent name as an argument to the message.
+   * @default { "en": "Agent {{agentName}} has reassigned your conversation. Looking for another available agent, please wait a moment.", "fr": "L'agent {{agentName}} a réassigné votre conversation. Recherche d'un autre agent disponible, veuillez patienter un instant.", "es": "El agente {{agentName}} ha reasignado su conversación. Buscando otro agente disponible, espere un momento."}
+   */
+  reassignMessage?: {
+    [Key: string]: string
+  }
+
+  /**
+   * @param reassignedMessage The message sent to the user when their conversation has been reassigned to a new agent.
+   * @argument agentName It is possible to specify the new agent name as an argument to the message.
+   * @default { "en": "Your conversation has been reassigned to agent {{agentName}}.", "fr": "Votre conversation a été réassignée à l'agent {{agentName}}.", "es": "Su conversación ha sido reasignada al agente {{agentName}}."}
+   */
+  reassignedMessage?: {
+    [Key: string]: string
+  }
+
+  /**
+   * @param returnToBotMessage The message sent to the user when their conversation is returned to the bot because no agents are available.
+   * @default { "en": "Sorry, no agents are currently available. Your conversation has been returned to me. I'll try to help you resolve your issue or can create a ticket for you.", "fr": "Désolé, aucun agent n'est actuellement disponible. Votre conversation m'a été renvoyée. Je vais essayer de vous aider à résoudre votre problème ou je peux créer un ticket pour vous.", "es": "Lo siento, no hay agentes disponibles actualmente. Su conversación me ha sido devuelta. Intentaré ayudarlo a resolver su problema o puedo crear un ticket para usted."}
+   */
+  returnToBotMessage?: {
+    [Key: string]: string
+  }
+
+  /**
    * @param eventsWebHook
    * @default {}
    */

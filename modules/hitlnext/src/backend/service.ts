@@ -294,6 +294,130 @@ class Service {
       })
     }
   }
+
+  /**
+   * Reassign all conversations assigned to a specific agent
+   */
+  async reassignAllAgentConversations(botId: string, agentId: string) {
+    try {
+      this.bp.logger.forBot(botId).info(`Starting reassignment of all conversations for agent ${agentId}`)
+
+      // Get all assigned handoffs for this agent
+      const handoffs = await this.repository.getHandoffsByAgent(botId, agentId)
+      
+      if (handoffs.length === 0) {
+        this.bp.logger.forBot(botId).info(`No active conversations found for agent ${agentId}`)
+        return { success: true, reassignedCount: 0, returnedToBotCount: 0 }
+      }
+
+      const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+      
+      let reassignedCount = 0
+      let returnedToBotCount = 0
+
+      for (const handoff of handoffs) {
+        try {
+          // Send initial reassignment message to user
+          const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+          const language = attributes.language
+          const eventDestination = toEventDestination(botId, handoff)
+          
+          if (config.reassignMessage) {
+            await this.sendMessageToUser(config.reassignMessage, eventDestination, language, {
+              agentName: agentId
+            })
+          }
+
+          // Try to find an available agent
+          const availableAgent = await this.repository.getAvailableAgent(botId)
+          
+          if (availableAgent && availableAgent.agentId !== agentId) {
+            // Reassign to another agent
+            await this.reassignToAgent(botId, handoff, availableAgent)
+            reassignedCount++
+            
+            // Send reassignment success message
+            if (config.reassignedMessage) {
+              await this.sendMessageToUser(config.reassignedMessage, eventDestination, language, {
+                agentName: availableAgent.attributes?.firstname || availableAgent.agentId
+              })
+            }
+          } else {
+            // No available agents, return to bot
+            await this.returnToBot(botId, handoff)
+            returnedToBotCount++
+            
+            // Send return to bot message
+            if (config.returnToBotMessage) {
+              await this.sendMessageToUser(config.returnToBotMessage, eventDestination, language)
+            }
+          }
+        } catch (error) {
+          this.bp.logger.forBot(botId).error(`Failed to reassign handoff ${handoff.id}:`, error.message)
+        }
+      }
+
+      this.bp.logger.forBot(botId).info(`Completed reassignment for agent ${agentId}`, {
+        totalHandoffs: handoffs.length,
+        reassignedCount,
+        returnedToBotCount
+      })
+
+      return { success: true, reassignedCount, returnedToBotCount }
+    } catch (error) {
+      this.bp.logger.forBot(botId).error(`Failed to reassign all conversations for agent ${agentId}:`, error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Reassign a handoff to a specific agent
+   */
+  private async reassignToAgent(botId: string, handoff: IHandoff, availableAgent: Omit<IAgent, 'online'>) {
+    // Create agent conversation
+    const userId = await this.repository.mapVisitor(botId, availableAgent.agentId)
+    const conversation = await this.bp.messaging.forBot(botId).createConversation(userId)
+
+    const agentThreadId = conversation.id
+    const payload: Pick<IHandoff, 'agentId' | 'agentThreadId' | 'assignedAt' | 'status'> = {
+      agentId: availableAgent.agentId,
+      agentThreadId,
+      assignedAt: new Date(),
+      status: 'assigned'
+    }
+
+    // Update handoff
+    const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+    this.state.cacheHandoff(botId, agentThreadId, updatedHandoff)
+
+    // Copy recent conversation history to agent thread
+    await this.copyConversationHistory(botId, handoff, agentThreadId, userId)
+
+    // Update realtime
+    this.updateRealtimeHandoff(botId, updatedHandoff)
+  }
+
+  /**
+   * Return a handoff to bot control
+   */
+  private async returnToBot(botId: string, handoff: IHandoff) {
+    const payload: Pick<IHandoff, 'agentId' | 'agentThreadId' | 'status'> = {
+      agentId: null,
+      agentThreadId: null,
+      status: 'pending'
+    }
+
+    // Update handoff
+    const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+    this.state.cacheHandoff(botId, handoff.userThreadId, updatedHandoff)
+
+    // Update realtime
+    this.updateRealtimeHandoff(botId, updatedHandoff)
+    
+    // Transfer back to bot
+    const eventDestination = toEventDestination(botId, handoff)
+    await this.transferToBot(eventDestination, 'handoffResolved')
+  }
 }
 
 export default Service

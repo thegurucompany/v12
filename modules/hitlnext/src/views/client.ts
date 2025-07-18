@@ -49,6 +49,7 @@ export interface HitlClient {
   assignHandoff: (id: string) => Promise<IHandoff>
   resolveHandoff: (id: string) => Promise<IHandoff>
   updateHandoff: (id: string, data: Partial<IHandoff>) => Promise<IHandoff>
+  reassignAll: () => Promise<void>
   deleteMessagesInChannelWeb: (id: string, userId: string) => Promise<void>
   getMessages: (id: string, column?: string, desc?: boolean, limit?: number) => Promise<IEvent[]>
   uploadFile: (
@@ -104,6 +105,8 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
         .post(`/handoffs/${id}`, payload, config)
         .then(res => res.data)
         .then(data => castHandoff(data)),
+    reassignAll: async () =>
+      bp.axios.post('/agents/me/reassign', {}, config).then(() => {}),
     deleteMessagesInChannelWeb: async (id, userId) =>
       bp.axios.post(
         `/conversations/${id}/messages/delete`,

@@ -24,7 +24,9 @@
     "getOnline": "Conectarse",
     "getOffline": "Desconectarse",
     "onlineSuccess": "Se encuentra conectado",
-    "offlineSuccess": "Se encuentra desconectado"
+    "offlineSuccess": "Se encuentra desconectado",
+    "reassignAll": "Reasignar todas mis conversaciones",
+    "reassignStarted": "Reasignando todas las conversaciones..."
   },
   "handoff": {
     "created": "Creado {date}",
@@ -43,6 +45,9 @@
     "assigned": "La conversación {id} fué asignada",
     "resolved": "La conversación {id} fué resuelta",
     "rejected": "La conversación {id} fué rechazada",
+    "reassignNotice": "El agente {agentName} ha reasignado su conversación. Buscando otro agente disponible, por favor espere.",
+    "reassignedAgent": "Su conversación ha sido reasignada al agente {agentName}",
+    "reassignedBot": "Lo siento, no hay agentes disponibles. Su conversación ha sido devuelta a mí. Intentaré ayudarle a resolver su problema o puedo crear un ticket para usted.",
     "you": "Tú",
     "from": "Desde {channel}"
   },

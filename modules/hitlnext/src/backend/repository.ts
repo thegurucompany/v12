@@ -189,7 +189,7 @@ export default class Repository {
   // To get the most recent event, we assume the 'Id' column is ordered;
   // thus meaning the highest Id is also the most recent.
   //
-  // - Note: We're interested in 'incoming' & 'text' events only
+  // - Note: We're interested in 'incoming' events (text, image, file, etc.)
   private recentEventQuery() {
     return this.bp
       .database<sdk.IO.StoredEvent>('events')
@@ -198,7 +198,7 @@ export default class Repository {
         this.whereIn('id', function() {
           this.max('id')
             .from('events')
-            .where('type', 'text')
+            .whereIn('type', ['text', 'image', 'file', 'audio', 'video', 'location', 'carousel', 'quick_reply'])
             .andWhere('direction', 'incoming')
             .groupBy('threadId')
         })

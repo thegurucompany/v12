@@ -180,6 +180,7 @@ export interface Config {
   isEmulator?: boolean
   extraStylesheet: string
   showConversationsButton: boolean
+  showCloseButton: boolean
   showUserName: boolean
   showUserAvatar: boolean
   showTimestamp: boolean

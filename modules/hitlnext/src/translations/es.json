@@ -66,7 +66,7 @@
   "conversation": {
     "delete": "Eliminar conversación",
     "deleted": "La conversación fué eliminada",
-    "empty": "Seleccione una conversación pendinte para iteractuar con el usuario",
+    "empty": "Seleccione una conversación pendiente para interactuar con el usuario",
     "tab": "Conversación",
     "composerPlaceholder": "Responder al usuario",
     "send": "Enviar"

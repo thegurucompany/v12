@@ -28,6 +28,15 @@
   },
   "handoff": {
     "created": "Created {date}",
+    "noMessage": "No message available",
+    "imageMessage": "Image",
+    "fileMessage": "File",
+    "audioMessage": "Audio",
+    "videoMessage": "Video",
+    "locationMessage": "Location",
+    "quickReply": "Quick reply",
+    "carouselMessage": "Carousel",
+    "unknownMessage": "Message",
     "contactDetails": "Contact Details",
     "status": {
       "pending": "pending",

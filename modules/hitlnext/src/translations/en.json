@@ -24,7 +24,9 @@
     "getOnline": "Get Online",
     "getOffline": "Get Offline",
     "onlineSuccess": "You are now online",
-    "offlineSuccess": "You are now offline"
+    "offlineSuccess": "You are now offline",
+    "reassignAll": "Reassign All My Conversations",
+    "reassignStarted": "Reassigning all conversations..."
   },
   "handoff": {
     "created": "Created {date}",
@@ -52,6 +54,9 @@
     "assigned": "Handoff {id} successfully assigned",
     "resolved": "Handoff {id} successfully resolved",
     "rejected": "Handoff {id} successfully rejected",
+    "reassignNotice": "Agent {agentName} has reassigned your conversation. Looking for another available agent, please wait a moment.",
+    "reassignedAgent": "Your conversation has been reassigned to agent {agentName}",
+    "reassignedBot": "Sorry, no agents are currently available. Your conversation has been returned to me. I'll try to help you resolve your issue or can create a ticket for you.",
     "you": "You",
     "from": "From {channel}"
   },

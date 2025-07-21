@@ -463,6 +463,45 @@ export default class Repository {
     }
   }
 
+  getAvailableAgentExcluding = async (
+    botId: string,
+    excludeAgentId: string
+  ): Promise<Omit<IAgent, 'online'> | null> => {
+    try {
+      const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
+      const agents = await this.listAgents(workspace)
+
+      const onlineAgents = []
+      for (const agent of agents) {
+        if (agent.agentId === excludeAgentId) {
+          continue
+        }
+        const isOnline = await this.getAgentOnline(botId, agent.agentId)
+        if (isOnline) {
+          onlineAgents.push(agent)
+        }
+      }
+
+      if (onlineAgents.length === 0) {
+        return null
+      }
+
+      const agentsWithCounts = await Promise.all(
+        onlineAgents.map(async agent => {
+          const handoffCount = await this.getAssignedHandoffCount(botId, agent.agentId)
+          return { agent, handoffCount }
+        })
+      )
+
+      agentsWithCounts.sort((a, b) => a.handoffCount - b.handoffCount)
+
+      return agentsWithCounts[0].agent
+    } catch (error) {
+      debug.forBot(botId, 'Error getting available agent:', error.message)
+      return null
+    }
+  }
+
   /**
    * Get the first available agent for auto-assignment (legacy method - deprecated)
    * @deprecated Use getAvailableAgent instead for equitable distribution
@@ -538,6 +577,14 @@ export default class Repository {
       .database<IHandoff>(HANDOFF_TABLE_NAME)
       .where('status', 'pending')
       .orWhere('status', 'assigned')
+  }
+
+  listAgentActiveHandoffs = (botId: string, agentId: string) => {
+    return this.listHandoffs(botId, {}, builder =>
+      builder
+        .where(`${HANDOFF_TABLE_NAME}.agentId`, agentId)
+        .andWhere(`${HANDOFF_TABLE_NAME}.status`, 'assigned')
+    )
   }
 
   // Note:

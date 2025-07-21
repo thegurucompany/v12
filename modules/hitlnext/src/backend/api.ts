@@ -151,6 +151,17 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
     })
   )
 
+  router.post(
+    '/agents/me/reassign',
+    errorMiddleware(async (req: RequestWithUser, res: Response) => {
+      const { email, strategy } = req.tokenUser!
+      const agentId = makeAgentId(strategy, email)
+
+      await service.reassignAllConversations(req.params.botId, agentId)
+      res.sendStatus(200)
+    })
+  )
+
   router.get(
     '/handoffs',
     errorMiddleware(async (req: Request, res: Response) => {

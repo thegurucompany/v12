@@ -464,7 +464,45 @@ export default class Repository {
   }
 
   /**
-   * Get the first available agent for auto-assignment (legacy method - deprecated)
+   * Get all handoffs assigned to a specific agent
+   */
+  getHandoffsForAgent = async (botId: string, agentId: string): Promise<IHandoff[]> => {
+    try {
+      return await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .andWhere('agentId', agentId)
+        .andWhere('status', 'assigned')
+        .select('*')
+        .then(this.hydrateHandoffs.bind(this))
+    } catch (error) {
+      debug.forBot(botId, 'Error getting handoffs for agent:', { agentId, error: error.message })
+      return []
+    }
+  }
+
+  /**
+   * Unassign a handoff (set it back to pending state)
+   */
+  unassignHandoff = async (botId: string, handoffId: string) => {
+    const now = new Date()
+    const payload = {
+      agentId: null,
+      agentThreadId: null,
+      assignedAt: null,
+      status: 'pending',
+      updatedAt: now
+    }
+
+    return this.bp.database.transaction(async trx => {
+      await trx<IHandoff>(HANDOFF_TABLE_NAME)
+        .where({ id: handoffId, botId })
+        .update(this.serializeDate(payload, ['updatedAt']))
+      return this.findHandoff(botId, handoffId, trx)
+    })
+  }
+
+  /**
    * @deprecated Use getAvailableAgent instead for equitable distribution
    */
   getFirstAvailableAgent = async (botId: string): Promise<Omit<IAgent, 'online'> | null> => {

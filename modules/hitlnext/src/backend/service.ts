@@ -185,6 +185,51 @@ class Service {
     }
   }
 
+  /**
+   * Reassign all conversations from an agent back to pending state
+   * The auto-assignment algorithm will then handle reassignment
+   */
+  async reassignAllAgentConversations(botId: string, agentId: string): Promise<{ reassigned: number; errors: number }> {
+    let reassigned = 0
+    let errors = 0
+
+    try {
+      // Get all conversations assigned to this agent
+      const handoffs = await this.repository.getHandoffsForAgent(botId, agentId)
+
+      this.bp.logger.forBot(botId).info(`Found ${handoffs.length} conversations assigned to agent ${agentId}`)
+
+      // Unassign each conversation
+      for (const handoff of handoffs) {
+        try {
+          // Unassign the conversation (set back to pending)
+          const updatedHandoff = await this.repository.unassignHandoff(botId, handoff.id)
+
+          // Clear from cache
+          this.state.expireHandoff(botId, handoff.userThreadId)
+          if (handoff.agentThreadId) {
+            this.state.expireHandoff(botId, handoff.agentThreadId)
+          }
+
+          // Update realtime
+          this.updateRealtimeHandoff(botId, updatedHandoff)
+
+          reassigned++
+
+          this.bp.logger.forBot(botId).info(`Successfully unassigned handoff ${handoff.id} from agent ${agentId}`)
+        } catch (error) {
+          errors++
+          this.bp.logger.forBot(botId).error(`Failed to unassign handoff ${handoff.id}:`, error.message)
+        }
+      }
+    } catch (error) {
+      this.bp.logger.forBot(botId).error(`Error during bulk reassignment for agent ${agentId}:`, error.message)
+      throw error
+    }
+
+    return { reassigned, errors }
+  }
+
   async resolveHandoff(handoff: IHandoff, botId: string, payload) {
     const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
     const eventDestination = toEventDestination(botId, handoff)

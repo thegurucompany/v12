@@ -24,7 +24,11 @@
     "getOnline": "Conectarse",
     "getOffline": "Desconectarse",
     "onlineSuccess": "Se encuentra conectado",
-    "offlineSuccess": "Se encuentra desconectado"
+    "offlineSuccess": "Se encuentra desconectado",
+    "reassignAll": "Reasignar todas mis conversaciones",
+    "reassignAllConfirm": "Todas las conversaciones se reasignarán a un agente disponible o se devolverán al bot. ¿Seguro que desea continuar? Esta acción no se puede deshacer.",
+    "reassignAllSuccess": "Todas las conversaciones han sido reasignadas exitosamente",
+    "reassignAllError": "Error al reasignar las conversaciones"
   },
   "handoff": {
     "created": "Creado {date}",

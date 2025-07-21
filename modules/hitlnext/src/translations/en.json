@@ -24,7 +24,11 @@
     "getOnline": "Get Online",
     "getOffline": "Get Offline",
     "onlineSuccess": "You are now online",
-    "offlineSuccess": "You are now offline"
+    "offlineSuccess": "You are now offline",
+    "reassignAll": "Reassign all my conversations",
+    "reassignAllConfirm": "All conversations will be reassigned to an available agent or returned to the bot. Are you sure you want to continue? This action cannot be undone.",
+    "reassignAllSuccess": "All conversations have been successfully reassigned",
+    "reassignAllError": "Error reassigning conversations"
   },
   "handoff": {
     "created": "Created {date}",

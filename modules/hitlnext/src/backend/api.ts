@@ -151,6 +151,26 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
     })
   )
 
+  router.post(
+    '/agents/me/reassign-all',
+    agentOnlineMiddleware,
+    errorMiddleware(async (req: HITLBPRequest, res: Response) => {
+      const { botId } = req.params
+      const agentId = req.agentId!
+
+      try {
+        const result = await service.reassignAllAgentConversations(botId, agentId)
+
+        // Extend agent session since this is an active operation
+        await extendAgentSession(repository, realtime, botId, agentId)
+
+        res.send(result)
+      } catch (error) {
+        throw new UnprocessableEntityError(error.message)
+      }
+    })
+  )
+
   router.get(
     '/handoffs',
     errorMiddleware(async (req: Request, res: Response) => {

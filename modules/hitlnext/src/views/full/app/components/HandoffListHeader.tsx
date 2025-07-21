@@ -1,8 +1,10 @@
 import { Checkbox } from '@blueprintjs/core'
 import { lang, MainLayout, ToolbarButtonProps } from 'botpress/shared'
 import _ from 'lodash'
-import React, { FC } from 'react'
+import React, { FC, useContext } from 'react'
 
+import { IHandoff } from '../../../../types'
+import { Context } from '../Store'
 import style from '../../style.scss'
 
 export interface FilterType {
@@ -24,6 +26,8 @@ interface Props {
   setFilterOptions: (value: FilterType) => void
   setSortOption: (value: SortType) => void
   disabled: boolean
+  handoffs: object
+  onReassignAll: () => void
 }
 
 const HandoffListHeader: FC<Props> = ({
@@ -32,8 +36,20 @@ const HandoffListHeader: FC<Props> = ({
   sortOption,
   setFilterOptions,
   setSortOption,
-  disabled
+  disabled,
+  handoffs,
+  onReassignAll
 }) => {
+  const { state } = useContext(Context)
+
+  // Check if current agent has assigned conversations
+  const hasAssignedConversations = () => {
+    if (!state.currentAgent) return false
+    
+    return _.some(_.values(handoffs), (handoff: IHandoff) => 
+      handoff.status === 'assigned' && handoff.agentId === state.currentAgent?.agentId
+    )
+  }
   const defaultFilterOptions: ToolbarButtonProps['optionsItems'] = [
     {
       content: (
@@ -147,6 +163,16 @@ const HandoffListHeader: FC<Props> = ({
       disabled
     }
   ]
+
+  // Add reassign all button if agent has assigned conversations
+  if (hasAssignedConversations()) {
+    buttons.push({
+      icon: 'exchange',
+      tooltip: lang.tr('module.hitlnext.reassignAll'),
+      action: onReassignAll,
+      disabled: disabled
+    })
+  }
 
   return (
     <MainLayout.Toolbar

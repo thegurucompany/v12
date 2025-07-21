@@ -15,9 +15,10 @@ interface Props {
   tags: string[]
   handoffs: object
   loading: boolean
+  onReassignAll: () => void
 }
 
-const HandoffList: FC<Props> = ({ tags, handoffs, loading }) => {
+const HandoffList: FC<Props> = ({ tags, handoffs, loading, onReassignAll }) => {
   const { state, dispatch } = useContext(Context)
 
   const [items, setItems] = useState<IHandoff[]>([])
@@ -95,6 +96,8 @@ const HandoffList: FC<Props> = ({ tags, handoffs, loading }) => {
         setFilterOptions={setFilterOptions}
         setSortOption={setSortOption}
         disabled={_.isEmpty(handoffs)}
+        handoffs={handoffs}
+        onReassignAll={onReassignAll}
       ></HandoffListHeader>
 
       {loading && <Spinner></Spinner>}

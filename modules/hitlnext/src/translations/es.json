@@ -112,5 +112,8 @@
     "messageSent": "Mensaje enviado",
     "imageSent": "Imagen enviada",
     "fileSent": "Archivo enviado"
-  }
+  },
+  "reassignAll": "Reasignar Todas Mis Conversaciones",
+  "reassignAll.confirmationMessage": "Todas las conversaciones serán reasignadas a un agente disponible o devueltas al bot. ¿Está seguro de que desea continuar? Esta acción no se puede deshacer.",
+  "reassignAll.success": "Se reasignaron exitosamente {reassignedCount} conversaciones a otros agentes y se devolvieron {returnedToBotCount} conversaciones al bot."
 }

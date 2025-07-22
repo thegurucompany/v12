@@ -19,10 +19,30 @@ const debug = DEBUG(MODULE_NAME)
 
 const updateHitlStatus = event => {
   if (event.type === 'hitlnext' && event.payload) {
-    const { exitType, agentName } = event.payload
+    const { exitType, agentName, handoffTransfer } = event.payload
 
     _.set(event, 'state.temp.agentName', agentName)
     _.set(event, `state.temp.hitlnext-${exitType}`, true)
+
+    // Set handoff transfer flag for the bot to use
+    if (handoffTransfer) {
+      _.set(event, 'state.temp.handoffTransfer', true)
+      debug.forBot(event.botId, 'Set handoffTransfer flag for bot', { exitType })
+    }
+  }
+}
+
+// Handler to clean up handoffTransfer flag after bot processes message
+const cleanupHandoffTransferFlag = (event: sdk.IO.IncomingEvent) => {
+  // If handoffTransfer flag is set, schedule cleanup after current event processing
+  if (event.state?.temp?.handoffTransfer) {
+    // Use setTimeout to clean up the flag after the current event cycle
+    setTimeout(() => {
+      if (event.state?.temp?.handoffTransfer) {
+        _.set(event, 'state.temp.handoffTransfer', false)
+        debug.forBot(event.botId, 'Reset handoffTransfer flag after event processing')
+      }
+    }, 100) // Small delay to ensure bot has processed the message
   }
 }
 
@@ -740,6 +760,10 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
         direction: event.direction,
         channel: event.channel
       })
+
+      // Schedule cleanup of handoffTransfer flag if it's set (bot will process normally)
+      cleanupHandoffTransferFlag(event)
+
       next(undefined, false)
       return
     }
@@ -756,6 +780,10 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
     if (!handoff) {
       debug.forBot(event.botId, 'Handoff not found in database', { handoffId, threadId: event.threadId })
+
+      // Schedule cleanup of handoffTransfer flag if it's set (bot will process normally)
+      cleanupHandoffTransferFlag(event)
+
       next(undefined, false)
       return
     }
@@ -794,6 +822,9 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
     // TODO deprecate usage of isPause
     // @ts-ignore
     Object.assign(event, { isPause: true, handoffId: handoff.id })
+
+    // Schedule cleanup of handoffTransfer flag if it's set
+    cleanupHandoffTransferFlag(event)
 
     next()
   }

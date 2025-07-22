@@ -387,7 +387,7 @@ class Service {
             en:
               "There are no agents online at the moment 📴 so I'll get back to talking to you 💻\n\nIf you tell me what your question is, I'll do my best to help you 🤓",
             es:
-              'No hay agentes conectados por ahora 📴 así que retomo la conversación contigo 💻\n\nSi me dices cuál es tu consulta, haré lo posible por ayudarte 🤓'
+              'No hay agentes conectados por ahora 📴 así que MIA retomará la conversación contigo 💻\n\nDinos cuál es tu consulta 🤓'
           },
           eventDestination,
           language
@@ -476,15 +476,28 @@ class Service {
   }
 
   async transferToBot(event: sdk.IO.EventDestination, exitType: ExitTypes, agentName?: string) {
+    const isReassignmentTransfer = exitType === 'reassignmentNoAgents' || exitType === 'reassignmentError'
+
     const stateUpdate = this.bp.IO.Event({
       ..._.pick(event, ['botId', 'channel', 'target', 'threadId']),
       direction: 'incoming',
-      payload: { exitType, agentName },
+      payload: {
+        exitType,
+        agentName,
+        handoffTransfer: isReassignmentTransfer // Bandera para el bot
+      },
       preview: 'none',
       type: 'hitlnext'
     })
 
     await this.bp.events.sendEvent(stateUpdate)
+
+    this.bp.logger.forBot(event.botId).info('Transfer to bot event sent', {
+      exitType,
+      target: event.target,
+      threadId: event.threadId,
+      handoffTransfer: isReassignmentTransfer
+    })
   }
 
   sendPayload(botId: string, data: { resource: string; type: string; id: string; payload: any }) {

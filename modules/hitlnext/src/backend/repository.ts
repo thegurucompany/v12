@@ -464,6 +464,72 @@ export default class Repository {
   }
 
   /**
+   * Get the best available agent for reassignment, excluding the current agent if possible
+   * This ensures we don't reassign back to the same agent who just transferred the conversation
+   */
+  getAvailableAgentForReassignment = async (
+    botId: string,
+    excludeAgentId?: string
+  ): Promise<Omit<IAgent, 'online'> | null> => {
+    try {
+      const workspace = await this.bp.workspaces.getBotWorkspaceId(botId)
+      const agents = await this.listAgents(workspace)
+
+      // Filter only online agents and exclude the specified agent
+      const onlineAgents = []
+      for (const agent of agents) {
+        const isOnline = await this.getAgentOnline(botId, agent.agentId)
+
+        if (isOnline && agent.agentId !== excludeAgentId) {
+          onlineAgents.push(agent)
+        }
+      }
+
+      if (onlineAgents.length === 0) {
+        this.bp.logger.forBot(botId).info('No other agents available for reassignment')
+        return null
+      }
+
+      // If only one agent is online (excluding the original), return it
+      if (onlineAgents.length === 1) {
+        this.bp.logger.forBot(botId).info(`Only one agent available: ${onlineAgents[0].agentId}`)
+        return onlineAgents[0]
+      }
+
+      // Get conversation counts for all available agents
+      const agentsWithCounts = await Promise.all(
+        onlineAgents.map(async agent => {
+          const handoffCount = await this.getAssignedHandoffCount(botId, agent.agentId)
+          return {
+            agent,
+            handoffCount
+          }
+        })
+      )
+
+      // Sort by handoff count (ascending) to get agent with least conversations first
+      agentsWithCounts.sort((a, b) => a.handoffCount - b.handoffCount)
+
+      const selectedAgent = agentsWithCounts[0].agent
+      const selectedCount = agentsWithCounts[0].handoffCount
+
+      this.bp.logger
+        .forBot(botId)
+        .info(
+          `Reassignment: Selected agent ${selectedAgent.agentId} with ${selectedCount} assigned conversations. ` +
+            `Available agents and counts: ${agentsWithCounts
+              .map(ac => `${ac.agent.agentId}(${ac.handoffCount})`)
+              .join(', ')}`
+        )
+
+      return selectedAgent
+    } catch (error) {
+      debug.forBot(botId, 'Error getting available agent for reassignment:', error.message)
+      return null
+    }
+  }
+
+  /**
    * Get all handoffs assigned to a specific agent
    */
   getHandoffsForAgent = async (botId: string, agentId: string): Promise<IHandoff[]> => {

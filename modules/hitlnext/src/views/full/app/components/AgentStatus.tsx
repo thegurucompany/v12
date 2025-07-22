@@ -27,7 +27,7 @@ const AgentStatus: FC<Props> = ({ setOnline, online, loading, api }) => {
     try {
       const result = await api.reassignAllConversations()
       if (result.reassigned > 0) {
-        toast.success(lang.tr('module.hitlnext.agent.reassignAllSuccess') + ` (${result.reassigned} conversaciones)`)
+        toast.success(lang.tr('module.hitlnext.agent.reassignAllSuccess'))
       } else {
         toast.info('No hay conversaciones asignadas para reasignar')
       }

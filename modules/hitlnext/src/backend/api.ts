@@ -159,10 +159,22 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       const agentId = req.agentId!
 
       try {
-        const result = await service.reassignAllAgentConversations(botId, agentId)
+        // FIRST: Set agent offline BEFORE starting reassignment to exclude them from the process
+        await repository.unsetAgentOnline(botId, agentId)
 
-        // Extend agent session since this is an active operation
-        await extendAgentSession(repository, realtime, botId, agentId)
+        // Notify all clients about the agent status change immediately
+        service.sendPayload(botId, {
+          resource: 'agent',
+          type: 'update',
+          id: agentId,
+          payload: { online: false }
+        })
+
+        // Small delay to ensure the offline status is propagated
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // THEN: Process the reassignment with the agent now offline
+        const result = await service.reassignAllAgentConversations(botId, agentId)
 
         res.send(result)
       } catch (error) {

@@ -69,7 +69,12 @@ export interface ISocketMessage {
   id: string
 }
 
-export type ExitTypes = 'timedOutWaitingAgent' | 'handoffResolved' | 'noAgent'
+export type ExitTypes =
+  | 'timedOutWaitingAgent'
+  | 'handoffResolved'
+  | 'noAgent'
+  | 'reassignmentNoAgents'
+  | 'reassignmentError'
 
 export interface SkillData {
   redirectNoAgent: boolean

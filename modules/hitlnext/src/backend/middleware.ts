@@ -51,22 +51,45 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
   const pipeEvent = async (event: sdk.IO.IncomingEvent, eventDestination: sdk.IO.EventDestination) => {
     debug.forBot(event.botId, 'Piping event', eventDestination)
-    return bp.events.replyToEvent(eventDestination, [event.payload])
+    try {
+      const result = await bp.events.replyToEvent(eventDestination, [event.payload])
+      debug.forBot(event.botId, 'Successfully piped event', { success: true })
+      return result
+    } catch (error) {
+      debug.forBot(event.botId, 'Failed to pipe event', { error: error.message, eventDestination })
+      throw error
+    }
   }
 
   const handoffCacheKey = (botId: string, threadId: string) => [botId, threadId].join('.')
 
   const getCachedHandoff = (botId: string, threadId: string) => {
-    return handoffCache.get(handoffCacheKey(botId, threadId))
+    const handoffId = handoffCache.get(handoffCacheKey(botId, threadId))
+    debug.forBot(botId, 'Cache lookup', {
+      threadId,
+      handoffId: handoffId || 'not found',
+      cacheSize: handoffCache.length
+    })
+    return handoffId
   }
 
   const cacheHandoff = (botId: string, threadId: string, handoff: IHandoff) => {
-    debug.forBot(botId, 'Caching handoff', { id: handoff.id, threadId })
+    debug.forBot(botId, 'Caching handoff', {
+      id: handoff.id,
+      threadId,
+      status: handoff.status,
+      agentId: handoff.agentId,
+      agentThreadId: handoff.agentThreadId,
+      userThreadId: handoff.userThreadId
+    })
     handoffCache.set(handoffCacheKey(botId, threadId), handoff.id)
   }
 
   const expireHandoff = (botId: string, threadId: string) => {
-    debug.forBot(botId, 'Expiring handoff', { threadId })
+    debug.forBot(botId, 'Expiring handoff from cache', {
+      threadId,
+      wasInCache: handoffCache.has(handoffCacheKey(botId, threadId))
+    })
     handoffCache.del(handoffCacheKey(botId, threadId))
   }
 
@@ -232,12 +255,24 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
     // There only is an agentId & agentThreadId after assignation
     if (handoff.status === 'assigned') {
+      debug.forBot(handoff.botId, 'Piping user message to agent', {
+        handoffId: handoff.id,
+        agentId: handoff.agentId,
+        agentThreadId: handoff.agentThreadId,
+        userThreadId: handoff.userThreadId
+      })
+
       const userId = await repository.mapVisitor(handoff.botId, handoff.agentId)
       return pipeEvent(event, {
         botId: handoff.botId,
         target: userId,
         threadId: handoff.agentThreadId,
         channel: 'web'
+      })
+    } else {
+      debug.forBot(handoff.botId, 'Handoff not assigned, not piping to agent', {
+        handoffId: handoff.id,
+        status: handoff.status
       })
     }
 
@@ -699,14 +734,53 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
     const handoffId = getCachedHandoff(event.botId, event.threadId)
 
     if (!handoffId) {
+      debug.forBot(event.botId, 'No handoff found in cache', {
+        threadId: event.threadId,
+        type: event.type,
+        direction: event.direction,
+        channel: event.channel
+      })
       next(undefined, false)
       return
     }
 
+    debug.forBot(event.botId, 'Found handoff in cache', {
+      handoffId,
+      threadId: event.threadId,
+      type: event.type,
+      direction: event.direction,
+      channel: event.channel
+    })
+
     const handoff = await repository.getHandoff(handoffId)
+
+    if (!handoff) {
+      debug.forBot(event.botId, 'Handoff not found in database', { handoffId, threadId: event.threadId })
+      next(undefined, false)
+      return
+    }
+
+    debug.forBot(event.botId, 'Retrieved handoff from database', {
+      handoffId: handoff.id,
+      status: handoff.status,
+      agentId: handoff.agentId,
+      userThreadId: handoff.userThreadId,
+      agentThreadId: handoff.agentThreadId,
+      eventThreadId: event.threadId
+    })
 
     const incomingFromUser = handoff.userThreadId === event.threadId
     const incomingFromAgent = handoff.agentThreadId === event.threadId
+
+    debug.forBot(event.botId, 'Message direction analysis', {
+      handoffId: handoff.id,
+      eventThreadId: event.threadId,
+      userThreadId: handoff.userThreadId,
+      agentThreadId: handoff.agentThreadId,
+      incomingFromUser,
+      incomingFromAgent,
+      handoffStatus: handoff.status
+    })
 
     if (incomingFromUser) {
       debug.forBot(event.botId, 'Handling message from User', { direction: event.direction, threadId: event.threadId })

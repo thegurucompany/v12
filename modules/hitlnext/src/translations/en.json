@@ -31,7 +31,7 @@
     "reassignAllError": "Error reassigning conversations",
     "reassignmentInProgress": "Agent {agentName} has reassigned your conversation. We are looking for another available agent, please wait a moment.",
     "reassignmentSuccess": "Your conversation has been reassigned to agent {agentName}.",
-    "reassignmentNoAgents": "There are no agents online at the moment 📴 so I'll get back to talking to you 💻\n\nIf you tell me what your question is, I'll do my best to help you 🤓"
+    "reassignmentNoAgents": "There are no agents available at the moment 📴 so MIA will take over the conversation with you 💻\n\nShe'll do her best to assist you and provide a quick solution 🤖✨"
   },
   "handoff": {
     "created": "Created {date}",

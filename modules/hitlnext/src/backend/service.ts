@@ -385,9 +385,9 @@ class Service {
         await this.sendMessageToUser(
           {
             en:
-              "There are no agents online at the moment 📴 so I'll get back to talking to you 💻\n\nIf you tell me what your question is, I'll do my best to help you 🤓",
+              "There are no agents available at the moment 📴 so MIA will take over the conversation with you 💻\n\nShe'll do her best to assist you and provide a quick solution 🤖✨",
             es:
-              'No hay agentes conectados por ahora 📴 así que MIA retomará la conversación contigo 💻\n\nDinos cuál es tu consulta 🤓'
+              'No hay agentes conectados por ahora 📴 así que MIA retomará la conversación contigo 💻\n\nHará lo posible por ayudarte y darte una solución rápida 🤖✨'
           },
           eventDestination,
           language

@@ -24,7 +24,14 @@
     "getOnline": "Conectarse",
     "getOffline": "Desconectarse",
     "onlineSuccess": "Se encuentra conectado",
-    "offlineSuccess": "Se encuentra desconectado"
+    "offlineSuccess": "Se encuentra desconectado",
+    "reassignAll": "Reasignar todas mis conversaciones",
+    "reassignAllConfirm": "Todas las conversaciones se reasignarán a un agente disponible o se devolverán al bot. ¿Seguro que desea continuar? Esta acción no se puede deshacer.",
+    "reassignAllSuccess": "Todas las conversaciones han sido reasignadas exitosamente. Tu estado ha sido cambiado a desconectado.",
+    "reassignAllError": "Error al reasignar las conversaciones",
+    "reassignmentInProgress": "El agente {agentName} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento.",
+    "reassignmentSuccess": "Su conversación ha sido reasignada al agente {agentName}.",
+    "reassignmentNoAgents": "No hay agentes conectados por ahora 📴 así que MIA retomará la conversación contigo 💻\n\nHará lo posible por ayudarte y darte una solución rápida 🤖✨"
   },
   "handoff": {
     "created": "Creado {date}",

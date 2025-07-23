@@ -24,7 +24,14 @@
     "getOnline": "Get Online",
     "getOffline": "Get Offline",
     "onlineSuccess": "You are now online",
-    "offlineSuccess": "You are now offline"
+    "offlineSuccess": "You are now offline",
+    "reassignAll": "Reassign all my conversations",
+    "reassignAllConfirm": "All conversations will be reassigned to an available agent or returned to the bot. Are you sure you want to continue? This action cannot be undone.",
+    "reassignAllSuccess": "All conversations have been successfully reassigned. Your status has been changed to offline.",
+    "reassignAllError": "Error reassigning conversations",
+    "reassignmentInProgress": "Agent {agentName} has reassigned your conversation. We are looking for another available agent, please wait a moment.",
+    "reassignmentSuccess": "Your conversation has been reassigned to agent {agentName}.",
+    "reassignmentNoAgents": "There are no agents available at the moment 📴 so MIA will take over the conversation with you 💻\n\nShe'll do her best to assist you and provide a quick solution 🤖✨"
   },
   "handoff": {
     "created": "Created {date}",

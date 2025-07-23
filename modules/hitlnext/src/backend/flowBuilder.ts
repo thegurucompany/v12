@@ -43,6 +43,8 @@ const generateFlow = async (data: SkillData): Promise<sdk.FlowGenerationResult> 
         { condition: makeExit('noAgent'), node: '#' },
         { condition: makeExit('timedOutWaitingAgent'), node: '#' },
         { condition: makeExit('handoffResolved'), node: '#' },
+        { condition: makeExit('reassignmentNoAgents'), node: '#' },
+        { condition: makeExit('reassignmentError'), node: '#' },
         { condition: 'true', node: 'wait' }
       ]
     }
@@ -61,7 +63,9 @@ const generateFlow = async (data: SkillData): Promise<sdk.FlowGenerationResult> 
 
 const createTransitions = (data: SkillData) => {
   const transitions: sdk.NodeTransition[] = [
-    { caption: 'Handoff Resolved', condition: makeExit('handoffResolved'), node: '' }
+    { caption: 'Handoff Resolved', condition: makeExit('handoffResolved'), node: '' },
+    { caption: 'Reassignment No Agents', condition: makeExit('reassignmentNoAgents'), node: '' },
+    { caption: 'Reassignment Error', condition: makeExit('reassignmentError'), node: '' }
   ]
 
   if (data.redirectNoAgent) {

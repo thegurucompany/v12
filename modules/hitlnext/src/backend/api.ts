@@ -151,6 +151,38 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
     })
   )
 
+  router.post(
+    '/agents/me/reassign-all',
+    agentOnlineMiddleware,
+    errorMiddleware(async (req: HITLBPRequest, res: Response) => {
+      const { botId } = req.params
+      const agentId = req.agentId!
+
+      try {
+        // FIRST: Set agent offline BEFORE starting reassignment to exclude them from the process
+        await repository.unsetAgentOnline(botId, agentId)
+
+        // Notify all clients about the agent status change immediately
+        service.sendPayload(botId, {
+          resource: 'agent',
+          type: 'update',
+          id: agentId,
+          payload: { online: false }
+        })
+
+        // Small delay to ensure the offline status is propagated
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        // THEN: Process the reassignment with the agent now offline
+        const result = await service.reassignAllAgentConversations(botId, agentId)
+
+        res.send(result)
+      } catch (error) {
+        throw new UnprocessableEntityError(error.message)
+      }
+    })
+  )
+
   router.get(
     '/handoffs',
     errorMiddleware(async (req: Request, res: Response) => {

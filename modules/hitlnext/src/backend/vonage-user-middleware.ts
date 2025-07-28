@@ -3,28 +3,28 @@ import * as sdk from 'botpress/sdk'
 export class VonageUserMiddleware {
   constructor(private bp: typeof sdk) {}
 
-  // Middleware para interceptar eventos entrantes de Vonage y usar el número de teléfono como userId
+  // Middleware to intercept incoming Vonage events and use phone number as userId
   async beforeIncomingVonage(event: sdk.IO.IncomingEvent, next: sdk.IO.MiddlewareNextCallback) {
-    // Solo aplicar a canales vonage/whatsapp
+    // Only apply to vonage/whatsapp channels
     if (event.channel !== 'vonage' && event.channel !== 'whatsapp') {
       return next()
     }
 
     try {
-      // Obtener el número de teléfono del evento
+      // Extract phone number from event
       const phoneNumber = await this.extractPhoneFromEvent(event)
 
       if (phoneNumber) {
-        // Guardar el userId original para referencia
+        // Save original userId for reference
         const originalUserId = event.target
 
-        // Usar el número de teléfono como userId en lugar del UUID generado
-        // Necesitamos hacer casting para modificar la propiedad readonly
+        // Use phone number as userId instead of generated UUID
+        // Need to cast to modify readonly property
         ;(event as any).target = phoneNumber
 
-        this.bp.logger.info(`[Vonage] Usuario ID cambiado: ${originalUserId} → ${phoneNumber}`)
+        this.bp.logger.info(`[Vonage] User ID changed: ${originalUserId} → ${phoneNumber}`)
 
-        // Opcional: Guardar el mapeo en state para referencia
+        // Optional: Save mapping in state for reference
         if (!event.state.session) {
           ;(event.state as any).session = {}
         }
@@ -32,7 +32,7 @@ export class VonageUserMiddleware {
         ;(event.state.session as any).userMsisdn = phoneNumber
       }
     } catch (error) {
-      this.bp.logger.warn('Error procesando número de WhatsApp para userId:', error.message)
+      this.bp.logger.warn('Error processing WhatsApp number for userId:', error.message)
     }
 
     return next()
@@ -60,25 +60,25 @@ export class VonageUserMiddleware {
         return null
       }
 
-      // Procesar el número (aplicar la misma lógica que en tu función)
+      // Process the number (apply same logic as in your setUserPhone function)
       let phoneNumber = endpoint.sender
 
-      // Remover prefijos internacionales si es necesario
+      // Remove international prefixes if necessary
       phoneNumber = this.cleanPhoneNumber(phoneNumber)
 
       return phoneNumber
     } catch (error) {
-      this.bp.logger.warn('Error extrayendo número de teléfono del endpoint:', error.message)
+      this.bp.logger.warn('Error extracting phone number from endpoint:', error.message)
       return null
     }
   }
 
   private extractPhoneFromPayload(event: sdk.IO.IncomingEvent): string | null {
     try {
-      // Intentar extraer número del payload en diferentes formatos
+      // Try to extract number from payload in different formats
       const payload = event.payload as any
 
-      // Buscar en diferentes campos donde podría estar el número
+      // Look for different fields where the number might be
       const possibleFields = ['from', 'sender', 'msisdn', 'phone', 'phoneNumber']
 
       for (const field of possibleFields) {
@@ -87,7 +87,7 @@ export class VonageUserMiddleware {
         }
       }
 
-      // Buscar en estructuras anidadas
+      // Look for nested structures
       if (payload.user && typeof payload.user === 'object') {
         for (const field of possibleFields) {
           if (payload.user[field]) {
@@ -98,13 +98,13 @@ export class VonageUserMiddleware {
 
       return null
     } catch (error) {
-      this.bp.logger.warn('Error extrayendo número del payload:', error.message)
+      this.bp.logger.warn('Error extracting number from payload:', error.message)
       return null
     }
   }
 
   private cleanPhoneNumber(phoneNumber: string): string {
-    // Aplicar la misma lógica que tienes en tu función setUserPhone
+    // Apply same logic as in your setUserPhone function
     if (phoneNumber.length === 10) {
       return phoneNumber
     }
@@ -116,18 +116,18 @@ export class VonageUserMiddleware {
     return phoneNumber
   }
 
-  // También interceptar eventos salientes para mantener consistencia
+  // Also intercept outgoing events to maintain consistency
   async beforeOutgoingVonage(event: sdk.IO.OutgoingEvent, next: sdk.IO.MiddlewareNextCallback) {
-    // Solo aplicar a canales vonage/whatsapp
+    // Only apply to vonage/whatsapp channels
     if (event.channel !== 'vonage' && event.channel !== 'whatsapp') {
       return next()
     }
 
-    // El target ya debería ser el número de teléfono si se procesó correctamente en incoming
-    // Solo logear para confirmar
+    // The target should already be the phone number if processed correctly in incoming
+    // Just log to confirm
     if (event.target && !event.target.includes('-')) {
-      // Si el target no tiene guiones, probablemente es un número de teléfono
-      this.bp.logger.debug(`[Vonage] Enviando mensaje a número: ${event.target}`)
+      // If target has no dashes, it's probably a phone number
+      this.bp.logger.debug(`[Vonage] Sending message to number: ${event.target}`)
     }
 
     return next()

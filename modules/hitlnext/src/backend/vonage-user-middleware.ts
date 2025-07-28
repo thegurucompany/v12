@@ -44,7 +44,7 @@ export class VonageUserMiddleware {
       const botId = event.botId
 
       if (!conversationId) {
-        // Si no hay conversationId, intentar extraer del payload del evento
+        // If no conversationId, try to extract from event payload
         const phoneFromPayload = this.extractPhoneFromPayload(event)
         if (phoneFromPayload) {
           return phoneFromPayload

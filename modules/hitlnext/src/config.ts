@@ -75,7 +75,7 @@ export interface Config {
   }
 
   /**
-   * @param resolveMessage The message sent to the user when the conversation is resolved and they are being transferred back to the bot.
+   * @param resolveMessage The message sent to the user when the conversation is resolved and they are being transferred back to the bot. This message is always sent regardless of transferMessageEnabled setting.
    * @default { "en": "You are being transferred back to the bot.", "fr": "Vous êtes transféré au bot.", "es": "Se le está transfiriendo de vuelta al bot."}
    */
   resolveMessage?: {

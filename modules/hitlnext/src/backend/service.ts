@@ -446,7 +446,8 @@ class Service {
     const updated = await this.updateHandoff(handoff.id, botId, payload)
 
     // Enviar mensaje de resolución al usuario antes de transferir de vuelta al bot
-    if (config.transferMessageEnabled && config.resolveMessage) {
+    // Este mensaje siempre se muestra para que el usuario sepa que está de vuelta con el bot
+    if (config.resolveMessage) {
       const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
       const language = attributes.language
       await this.sendMessageToUser(config.resolveMessage, eventDestination, language)

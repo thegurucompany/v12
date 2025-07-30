@@ -50,5 +50,10 @@
   "workflowsInitiated": "Workflows lancés",
   "totalQnaFeedback": "Rétroactions QNA",
   "positiveQnaFeedback": "{nb} rétroactions positives",
-  "negativeQnaFeedback": "{nb} rétroactions négatives"
+  "negativeQnaFeedback": "{nb} rétroactions négatives",
+  "humanInTheLoopStats": "Statistiques Human in the loop",
+  "advancedReports": "Rapports Avancés",
+  "generateReportsDescription": "Générer des rapports détaillés du bot pour la date sélectionnée",
+  "downloadReports": "Télécharger les Rapports",
+  "generating": "Génération..."
 }

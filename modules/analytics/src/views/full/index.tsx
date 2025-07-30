@@ -6,9 +6,12 @@ import {
   MaybeElement,
   Popover,
   Position,
-  Tooltip as BpTooltip
+  Tooltip as BpTooltip,
+  Dialog,
+  Classes,
+  Intent
 } from '@blueprintjs/core'
-import { DateRange, DateRangePicker, IDateRangeShortcut } from '@blueprintjs/datetime'
+import { DateRange, DateRangePicker, IDateRangeShortcut, DatePicker } from '@blueprintjs/datetime'
 import '@blueprintjs/datetime/lib/css/blueprint-datetime.css'
 import axios from 'axios'
 import { lang, utils } from 'botpress/shared'
@@ -52,6 +55,8 @@ interface State {
   disableAnalyticsFetching?: boolean
   topQnaQuestions: { id: string; question?: string; count: number; upVoteCount?: number; downVoteCount?: number }[]
   generatingReport?: boolean
+  showReportModal?: boolean
+  reportModalDate?: Date
 }
 
 interface ExportPeriod {
@@ -138,6 +143,16 @@ const fetchReducer = (state: State, action): State => {
     return {
       ...state,
       generatingReport: action.data.generatingReport
+    }
+  } else if (action.type === 'setShowReportModal') {
+    return {
+      ...state,
+      showReportModal: action.data.showReportModal
+    }
+  } else if (action.type === 'setReportModalDate') {
+    return {
+      ...state,
+      reportModalDate: action.data.reportModalDate
     }
   } else {
     throw new Error("That action type isn't supported.")
@@ -294,14 +309,23 @@ const Analytics: FC<any> = ({ bp }) => {
   }
 
   const handleGenerateReport = async () => {
-    if (!state.dateRange || !state.dateRange[0]) {
+    // Abrir el modal para seleccionar fecha
+    dispatch({ type: 'setShowReportModal', data: { showReportModal: true } })
+
+    // Establecer fecha por defecto (hoy o la fecha seleccionada en el rango)
+    const defaultDate = state.dateRange?.[0] || new Date()
+    dispatch({ type: 'setReportModalDate', data: { reportModalDate: defaultDate } })
+  }
+
+  const handleModalGenerateReport = async () => {
+    if (!state.reportModalDate) {
       return
     }
 
     dispatch({ type: 'setGeneratingReport', data: { generatingReport: true } })
 
     try {
-      const reportDate = moment(state.dateRange[0]).format('YYYY-MM-DD')
+      const reportDate = moment(state.reportModalDate).format('YYYY-MM-DD')
       const response = await bp.axios.post('mod/analytics/generate-report', {
         reportDate
       })
@@ -309,12 +333,22 @@ const Analytics: FC<any> = ({ bp }) => {
       if (response.data.success) {
         // Crear un ZIP con todos los archivos
         downloadReportsAsZip(response.data.reports, reportDate)
+        // Cerrar el modal
+        dispatch({ type: 'setShowReportModal', data: { showReportModal: false } })
       }
     } catch (err) {
       console.error('Error generating report:', err)
     } finally {
       dispatch({ type: 'setGeneratingReport', data: { generatingReport: false } })
     }
+  }
+
+  const handleCloseReportModal = () => {
+    dispatch({ type: 'setShowReportModal', data: { showReportModal: false } })
+  }
+
+  const handleReportDateChange = (date: Date) => {
+    dispatch({ type: 'setReportModalDate', data: { reportModalDate: date } })
   }
 
   const downloadReportsAsZip = (reports: any[], reportDate: string) => {
@@ -674,10 +708,8 @@ Generado el: ${new Date().toLocaleString()}
             <div style={{ marginTop: '10px' }}>
               <Button
                 onClick={handleGenerateReport}
-                icon="download"
-                text={state.generatingReport ? lang.tr('module.analytics.generating') : lang.tr('module.analytics.downloadReports')}
-                loading={state.generatingReport}
-                disabled={state.generatingReport || !state.dateRange}
+                icon="document"
+                text={lang.tr('module.analytics.downloadReports')}
                 intent="primary"
               />
             </div>
@@ -856,6 +888,45 @@ Generado el: ${new Date().toLocaleString()}
           </div>
         </div>
         <input type="file" ref={loadJson} onChange={readFile} style={{ visibility: 'hidden' }}></input>
+
+        {/* Modal para generar reportes */}
+        <Dialog
+          isOpen={state.showReportModal}
+          onClose={handleCloseReportModal}
+          title={lang.tr('module.analytics.generateReportsModal')}
+          className={Classes.DIALOG}
+        >
+          <div className={Classes.DIALOG_BODY}>
+            <p style={{ marginBottom: '20px' }}>{lang.tr('module.analytics.selectDateForReports')}</p>
+            <DatePicker
+              value={state.reportModalDate}
+              onChange={handleReportDateChange}
+              maxDate={new Date()}
+              showActionsBar={true}
+            />
+          </div>
+          <div className={Classes.DIALOG_FOOTER}>
+            <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+              <Button
+                text={lang.tr('module.analytics.cancel')}
+                onClick={handleCloseReportModal}
+                disabled={state.generatingReport}
+              />
+              <Button
+                text={
+                  state.generatingReport
+                    ? lang.tr('module.analytics.generating')
+                    : lang.tr('module.analytics.generateDocuments')
+                }
+                intent={Intent.PRIMARY}
+                onClick={handleModalGenerateReport}
+                loading={state.generatingReport}
+                disabled={!state.reportModalDate || state.generatingReport}
+                icon="download"
+              />
+            </div>
+          </div>
+        </Dialog>
       </div>
     </div>
   )

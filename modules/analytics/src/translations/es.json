@@ -55,5 +55,9 @@
   "advancedReports": "Reportes Avanzados",
   "generateReportsDescription": "Genera reportes detallados del bot para la fecha seleccionada",
   "downloadReports": "Descargar Reportes",
-  "generating": "Generando..."
+  "generating": "Generando...",
+  "generateReportsModal": "Generar Reportes del Bot",
+  "selectDateForReports": "Selecciona la fecha para generar los reportes:",
+  "generateDocuments": "Generar Documentos",
+  "cancel": "Cancelar"
 }

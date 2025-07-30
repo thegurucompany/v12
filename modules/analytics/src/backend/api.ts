@@ -79,36 +79,46 @@ export default (bp: typeof sdk, db: Database) => {
     }
   })
 
-  router.post('/generate-report', asyncMiddleware(async (req, res) => {
-    const { botId } = req.params
-    const { reportDate } = req.body
+  router.post(
+    '/generate-report',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { reportDate } = req.body
 
-    if (!reportDate) {
-      throw new StandardError('Report date is required', { statusCode: 400 })
-    }
+      if (!reportDate) {
+        throw new StandardError('Report date is required', { statusCode: 400 })
+      }
 
-    try {
-      const reports = await generateBotReports(db, botId, reportDate)
-      res.send({ success: true, reports })
-    } catch (err) {
-      throw new StandardError('Cannot generate reports', err)
-    }
-  }))
+      try {
+        const reports = await generateBotReports(db, botId, reportDate)
+        res.send({ success: true, reports })
+      } catch (err) {
+        throw new StandardError('Cannot generate reports', err)
+      }
+    })
+  )
 
   const generateBotReports = async (db: Database, botId: string, reportDate: string) => {
-    const startDate = moment(reportDate).startOf('day').toISOString()
-    const endDate = moment(reportDate).endOf('day').toISOString()
+    const startDate = moment(reportDate)
+      .startOf('day')
+      .toISOString()
+    const endDate = moment(reportDate)
+      .endOf('day')
+      .toISOString()
 
     const reports = []
 
     // 1. Resumen general
-    const totalEvents = await db.knex.raw(`
+    const totalEvents = await db.knex.raw(
+      `
       SELECT COUNT(*) as total_events,
              COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as incoming_messages,
              COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as outgoing_messages
       FROM events 
       WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     const totalEventsData = totalEvents.rows?.[0] || totalEvents[0] || {}
 
@@ -125,7 +135,8 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
     })
 
     // 2. Mensajes detallados
-    const detailedMessages = await db.knex.raw(`
+    const detailedMessages = await db.knex.raw(
+      `
       SELECT 
         id as event_id,
         channel,
@@ -142,15 +153,28 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
       FROM events
       WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?
       ORDER BY "createdOn" ASC
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     reports.push({
       name: '01_mensajes_detallados.csv',
-      content: convertToCSV(detailedMessages.rows || detailedMessages, ['event_id', 'channel', 'conversation_id', 'user_id', 'message_type', 'direction', 'sender', 'message_text', 'timestamp'])
+      content: convertToCSV(detailedMessages.rows || detailedMessages, [
+        'event_id',
+        'channel',
+        'conversation_id',
+        'user_id',
+        'message_type',
+        'direction',
+        'sender',
+        'message_text',
+        'timestamp'
+      ])
     })
 
     // 3. Resumen de conversaciones
-    const conversationsSummary = await db.knex.raw(`
+    const conversationsSummary = await db.knex.raw(
+      `
       SELECT 
         "threadId" as conversation_id,
         target as user_id,
@@ -165,15 +189,27 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
       AND "threadId" IS NOT NULL
       GROUP BY "threadId", target, channel
       ORDER BY conversation_start ASC
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     reports.push({
       name: '02_resumen_conversaciones.csv',
-      content: convertToCSV(conversationsSummary.rows || conversationsSummary, ['conversation_id', 'user_id', 'channel', 'conversation_start', 'conversation_end', 'total_messages', 'user_messages', 'bot_messages'])
+      content: convertToCSV(conversationsSummary.rows || conversationsSummary, [
+        'conversation_id',
+        'user_id',
+        'channel',
+        'conversation_start',
+        'conversation_end',
+        'total_messages',
+        'user_messages',
+        'bot_messages'
+      ])
     })
 
     // 4. Estadísticas por hora
-    const hourlyStats = await db.knex.raw(`
+    const hourlyStats = await db.knex.raw(
+      `
       SELECT 
         CAST(strftime('%H', "createdOn") AS INTEGER) as hour_of_day,
         COUNT(*) as total_messages,
@@ -183,15 +219,23 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
       WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?
       GROUP BY strftime('%H', "createdOn")
       ORDER BY hour_of_day ASC
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     reports.push({
       name: '03_estadisticas_por_hora.csv',
-      content: convertToCSV(hourlyStats.rows || hourlyStats, ['hour_of_day', 'total_messages', 'incoming_messages', 'outgoing_messages'])
+      content: convertToCSV(hourlyStats.rows || hourlyStats, [
+        'hour_of_day',
+        'total_messages',
+        'incoming_messages',
+        'outgoing_messages'
+      ])
     })
 
     // 5. Tipos de mensaje
-    const messageTypes = await db.knex.raw(`
+    const messageTypes = await db.knex.raw(
+      `
       SELECT 
         type as message_type,
         direction,
@@ -200,7 +244,9 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
       WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?
       GROUP BY type, direction
       ORDER BY count DESC
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     reports.push({
       name: '04_tipos_de_mensaje.csv',
@@ -208,7 +254,8 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
     })
 
     // 6. Usuarios activos
-    const activeUsers = await db.knex.raw(`
+    const activeUsers = await db.knex.raw(
+      `
       SELECT 
         target as user_id,
         channel,
@@ -222,16 +269,27 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
       AND target IS NOT NULL
       GROUP BY target, channel
       ORDER BY total_messages DESC
-    `, [botId, startDate, endDate])
+    `,
+      [botId, startDate, endDate]
+    )
 
     reports.push({
       name: '05_usuarios_activos.csv',
-      content: convertToCSV(activeUsers.rows || activeUsers, ['user_id', 'channel', 'total_messages', 'messages_sent', 'messages_received', 'first_interaction', 'last_interaction'])
+      content: convertToCSV(activeUsers.rows || activeUsers, [
+        'user_id',
+        'channel',
+        'total_messages',
+        'messages_sent',
+        'messages_received',
+        'first_interaction',
+        'last_interaction'
+      ])
     })
 
     // 7. Handoffs detallados (si existe la tabla)
     try {
-      const handoffs = await db.knex.raw(`
+      const handoffs = await db.knex.raw(
+        `
         SELECT 
           id,
           "botId",
@@ -244,11 +302,22 @@ Mensajes salientes: ${totalEventsData.outgoing_messages || 0}
         FROM hitl_sessions
         WHERE "botId" = ? AND "createdAt" >= ? AND "createdAt" <= ?
         ORDER BY "createdAt" ASC
-      `, [botId, startDate, endDate])
+      `,
+        [botId, startDate, endDate]
+      )
 
       reports.push({
         name: '06_handoffs_detallados.csv',
-        content: convertToCSV(handoffs.rows || handoffs, ['id', 'botId', 'thread_id', 'agent_id', 'status', 'assignedAt', 'resolvedAt', 'createdAt'])
+        content: convertToCSV(handoffs.rows || handoffs, [
+          'id',
+          'botId',
+          'thread_id',
+          'agent_id',
+          'status',
+          'assignedAt',
+          'resolvedAt',
+          'createdAt'
+        ])
       })
     } catch (err) {
       // Si no existe la tabla hitl_sessions, crear un archivo vacío
@@ -297,7 +366,7 @@ Reporte generado el: ${new Date().toISOString()}
     }
 
     const csvRows = [headers.join(',')]
-    
+
     for (const row of data) {
       const values = headers.map(header => {
         const value = row[header]

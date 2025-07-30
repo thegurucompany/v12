@@ -52,6 +52,12 @@ export interface Config {
   autoAssignConversations: boolean
 
   /**
+   * @param transferMessageEnabled Whether or not to show transfer/reassignment messages to users
+   * @default true
+   */
+  transferMessageEnabled: boolean
+
+  /**
    * @param transferMessage The message sent to the user when he is being transferred to an agent. E.g. ̀`{ "lang": "message"}`.
    * @default { "en": "You are being transferred to an agent.", "fr": "Vous êtes transféré à un agent.", "es": "Se le está transfiriendo a un agente."}
    */
@@ -69,10 +75,34 @@ export interface Config {
   }
 
   /**
-   * @param resolveMessage The message sent to the user when the conversation is resolved and they are being transferred back to the bot.
+   * @param resolveMessage The message sent to the user when the conversation is resolved and they are being transferred back to the bot. This message is always sent regardless of transferMessageEnabled setting.
    * @default { "en": "You are being transferred back to the bot.", "fr": "Vous êtes transféré au bot.", "es": "Se le está transfiriendo de vuelta al bot."}
    */
   resolveMessage?: {
+    [Key: string]: string
+  }
+
+  /**
+   * @param reassignMessage The message sent to the user when their conversation is being reassigned to another agent.
+   * @default { "en": "Agent {{agentName}} has reassigned your conversation. We are looking for another available agent, please wait a moment.", "es": "El agente {{agentName}} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento."}
+   */
+  reassignMessage?: {
+    [Key: string]: string
+  }
+
+  /**
+   * @param reassignSuccessMessage The message sent to the user when their conversation has been successfully reassigned to a new agent.
+   * @default { "en": "Your conversation has been reassigned to agent {{agentName}}.", "es": "Su conversación ha sido reasignada al agente {{agentName}}."}
+   */
+  reassignSuccessMessage?: {
+    [Key: string]: string
+  }
+
+  /**
+   * @param reassignErrorMessage The message sent to the user when there's an error during reassignment.
+   * @default { "en": "Sorry, there was an error reassigning your conversation. Your conversation has been returned to me.", "es": "Lo siento, hubo un error al reasignar su conversación. Su conversación me ha sido devuelta."}
+   */
+  reassignErrorMessage?: {
     [Key: string]: string
   }
 

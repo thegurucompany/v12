@@ -46,7 +46,7 @@ class Service {
       return handoff
     })
 
-    if (config.transferMessage) {
+    if (config.transferMessageEnabled && config.transferMessage) {
       await this.sendMessageToUser(config.transferMessage, eventDestination, language)
     }
 
@@ -136,7 +136,7 @@ class Service {
 
       // Send assignment message to user
       const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
-      if (config.assignMessage) {
+      if (config.transferMessageEnabled && config.assignMessage) {
         const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
         const language = attributes.language
         const eventDestination = toEventDestination(botId, handoff)
@@ -211,6 +211,9 @@ class Service {
     let errors = 0
 
     try {
+      // Get module configuration
+      const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+
       // Get all conversations assigned to this agent
       const handoffs = await this.repository.getHandoffsForAgent(botId, agentId)
 
@@ -227,19 +230,24 @@ class Service {
             .forBot(botId)
             .info(`Processing handoff ${handoff.id}, originally assigned to agent ${handoff.agentId}`)
 
-          // Send initial reassignment message to user
-          const eventDestination = toEventDestination(botId, handoff)
-          const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
-          const language = attributes.language
+          // Send initial reassignment message to user only if enabled
+          if (config.transferMessageEnabled) {
+            const eventDestination = toEventDestination(botId, handoff)
+            const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+            const language = attributes.language
 
-          await this.sendMessageToUser(
-            {
-              en: `Agent ${agentName} has reassigned your conversation. We are looking for another available agent, please wait a moment.`,
-              es: `El agente ${agentName} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento.`
-            },
-            eventDestination,
-            language
-          )
+            // Use custom message if configured, otherwise use default
+            const reassignMessage = config.reassignMessage || {
+              en:
+                'Agent {{agentName}} has reassigned your conversation. We are looking for another available agent, please wait a moment.',
+              es:
+                'El agente {{agentName}} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento.'
+            }
+
+            await this.sendMessageToUser(reassignMessage, eventDestination, language, {
+              agentName
+            })
+          }
 
           // Unassign the conversation (set back to pending)
           const updatedHandoff = await this.repository.unassignHandoff(botId, handoff.id)
@@ -358,16 +366,22 @@ class Service {
         // Copy conversation history to new agent thread
         await this.copyConversationHistory(botId, handoff, agentThreadId, userId)
 
-        // Send success message to user
-        const newAgentName = availableAgent.attributes?.firstname || availableAgent.attributes?.email || 'nuevo agente'
-        await this.sendMessageToUser(
-          {
-            en: `Your conversation has been reassigned to agent ${newAgentName}.`,
-            es: `Su conversación ha sido reasignada al agente ${newAgentName}.`
-          },
-          eventDestination,
-          language
-        )
+        // Send success message to user only if enabled
+        const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+        if (config.transferMessageEnabled) {
+          const newAgentName =
+            availableAgent.attributes?.firstname || availableAgent.attributes?.email || 'nuevo agente'
+
+          // Use custom message if configured, otherwise use default
+          const reassignSuccessMessage = config.reassignSuccessMessage || {
+            en: 'Your conversation has been reassigned to agent {{agentName}}.',
+            es: 'Su conversación ha sido reasignada al agente {{agentName}}.'
+          }
+
+          await this.sendMessageToUser(reassignSuccessMessage, eventDestination, language, {
+            agentName: newAgentName
+          })
+        }
 
         // Update realtime
         this.updateRealtimeHandoff(botId, updatedHandoff)
@@ -401,18 +415,22 @@ class Service {
 
       // If reassignment fails, try to transfer back to bot as fallback
       try {
-        const eventDestination = toEventDestination(botId, handoff)
-        const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
-        const language = attributes.language
+        const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
 
-        await this.sendMessageToUser(
-          {
+        // Only send error message if transfer messages are enabled
+        if (config.transferMessageEnabled) {
+          const eventDestination = toEventDestination(botId, handoff)
+          const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+          const language = attributes.language
+
+          // Use custom message if configured, otherwise use default
+          const reassignErrorMessage = config.reassignErrorMessage || {
             en: 'Sorry, there was an error reassigning your conversation. Your conversation has been returned to me.',
             es: 'Lo siento, hubo un error al reasignar su conversación. Su conversación me ha sido devuelta.'
-          },
-          eventDestination,
-          language
-        )
+          }
+
+          await this.sendMessageToUser(reassignErrorMessage, eventDestination, language)
+        }
 
         // Close handoff and return to bot due to error
         await this.closeHandoffAndReturnToBot(botId, handoff, 'reassignmentError', originalAgentName)
@@ -428,6 +446,7 @@ class Service {
     const updated = await this.updateHandoff(handoff.id, botId, payload)
 
     // Enviar mensaje de resolución al usuario antes de transferir de vuelta al bot
+    // Este mensaje siempre se muestra para que el usuario sepa que está de vuelta con el bot
     if (config.resolveMessage) {
       const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
       const language = attributes.language

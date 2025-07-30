@@ -4,6 +4,7 @@
   "handoffAlert": 5,
   "defaultUsername": false,
   "autoAssignConversations": false,
+  "transferMessageEnabled": true,
   "tags": [],
   "enableConversationDeletion": false,
   "transferMessage": {
@@ -20,6 +21,18 @@
     "en": "You are being transferred back to the bot.",
     "fr": "Vous êtes transféré au bot.",
     "es": "Se le está transfiriendo de vuelta al bot."
+  },
+  "reassignMessage": {
+    "en": "Agent {{agentName}} has reassigned your conversation. We are looking for another available agent, please wait a moment.",
+    "es": "El agente {{agentName}} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento."
+  },
+  "reassignSuccessMessage": {
+    "en": "Your conversation has been reassigned to agent {{agentName}}.",
+    "es": "Su conversación ha sido reasignada al agente {{agentName}}."
+  },
+  "reassignErrorMessage": {
+    "en": "Sorry, there was an error reassigning your conversation. Your conversation has been returned to me.",
+    "es": "Lo siento, hubo un error al reasignar su conversación. Su conversación me ha sido devuelta."
   },
   "eventsWebHook": {},
   "s3Config": {

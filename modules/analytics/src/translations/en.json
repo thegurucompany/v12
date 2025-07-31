@@ -50,5 +50,14 @@
   "workflowsInitiated": "Workflows Initiated",
   "totalQnaFeedback": "QNA Feedback",
   "positiveQnaFeedback": "{nb} positive feedback",
-  "negativeQnaFeedback": "{nb} negative feedback"
+  "negativeQnaFeedback": "{nb} negative feedback",
+  "humanInTheLoopStats": "Human in the loop Statistics",
+  "advancedReports": "Advanced Reports",
+  "generateReportsDescription": "Generate detailed bot reports for the selected date",
+  "downloadReports": "Download Reports",
+  "generating": "Generating...",
+  "generateReportsModal": "Generate Bot Reports",
+  "selectDateForReports": "Select the date to generate reports:",
+  "generateDocuments": "Generate Documents",
+  "cancel": "Cancel"
 }

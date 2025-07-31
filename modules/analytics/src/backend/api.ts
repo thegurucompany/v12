@@ -99,44 +99,38 @@ export default (bp: typeof sdk, db: Database) => {
   )
 
   const generateBotReports = async (db: Database, botId: string, reportDate: string) => {
-    const startDate = moment(reportDate)
-      .startOf('day')
-      .toISOString()
-    const endDate = moment(reportDate)
-      .endOf('day')
-      .toISOString()
-
+    // Eliminar las variables startDate y endDate ya que usaremos DATE() directamente
     const reports = []
 
-    // 1. Obtener todas las métricas para el resumen general
+    // 1. Obtener todas las métricas para el resumen general usando DATE() como en el script
     const totalEventsQuery = await db.knex.raw(
-      'SELECT COUNT(*) as total_events FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?',
-      [botId, startDate, endDate]
+      'SELECT COUNT(*) as total_events FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?)',
+      [botId, reportDate]
     )
     const totalEvents = (totalEventsQuery.rows?.[0] || totalEventsQuery[0] || {}).total_events || 0
 
     const uniqueUsersQuery = await db.knex.raw(
-      'SELECT COUNT(DISTINCT target) as unique_users FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND target IS NOT NULL',
-      [botId, startDate, endDate]
+      'SELECT COUNT(DISTINCT target) as unique_users FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL',
+      [botId, reportDate]
     )
     const uniqueUsers = (uniqueUsersQuery.rows?.[0] || uniqueUsersQuery[0] || {}).unique_users || 0
 
     const uniqueConversationsQuery = await db.knex.raw(
-      'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND "threadId" IS NOT NULL',
-      [botId, startDate, endDate]
+      'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL',
+      [botId, reportDate]
     )
     const uniqueConversations =
       (uniqueConversationsQuery.rows?.[0] || uniqueConversationsQuery[0] || {}).unique_conversations || 0
 
     const userMessagesQuery = await db.knex.raw(
-      'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND direction = \'incoming\'',
-      [botId, startDate, endDate]
+      'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'incoming\'',
+      [botId, reportDate]
     )
     const userMessages = (userMessagesQuery.rows?.[0] || userMessagesQuery[0] || {}).user_messages || 0
 
     const botMessagesQuery = await db.knex.raw(
-      'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND direction = \'outgoing\'',
-      [botId, startDate, endDate]
+      'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'outgoing\'',
+      [botId, reportDate]
     )
     const botMessages = (botMessagesQuery.rows?.[0] || botMessagesQuery[0] || {}).bot_messages || 0
 
@@ -194,10 +188,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
 `
     })
 
-    // 2. Mensajes detallados con todos los campos del script
+    // 2. Mensajes detallados usando DATE() como en el script
     const detailedMessages = await db.knex.raw(
-      "SELECT COALESCE(id, 'unknown') as event_id, COALESCE(\"botId\", 'unknown') as bot_id, COALESCE(channel, 'unknown') as channel, COALESCE(\"threadId\", 'unknown') as conversation_id, COALESCE(target, 'anonymous') as user_id, COALESCE(type, 'unknown') as message_type, COALESCE(direction, 'unknown') as direction, CASE WHEN direction = 'incoming' THEN 'Usuario' WHEN direction = 'outgoing' THEN 'Bot' ELSE 'Desconocido' END as sender, COALESCE(json_extract(event, '$.payload.text'), '') as message_text, COALESCE(json_extract(event, '$.payload.type'), '') as payload_type, CASE WHEN json_extract(event, '$.payload.quick_replies') IS NOT NULL THEN 'Sí' ELSE 'No' END as has_quick_replies, \"createdOn\" as timestamp, CAST(strftime('%H', \"createdOn\") AS INTEGER) as hour_of_day, CAST(strftime('%w', \"createdOn\") AS INTEGER) as day_of_week, COALESCE(json_extract(event, '$.payload.quick_replies'), '[]') as quick_replies_options FROM events WHERE \"botId\" = ? AND \"createdOn\" >= ? AND \"createdOn\" <= ? ORDER BY \"createdOn\" ASC",
-      [botId, startDate, endDate]
+      "SELECT COALESCE(id, 'unknown') as event_id, COALESCE(\"botId\", 'unknown') as bot_id, COALESCE(channel, 'unknown') as channel, COALESCE(\"threadId\", 'unknown') as conversation_id, COALESCE(target, 'anonymous') as user_id, COALESCE(type, 'unknown') as message_type, COALESCE(direction, 'unknown') as direction, CASE WHEN direction = 'incoming' THEN 'Usuario' WHEN direction = 'outgoing' THEN 'Bot' ELSE 'Desconocido' END as sender, COALESCE(json_extract(event, '$.payload.text'), '') as message_text, COALESCE(json_extract(event, '$.payload.type'), '') as payload_type, CASE WHEN json_extract(event, '$.payload.quick_replies') IS NOT NULL THEN 'Sí' ELSE 'No' END as has_quick_replies, \"createdOn\" as timestamp, CAST(strftime('%H', \"createdOn\") AS INTEGER) as hour_of_day, CAST(strftime('%w', \"createdOn\") AS INTEGER) as day_of_week, COALESCE(json_extract(event, '$.payload.quick_replies'), '[]') as quick_replies_options FROM events WHERE \"botId\" = ? AND DATE(\"createdOn\") = DATE(?) ORDER BY \"createdOn\" ASC",
+      [botId, reportDate]
     )
 
     reports.push({
@@ -221,10 +215,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
       ])
     })
 
-    // 3. Resumen de conversaciones con todos los campos del script
+    // 3. Resumen de conversaciones usando DATE() como en el script
     const conversationsSummary = await db.knex.raw(
-      'SELECT COALESCE("threadId", \'unknown\') as conversation_id, COALESCE(target, \'anonymous\') as user_id, COALESCE(channel, \'unknown\') as channel, MIN("createdOn") as conversation_start, MAX("createdOn") as conversation_end, COUNT(*) as total_messages, COUNT(CASE WHEN direction = \'incoming\' THEN 1 END) as user_messages, COUNT(CASE WHEN direction = \'outgoing\' THEN 1 END) as bot_messages, COALESCE(ROUND(CAST((julianday(MAX("createdOn")) - julianday(MIN("createdOn"))) * 24 * 60 AS REAL), 2), 0) as duration_minutes, GROUP_CONCAT(DISTINCT type) as message_types_used FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND "threadId" IS NOT NULL GROUP BY "threadId", target, channel ORDER BY conversation_start ASC',
-      [botId, startDate, endDate]
+      'SELECT COALESCE("threadId", \'unknown\') as conversation_id, COALESCE(target, \'anonymous\') as user_id, COALESCE(channel, \'unknown\') as channel, MIN("createdOn") as conversation_start, MAX("createdOn") as conversation_end, COUNT(*) as total_messages, COUNT(CASE WHEN direction = \'incoming\' THEN 1 END) as user_messages, COUNT(CASE WHEN direction = \'outgoing\' THEN 1 END) as bot_messages, COALESCE(ROUND(CAST((julianday(MAX("createdOn")) - julianday(MIN("createdOn"))) * 24 * 60 AS REAL), 2), 0) as duration_minutes, GROUP_CONCAT(DISTINCT type) as message_types_used FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL GROUP BY "threadId", target, channel ORDER BY conversation_start ASC',
+      [botId, reportDate]
     )
 
     reports.push({
@@ -243,10 +237,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
       ])
     })
 
-    // 4. Estadísticas por hora con campos adicionales
+    // 4. Estadísticas por hora usando DATE() como en el script
     const hourlyStats = await db.knex.raw(
-      "SELECT CAST(strftime('%H', \"createdOn\") AS INTEGER) as hour_of_day, COUNT(*) as total_events, COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as incoming_messages, COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as outgoing_messages, COUNT(DISTINCT COALESCE(\"threadId\", 'unknown_' || id)) as unique_conversations, COUNT(DISTINCT COALESCE(target, 'anonymous')) as unique_users, COUNT(CASE WHEN type = 'text' THEN 1 END) as text_messages, COUNT(CASE WHEN type = 'quick_reply' THEN 1 END) as quick_reply_messages, COUNT(CASE WHEN type = 'postback' THEN 1 END) as postback_messages FROM events WHERE \"botId\" = ? AND \"createdOn\" >= ? AND \"createdOn\" <= ? GROUP BY strftime('%H', \"createdOn\") ORDER BY hour_of_day ASC",
-      [botId, startDate, endDate]
+      "SELECT CAST(strftime('%H', \"createdOn\") AS INTEGER) as hour_of_day, COUNT(*) as total_events, COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as incoming_messages, COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as outgoing_messages, COUNT(DISTINCT COALESCE(\"threadId\", 'unknown_' || id)) as unique_conversations, COUNT(DISTINCT COALESCE(target, 'anonymous')) as unique_users, COUNT(CASE WHEN type = 'text' THEN 1 END) as text_messages, COUNT(CASE WHEN type = 'quick_reply' THEN 1 END) as quick_reply_messages, COUNT(CASE WHEN type = 'postback' THEN 1 END) as postback_messages FROM events WHERE \"botId\" = ? AND DATE(\"createdOn\") = DATE(?) GROUP BY strftime('%H', \"createdOn\") ORDER BY hour_of_day ASC",
+      [botId, reportDate]
     )
 
     reports.push({
@@ -264,10 +258,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
       ])
     })
 
-    // 5. Tipos de mensaje con estadísticas completas
+    // 5. Tipos de mensaje usando DATE() como en el script
     const messageTypes = await db.knex.raw(
-      'SELECT COALESCE(type, \'unknown\') as message_type, COALESCE(direction, \'unknown\') as direction, COUNT(*) as message_count, COALESCE(ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ?)), 2), 0) as percentage, COUNT(DISTINCT COALESCE("threadId", \'unknown_\' || id)) as conversations_with_this_type, COUNT(DISTINCT COALESCE(target, \'anonymous\')) as users_with_this_type, MIN("createdOn") as first_occurrence, MAX("createdOn") as last_occurrence FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? GROUP BY type, direction ORDER BY message_count DESC',
-      [botId, startDate, endDate, botId, startDate, endDate]
+      'SELECT COALESCE(type, \'unknown\') as message_type, COALESCE(direction, \'unknown\') as direction, COUNT(*) as message_count, COALESCE(ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?))), 2), 0) as percentage, COUNT(DISTINCT COALESCE("threadId", \'unknown_\' || id)) as conversations_with_this_type, COUNT(DISTINCT COALESCE(target, \'anonymous\')) as users_with_this_type, MIN("createdOn") as first_occurrence, MAX("createdOn") as last_occurrence FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) GROUP BY type, direction ORDER BY message_count DESC',
+      [botId, reportDate, botId, reportDate]
     )
 
     reports.push({
@@ -284,10 +278,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
       ])
     })
 
-    // 6. Usuarios activos con campos completos
+    // 6. Usuarios activos usando DATE() como en el script
     const activeUsers = await db.knex.raw(
-      'SELECT COALESCE(target, \'anonymous\') as user_id, COALESCE(channel, \'unknown\') as channel, COUNT(*) as total_messages, COUNT(CASE WHEN direction = \'incoming\' THEN 1 END) as messages_sent, COUNT(CASE WHEN direction = \'outgoing\' THEN 1 END) as messages_received, COUNT(DISTINCT COALESCE("threadId", \'unknown_\' || id)) as conversations_participated, MIN("createdOn") as first_message_time, MAX("createdOn") as last_message_time, COALESCE(ROUND(CAST((julianday(MAX("createdOn")) - julianday(MIN("createdOn"))) * 24 * 60 AS REAL), 2), 0) as activity_duration_minutes FROM events WHERE "botId" = ? AND "createdOn" >= ? AND "createdOn" <= ? AND target IS NOT NULL GROUP BY target, channel ORDER BY total_messages DESC',
-      [botId, startDate, endDate]
+      'SELECT COALESCE(target, \'anonymous\') as user_id, COALESCE(channel, \'unknown\') as channel, COUNT(*) as total_messages, COUNT(CASE WHEN direction = \'incoming\' THEN 1 END) as messages_sent, COUNT(CASE WHEN direction = \'outgoing\' THEN 1 END) as messages_received, COUNT(DISTINCT COALESCE("threadId", \'unknown_\' || id)) as conversations_participated, MIN("createdOn") as first_message_time, MAX("createdOn") as last_message_time, COALESCE(ROUND(CAST((julianday(MAX("createdOn")) - julianday(MIN("createdOn"))) * 24 * 60 AS REAL), 2), 0) as activity_duration_minutes FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL GROUP BY target, channel ORDER BY total_messages DESC',
+      [botId, reportDate]
     )
 
     reports.push({

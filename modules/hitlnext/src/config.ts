@@ -52,7 +52,7 @@ export interface Config {
   autoAssignConversations: boolean
 
   /**
-   * @param transferMessageEnabled Whether or not to show transfer/reassignment messages to users
+   * @param transferMessageEnabled Whether or not to show reassignment messages to users. Transfer and assignment messages are always shown.
    * @default true
    */
   transferMessageEnabled: boolean

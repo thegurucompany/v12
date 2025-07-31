@@ -46,7 +46,7 @@ class Service {
       return handoff
     })
 
-    if (config.transferMessageEnabled && config.transferMessage) {
+    if (config.transferMessage) {
       await this.sendMessageToUser(config.transferMessage, eventDestination, language)
     }
 
@@ -136,7 +136,7 @@ class Service {
 
       // Send assignment message to user
       const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
-      if (config.transferMessageEnabled && config.assignMessage) {
+      if (config.assignMessage) {
         const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
         const language = attributes.language
         const eventDestination = toEventDestination(botId, handoff)

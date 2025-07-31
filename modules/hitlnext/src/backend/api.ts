@@ -282,7 +282,7 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
       const configs: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, req.params.botId)
 
-      if (configs.transferMessageEnabled && configs.assignMessage) {
+      if (configs.assignMessage) {
         const attributes = await bp.users.getAttributes(handoff.userChannel, handoff.userId)
         const language = attributes.language
 

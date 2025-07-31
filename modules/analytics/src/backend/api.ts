@@ -141,28 +141,28 @@ export default (bp: typeof sdk, db: Database) => {
 
     try {
       const handoffsQuery = await db.knex.raw(
-        'SELECT COUNT(*) as total FROM hitl_sessions WHERE "botId" = ? AND DATE("createdAt") = DATE(?)',
+        'SELECT COUNT(*) as total FROM handoffs WHERE "botId" = ? AND DATE("createdAt") = DATE(?)',
         [botId, reportDate]
       )
       totalHandoffs = (handoffsQuery.rows?.[0] || handoffsQuery[0] || {}).total || 0
 
       const resolvedHandoffsQuery = await db.knex.raw(
-        'SELECT COUNT(*) as resolved FROM hitl_sessions WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND status = \'resolved\'',
+        'SELECT COUNT(*) as resolved FROM handoffs WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND status = \'resolved\'',
         [botId, reportDate]
       )
       resolvedHandoffs = (resolvedHandoffsQuery.rows?.[0] || resolvedHandoffsQuery[0] || {}).resolved || 0
 
       if (totalHandoffs > 0) {
         const avgDurationQuery = await db.knex.raw(
-          'SELECT AVG(CAST((julianday("resolvedAt") - julianday("assignedAt")) * 24 * 60 AS REAL)) as avg_duration FROM hitl_sessions WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND "resolvedAt" IS NOT NULL AND "assignedAt" IS NOT NULL',
+          'SELECT AVG(CAST((julianday("resolvedAt") - julianday("assignedAt")) * 24 * 60 AS REAL)) as avg_duration FROM handoffs WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND "resolvedAt" IS NOT NULL AND "assignedAt" IS NOT NULL',
           [botId, reportDate]
         )
         avgDurationHandoffs =
           Math.round((avgDurationQuery.rows?.[0] || avgDurationQuery[0] || {}).avg_duration * 100) / 100 || 0
       }
     } catch (err) {
-      // Si no existe la tabla hitl_sessions, usar valores por defecto
-      bp.logger.warn('Tabla hitl_sessions no encontrada, usando valores por defecto')
+      // Si no existe la tabla handoffs, usar valores por defecto
+      bp.logger.warn('Tabla handoffs no encontrada, usando valores por defecto')
     }
 
     // Generar resumen general con formato exacto del script
@@ -301,8 +301,37 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
 
     // 7. Handoffs detallados
     try {
+      // Primero intentamos con el JOIN usando agentId directamente (algunos podrían estar sin hashear)
       const handoffs = await db.knex.raw(
-        'SELECT COALESCE(id, \'unknown\') as handoff_id, COALESCE("userId", \'anonymous\') as user_id, \'unknown@email.com\' as agent_email, \'unknown\' as agent_workspace, COALESCE("userThreadId", \'unknown\') as conversation_id, COALESCE("userChannel", \'unknown\') as channel, COALESCE(status, \'unknown\') as status, "createdAt" as created_at, "assignedAt" as assigned_at, "resolvedAt" as resolved_at, CASE WHEN "resolvedAt" IS NOT NULL AND "createdAt" IS NOT NULL THEN COALESCE(ROUND(CAST((julianday("resolvedAt") - julianday("createdAt")) * 24 * 60 AS REAL), 2), 0) ELSE NULL END as duration_minutes, COALESCE(CAST(strftime(\'%H\', "createdAt") AS INTEGER), 0) as hour_created, CASE WHEN "assignedAt" IS NOT NULL AND "createdAt" IS NOT NULL THEN COALESCE(ROUND(CAST((julianday("assignedAt") - julianday("createdAt")) * 24 * 60 * 60 AS REAL), 2), 0) ELSE NULL END as assignment_delay_seconds FROM hitl_sessions WHERE "botId" = ? AND DATE("createdAt") = DATE(?) ORDER BY "createdAt" ASC',
+        `SELECT 
+          COALESCE(CAST(h.id AS TEXT), 'unknown') as handoff_id,
+          COALESCE(h."userId", 'anonymous') as user_id,
+          COALESCE(wu.email, 'unknown@email.com') as agent_email,
+          COALESCE(wu.workspace, 'unknown') as agent_workspace,
+          COALESCE(h."userThreadId", 'unknown') as conversation_id,
+          COALESCE(h."userChannel", 'unknown') as channel,
+          COALESCE(h.status, 'unknown') as status,
+          h."createdAt" as created_at,
+          h."assignedAt" as assigned_at,
+          h."resolvedAt" as resolved_at,
+          CASE 
+            WHEN h."resolvedAt" IS NOT NULL AND h."createdAt" IS NOT NULL 
+            THEN COALESCE(ROUND(CAST((julianday(h."resolvedAt") - julianday(h."createdAt")) * 24 * 60 AS REAL), 2), 0) 
+            ELSE NULL 
+          END as duration_minutes,
+          COALESCE(CAST(strftime('%H', h."createdAt") AS INTEGER), 0) as hour_created,
+          CASE 
+            WHEN h."assignedAt" IS NOT NULL AND h."createdAt" IS NOT NULL 
+            THEN COALESCE(ROUND(CAST((julianday(h."assignedAt") - julianday(h."createdAt")) * 24 * 60 * 60 AS REAL), 2), 0) 
+            ELSE NULL 
+          END as assignment_delay_seconds
+        FROM handoffs h 
+        LEFT JOIN workspace_users wu ON (
+          h."agentId" = wu.strategy || '-' || wu.email OR
+          h."agentId" = wu.email
+        )
+        WHERE h."botId" = ? AND DATE(h."createdAt") = DATE(?) 
+        ORDER BY h."createdAt" ASC`,
         [botId, reportDate]
       )
 

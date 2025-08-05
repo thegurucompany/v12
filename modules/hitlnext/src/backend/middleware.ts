@@ -13,7 +13,6 @@ import Repository from './repository'
 import { S3FileService } from './s3-image-service'
 import { logS3Status } from './s3-test-utils'
 import Socket from './socket'
-import { VonageUserMiddleware } from './vonage-user-middleware'
 import { VonageWhatsAppService } from './vonage-whatsapp'
 
 const debug = DEBUG(MODULE_NAME)
@@ -857,18 +856,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
   state.cacheHandoff = await bp.distributed.broadcast(cacheHandoff)
   state.expireHandoff = await bp.distributed.broadcast(expireHandoff)
 
-  // Initialize Vonage user middleware
-  const vonageUserMiddleware = new VonageUserMiddleware(bp)
-
-  // Register Vonage middleware with higher priority (lower order number)
-  bp.events.registerMiddleware({
-    name: 'vonage.user-mapping',
-    direction: 'incoming',
-    order: -1, // Execute before HITL middleware
-    description: 'Maps Vonage/WhatsApp phone numbers to user IDs',
-    handler: vonageUserMiddleware.beforeIncomingVonage.bind(vonageUserMiddleware)
-  })
-
   bp.events.registerMiddleware({
     name: 'hitlnext.incoming',
     direction: 'incoming',
@@ -879,7 +866,6 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 }
 
 const unregisterMiddleware = async (bp: typeof sdk) => {
-  bp.events.removeMiddleware('vonage.user-mapping')
   bp.events.removeMiddleware('hitlnext.incoming')
 }
 

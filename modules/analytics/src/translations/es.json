@@ -50,5 +50,14 @@
   "workflowsInitiated": "Flujos de trabajo iniciados",
   "totalQnaFeedback": "retroalimentación de Q&A",
   "positiveQnaFeedback": "{nb} retroalimentación positivos",
-  "negativeQnaFeedback": "{nb} retroalimentación negativos"
+  "negativeQnaFeedback": "{nb} retroalimentación negativos",
+  "humanInTheLoopStats": "Estadísticas de Human in the loop",
+  "advancedReports": "Reportes Avanzados",
+  "generateReportsDescription": "Genera reportes detallados del bot para la fecha seleccionada",
+  "downloadReports": "Descargar Reportes",
+  "generating": "Generando...",
+  "generateReportsModal": "Generar Reportes del Bot",
+  "selectDateForReports": "Selecciona la fecha para generar los reportes:",
+  "generateDocuments": "Generar Documentos",
+  "cancel": "Cancelar"
 }

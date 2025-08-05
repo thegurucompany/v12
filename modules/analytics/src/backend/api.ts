@@ -1,9 +1,18 @@
 import * as sdk from 'botpress/sdk'
 import { asyncMiddleware as asyncMw, StandardError } from 'common/http'
+import crypto from 'crypto'
 import _ from 'lodash'
 import moment from 'moment'
 
 import Database from './db'
+
+// Función para generar agentId con hash MD5 (igual que en hitlnext)
+const makeAgentId = (strategy: string, email: string): string => {
+  return crypto
+    .createHash('md5')
+    .update([strategy, email].filter(Boolean).join('-'))
+    .digest('hex')
+}
 
 const getCustomMetricName = (name: string) => {
   if (name.startsWith('cm_')) {
@@ -301,13 +310,40 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
 
     // 7. Handoffs detallados
     try {
-      // Primero intentamos con el JOIN usando agentId directamente (algunos podrían estar sin hashear)
-      const handoffs = await db.knex.raw(
+      // Primero obtenemos todos los usuarios del workspace para crear el mapa de agentId
+      const workspaceUsers = await db.knex.raw(
+        'SELECT strategy, email, workspace FROM workspace_users'
+      )
+      
+      // Crear mapa de agentId hasheado a información del agente
+      const agentMap = new Map()
+      const users = workspaceUsers.rows || workspaceUsers || []
+      
+      users.forEach((user: any) => {
+        if (user.strategy && user.email) {
+          const hashedAgentId = makeAgentId(user.strategy, user.email)
+          agentMap.set(hashedAgentId, {
+            email: user.email,
+            workspace: user.workspace || 'unknown'
+          })
+          // También agregar variantes sin hash por si acaso
+          agentMap.set(user.email, {
+            email: user.email,
+            workspace: user.workspace || 'unknown'
+          })
+          agentMap.set(`${user.strategy}-${user.email}`, {
+            email: user.email,
+            workspace: user.workspace || 'unknown'
+          })
+        }
+      })
+
+      // Obtener los handoffs básicos
+      const handoffsRaw = await db.knex.raw(
         `SELECT 
           COALESCE(CAST(h.id AS TEXT), 'unknown') as handoff_id,
           COALESCE(h."userId", 'anonymous') as user_id,
-          COALESCE(wu.email, 'unknown@email.com') as agent_email,
-          COALESCE(wu.workspace, 'unknown') as agent_workspace,
+          COALESCE(h."agentId", '') as agent_id,
           COALESCE(h."userThreadId", 'unknown') as conversation_id,
           COALESCE(h."userChannel", 'unknown') as channel,
           COALESCE(h.status, 'unknown') as status,
@@ -326,18 +362,24 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
             ELSE NULL 
           END as assignment_delay_seconds
         FROM handoffs h 
-        LEFT JOIN workspace_users wu ON (
-          h."agentId" = wu.strategy || '-' || wu.email OR
-          h."agentId" = wu.email
-        )
         WHERE h."botId" = ? AND DATE(h."createdAt") = DATE(?) 
         ORDER BY h."createdAt" ASC`,
         [botId, reportDate]
       )
 
+      // Enriquecer los datos con información del agente
+      const handoffsEnriched = (handoffsRaw.rows || handoffsRaw || []).map((handoff: any) => {
+        const agentInfo = agentMap.get(handoff.agent_id) || { email: 'unknown@email.com', workspace: 'unknown' }
+        return {
+          ...handoff,
+          agent_email: agentInfo.email,
+          agent_workspace: agentInfo.workspace
+        }
+      })
+
       reports.push({
         name: '06_handoffs_detallados.csv',
-        content: convertToCSV(handoffs.rows || handoffs, [
+        content: convertToCSV(handoffsEnriched, [
           'handoff_id',
           'user_id',
           'agent_email',
@@ -354,12 +396,13 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         ])
       })
     } catch (err) {
-      // Si no existe la tabla, crear un archivo vacío
+      // Si hay algún error, crear un archivo con headers vacío
       reports.push({
         name: '06_handoffs_detallados.csv',
         content:
           'handoff_id,user_id,agent_email,agent_workspace,conversation_id,channel,status,created_at,assigned_at,resolved_at,duration_minutes,hour_created,assignment_delay_seconds\n'
       })
+      bp.logger.warn('Error al obtener handoffs detallados:', err)
     }
 
     // 8. Análisis completo en markdown

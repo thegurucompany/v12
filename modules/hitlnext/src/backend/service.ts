@@ -606,6 +606,106 @@ class Service {
       throw error
     }
   }
+
+  /**
+   * Reassign a single conversation to a specific agent (individual reassignment)
+   * This is different from bulk reassignment and does not change agent status
+   */
+  async reassignSingleConversation(botId: string, handoff: IHandoff, currentAgentId: string, targetAgentId: string) {
+    try {
+      this.bp.logger
+        .forBot(botId)
+        .info(
+          `Starting individual reassignment of handoff ${handoff.id} from agent ${currentAgentId} to agent ${targetAgentId}`
+        )
+
+      // Get current agent info for messaging
+      const currentAgent = await this.repository.getAgent(currentAgentId)
+      const currentAgentName = currentAgent?.attributes?.firstname || currentAgent?.attributes?.email || 'un agente'
+
+      const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+
+      // Send initial reassignment message to user only if enabled
+      if (config.transferMessageEnabled) {
+        const eventDestination = toEventDestination(botId, handoff)
+        const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+        const language = attributes.language
+
+        const reassignMessage = config.reassignMessage || {
+          en:
+            'Agent {{agentName}} has reassigned your conversation. We are looking for another available agent, please wait a moment.',
+          es:
+            'El agente {{agentName}} ha reasignado su conversación. Estamos buscando otro agente disponible, por favor espere un momento.'
+        }
+
+        await this.sendMessageToUser(reassignMessage, eventDestination, language, {
+          agentName: currentAgentName
+        })
+      }
+
+      // Unassign the conversation temporarily
+      const unassignedHandoff = await this.repository.unassignHandoff(botId, handoff.id)
+
+      // Clear the original agent thread cache only
+      if (handoff.agentThreadId) {
+        this.state.expireHandoff(botId, handoff.agentThreadId)
+      }
+
+      // Small delay to make the process feel natural
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Get target agent
+      const targetAgent = await this.repository.getAgent(targetAgentId)
+
+      // Create new agent conversation for target agent
+      const userId = await this.repository.mapVisitor(botId, targetAgentId)
+      const conversation = await this.bp.messaging.forBot(botId).createConversation(userId)
+
+      const agentThreadId = conversation.id
+      const payload: Pick<IHandoff, 'agentId' | 'agentThreadId' | 'assignedAt' | 'status'> = {
+        agentId: targetAgentId,
+        agentThreadId,
+        assignedAt: new Date(),
+        status: 'assigned'
+      }
+
+      // Update handoff with new assignment
+      const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+
+      // Cache the handoff for both threads
+      this.state.cacheHandoff(botId, updatedHandoff.userThreadId, updatedHandoff)
+      this.state.cacheHandoff(botId, agentThreadId, updatedHandoff)
+
+      // Copy conversation history to new agent thread
+      await this.copyConversationHistory(botId, handoff, agentThreadId, userId)
+
+      // Send success message to user only if enabled
+      if (config.transferMessageEnabled) {
+        const eventDestination = toEventDestination(botId, handoff)
+        const attributes = await this.bp.users.getAttributes(handoff.userChannel, handoff.userId)
+        const language = attributes.language
+
+        const targetAgentName = targetAgent.attributes?.firstname || targetAgent.attributes?.email || 'nuevo agente'
+
+        const reassignSuccessMessage = config.reassignSuccessMessage || {
+          en: 'Your conversation has been reassigned to agent {{agentName}}.',
+          es: 'Su conversación ha sido reasignada al agente {{agentName}}.'
+        }
+
+        await this.sendMessageToUser(reassignSuccessMessage, eventDestination, language, {
+          agentName: targetAgentName
+        })
+      }
+
+      // Update realtime
+      this.updateRealtimeHandoff(botId, updatedHandoff)
+
+      this.bp.logger.forBot(botId).info(`Successfully reassigned handoff ${handoff.id} to agent ${targetAgentId}`)
+    } catch (error) {
+      this.bp.logger.forBot(botId).error(`Failed to reassign single conversation ${handoff.id}:`, error.message)
+      throw error
+    }
+  }
 }
 
 export default Service

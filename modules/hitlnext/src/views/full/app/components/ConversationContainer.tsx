@@ -3,7 +3,7 @@ import { AxiosInstance } from 'axios'
 import { isOperationAllowed, lang, MainLayout, PermissionOperation, toast } from 'botpress/shared'
 import cx from 'classnames'
 import _ from 'lodash'
-import React, { FC, Fragment, useContext } from 'react'
+import React, { FC, Fragment, useContext, useState } from 'react'
 
 import { HitlClient } from '../../../client'
 import style from '../../style.scss'
@@ -12,6 +12,7 @@ import { Context } from '../Store'
 import ConversationDetails from './ConversationDetails'
 import ConversationHistory from './ConversationHistory'
 import LiveChat from './LiveChat'
+import ReassignModal from './ReassignModal'
 
 interface Props {
   api: HitlClient
@@ -20,6 +21,7 @@ interface Props {
 
 const ConversationContainer: FC<Props> = ({ api, bp }) => {
   const { state, dispatch } = useContext(Context)
+  const [showReassignModal, setShowReassignModal] = useState(false)
 
   async function handleAssign() {
     try {
@@ -78,6 +80,18 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
 
   const liveChatButtons = () =>
     [
+      {
+        content: (
+          <Button
+            className={style.coversationButton}
+            minimal
+            rightIcon="refresh"
+            onClick={() => setShowReassignModal(true)}
+            text={lang.tr('module.hitlnext.agent.reassignConversation')}
+            disabled={!currentAgentHasPermission('write') || !state.currentAgent.online}
+          />
+        )
+      },
       {
         content: (
           <Button
@@ -148,6 +162,15 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
         {content}
       </div>
       <ConversationDetails api={api} handoff={selectedHandoff}></ConversationDetails>
+
+      {/* Reassign Modal */}
+      <ReassignModal
+        api={api}
+        isOpen={showReassignModal}
+        onClose={() => setShowReassignModal(false)}
+        handoffId={selectedHandoff?.id}
+        currentAgentId={state.currentAgent?.agentId}
+      />
     </Fragment>
   )
 }

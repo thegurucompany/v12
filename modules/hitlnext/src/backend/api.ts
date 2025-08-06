@@ -23,6 +23,7 @@ import {
   AssignHandoffSchema,
   CreateCommentSchema,
   CreateHandoffSchema,
+  ReassignHandoffSchema,
   ResolveHandoffSchema,
   UpdateHandoffSchema,
   validateHandoffStatusRule
@@ -528,6 +529,59 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
           res.status(500).json({ error: 'Failed to upload file to S3' })
         }
       })
+    })
+  )
+
+  router.post(
+    '/handoffs/:id/reassign',
+    agentOnlineMiddleware,
+    errorMiddleware(async (req: HITLBPRequest, res: Response) => {
+      const { botId, id } = req.params
+      const { targetAgentId } = req.body
+      const currentAgentId = req.agentId!
+
+      if (!targetAgentId) {
+        throw new UnprocessableEntityError('Target agent ID is required')
+      }
+
+      // Validate request body
+      Joi.attempt({ targetAgentId }, ReassignHandoffSchema)
+
+      if (targetAgentId === currentAgentId) {
+        throw new UnprocessableEntityError('Cannot reassign to the same agent')
+      }
+
+      const handoff = await repository.findHandoff(botId, id)
+
+      if (handoff.status !== 'assigned') {
+        throw new UnprocessableEntityError('Only assigned handoffs can be reassigned')
+      }
+
+      if (handoff.agentId !== currentAgentId) {
+        throw new UnprocessableEntityError('You can only reassign your own conversations')
+      }
+
+      // Verify target agent exists and is online
+      const targetAgent = await repository.getAgent(targetAgentId)
+      if (!targetAgent) {
+        throw new UnprocessableEntityError('Target agent not found')
+      }
+
+      const isTargetAgentOnline = await repository.getAgentOnline(botId, targetAgentId)
+      if (!isTargetAgentOnline) {
+        throw new UnprocessableEntityError('Target agent is not online')
+      }
+
+      try {
+        await service.reassignSingleConversation(botId, handoff, currentAgentId, targetAgentId)
+
+        await extendAgentSession(repository, realtime, botId, currentAgentId)
+
+        res.send({ success: true, message: 'Conversation reassigned successfully' })
+      } catch (error) {
+        bp.logger.error('Error reassigning single conversation:', error.message)
+        throw new UnprocessableEntityError(error.message)
+      }
     })
   )
 }

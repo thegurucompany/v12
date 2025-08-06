@@ -45,6 +45,10 @@ export const AgentOnlineValidation = Joi.object({
     .messages({ 'any.only': 'You must be online to perform this action' })
 })
 
+export const ReassignHandoffSchema = Joi.object({
+  targetAgentId: Joi.string().required()
+})
+
 export const validateHandoffStatusRule = (original: string, value: string) => {
   let message: string
 

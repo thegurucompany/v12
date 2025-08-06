@@ -56,6 +56,7 @@ export interface HitlClient {
     onProgress?: (progress: { loaded: number; total: number }) => void
   ) => Promise<{ uploadUrl: string }>
   reassignAllConversations: () => Promise<{ reassigned: number; errors: number }>
+  reassignConversation: (handoffId: string, targetAgentId: string) => Promise<{ success: boolean; message: string }>
 }
 
 export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
@@ -140,6 +141,8 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
         })
         .then(res => res.data)
     },
-    reassignAllConversations: async () => bp.axios.post('/agents/me/reassign-all', {}, config).then(res => res.data)
+    reassignAllConversations: async () => bp.axios.post('/agents/me/reassign-all', {}, config).then(res => res.data),
+    reassignConversation: async (handoffId, targetAgentId) =>
+      bp.axios.post(`/handoffs/${handoffId}/reassign`, { targetAgentId }, config).then(res => res.data)
   }
 }

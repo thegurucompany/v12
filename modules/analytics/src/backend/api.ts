@@ -17,13 +17,14 @@ const makeAgentId = (strategy: string, email: string): string => {
 // Función para detectar el tipo de base de datos y generar consultas compatibles
 const getDbHelpers = (db: Database) => {
   const isPostgres = db.knex.client.config.client === 'postgresql' || db.knex.client.config.client === 'pg'
-  
+
   if (isPostgres) {
     return {
       // PostgreSQL helpers
       castToText: (column: string) => `${column}::text`,
       jsonExtract: (column: string, path: string) => `(${column}->>'${path.replace('$.', '')}')`,
-      jsonExtractNested: (column: string, path1: string, path2: string) => `(${column}->>'${path1}')::json->>'${path2}'`,
+      jsonExtractNested: (column: string, path1: string, path2: string) =>
+        `(${column}->>'${path1}')::json->>'${path2}'`,
       extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
       extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,
       dateDiffMinutes: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate})) / 60`,
@@ -36,11 +37,14 @@ const getDbHelpers = (db: Database) => {
       // SQLite helpers
       castToText: (column: string) => `CAST(${column} AS TEXT)`,
       jsonExtract: (column: string, path: string) => `json_extract(${column}, '${path}')`,
-      jsonExtractNested: (column: string, path1: string, path2: string) => `json_extract(${column}, '$.${path1}.${path2}')`,
+      jsonExtractNested: (column: string, path1: string, path2: string) =>
+        `json_extract(${column}, '$.${path1}.${path2}')`,
       extractHour: (column: string) => `CAST(strftime('%H', ${column}) AS INTEGER)`,
       extractDow: (column: string) => `CAST(strftime('%w', ${column}) AS INTEGER)`,
-      dateDiffMinutes: (endDate: string, startDate: string) => `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60`,
-      dateDiffSeconds: (endDate: string, startDate: string) => `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60 * 60`,
+      dateDiffMinutes: (endDate: string, startDate: string) =>
+        `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60`,
+      dateDiffSeconds: (endDate: string, startDate: string) =>
+        `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60 * 60`,
       stringAgg: (column: string) => `GROUP_CONCAT(DISTINCT ${column})`,
       concat: (...args: string[]) => args.join(' || ')
     }
@@ -143,7 +147,7 @@ export default (bp: typeof sdk, db: Database) => {
   const generateBotReports = async (db: Database, botId: string, reportDate: string) => {
     // Detectar tipo de base de datos y obtener helpers apropiados
     const dbHelpers = getDbHelpers(db)
-    
+
     // Eliminar las variables startDate y endDate ya que usaremos DATE() directamente
     const reports = []
 
@@ -199,7 +203,10 @@ export default (bp: typeof sdk, db: Database) => {
 
       if (totalHandoffs > 0) {
         const avgDurationQuery = await db.knex.raw(
-          `SELECT AVG(${dbHelpers.dateDiffMinutes('"resolvedAt"', '"assignedAt"')}) as avg_duration FROM handoffs WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND "resolvedAt" IS NOT NULL AND "assignedAt" IS NOT NULL`,
+          `SELECT AVG(${dbHelpers.dateDiffMinutes(
+            '"resolvedAt"',
+            '"assignedAt"'
+          )}) as avg_duration FROM handoffs WHERE "botId" = ? AND DATE("createdAt") = DATE(?) AND "resolvedAt" IS NOT NULL AND "assignedAt" IS NOT NULL`,
           [botId, reportDate]
         )
         avgDurationHandoffs =
@@ -246,7 +253,11 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         CASE WHEN direction = 'incoming' THEN 'Usuario' WHEN direction = 'outgoing' THEN 'Bot' ELSE 'Desconocido' END as sender, 
         COALESCE(${dbHelpers.jsonExtractNested('event', 'payload', 'text')}, '') as message_text, 
         COALESCE(${dbHelpers.jsonExtractNested('event', 'payload', 'type')}, '') as payload_type, 
-        CASE WHEN ${dbHelpers.jsonExtractNested('event', 'payload', 'quick_replies')} IS NOT NULL THEN 'Sí' ELSE 'No' END as has_quick_replies, 
+        CASE WHEN ${dbHelpers.jsonExtractNested(
+          'event',
+          'payload',
+          'quick_replies'
+        )} IS NOT NULL THEN 'Sí' ELSE 'No' END as has_quick_replies, 
         "createdOn" as timestamp, 
         ${dbHelpers.extractHour('"createdOn"')} as hour_of_day, 
         ${dbHelpers.extractDow('"createdOn"')} as day_of_week, 
@@ -289,7 +300,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         COUNT(*) as total_messages, 
         COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as user_messages, 
         COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as bot_messages, 
-        COALESCE(ROUND(${dbHelpers.dateDiffMinutes('MAX("createdOn")', 'MIN("createdOn")')}, 2), 0) as duration_minutes, 
+        COALESCE(ROUND(${dbHelpers.dateDiffMinutes(
+          'MAX("createdOn")',
+          'MIN("createdOn")'
+        )}, 2), 0) as duration_minutes, 
         ${dbHelpers.stringAgg('type')} as message_types_used 
       FROM events 
       WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL 
@@ -321,7 +335,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         COUNT(*) as total_events, 
         COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as incoming_messages, 
         COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as outgoing_messages, 
-        COUNT(DISTINCT COALESCE("threadId", ${dbHelpers.concat("'unknown_'", dbHelpers.castToText('id'))})) as unique_conversations, 
+        COUNT(DISTINCT COALESCE("threadId", ${dbHelpers.concat(
+          "'unknown_'",
+          dbHelpers.castToText('id')
+        )})) as unique_conversations, 
         COUNT(DISTINCT COALESCE(target, 'anonymous')) as unique_users, 
         COUNT(CASE WHEN type = 'text' THEN 1 END) as text_messages, 
         COUNT(CASE WHEN type = 'quick_reply' THEN 1 END) as quick_reply_messages, 
@@ -376,10 +393,16 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         COUNT(*) as total_messages, 
         COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as messages_sent, 
         COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as messages_received, 
-        COUNT(DISTINCT COALESCE("threadId", ${dbHelpers.concat("'unknown_'", dbHelpers.castToText('id'))})) as conversations_participated, 
+        COUNT(DISTINCT COALESCE("threadId", ${dbHelpers.concat(
+          "'unknown_'",
+          dbHelpers.castToText('id')
+        )})) as conversations_participated, 
         MIN("createdOn") as first_message_time, 
         MAX("createdOn") as last_message_time, 
-        COALESCE(ROUND(${dbHelpers.dateDiffMinutes('MAX("createdOn")', 'MIN("createdOn")')}, 2), 0) as activity_duration_minutes 
+        COALESCE(ROUND(${dbHelpers.dateDiffMinutes(
+          'MAX("createdOn")',
+          'MIN("createdOn")'
+        )}, 2), 0) as activity_duration_minutes 
       FROM events 
       WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL 
       GROUP BY target, channel 
@@ -405,14 +428,12 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
     // 7. Handoffs detallados
     try {
       // Primero obtenemos todos los usuarios del workspace para crear el mapa de agentId
-      const workspaceUsers = await db.knex.raw(
-        'SELECT strategy, email, workspace FROM workspace_users'
-      )
-      
+      const workspaceUsers = await db.knex.raw('SELECT strategy, email, workspace FROM workspace_users')
+
       // Crear mapa de agentId hasheado a información del agente
       const agentMap = new Map()
       const users = workspaceUsers.rows || workspaceUsers || []
-      
+
       users.forEach((user: any) => {
         if (user.strategy && user.email) {
           const hashedAgentId = makeAgentId(user.strategy, user.email)

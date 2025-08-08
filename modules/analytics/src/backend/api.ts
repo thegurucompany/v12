@@ -14,40 +14,22 @@ const makeAgentId = (strategy: string, email: string): string => {
     .digest('hex')
 }
 
-// Función para detectar el tipo de base de datos y generar consultas compatibles
-const getDbHelpers = (db: Database) => {
-  const isPostgres = db.knex.client.config.client === 'postgresql' || db.knex.client.config.client === 'pg'
-
-  if (isPostgres) {
-    return {
-      // PostgreSQL helpers
-      castToText: (column: string) => `${column}::text`,
-      jsonExtract: (column: string, path: string) => `(${column}->>'${path.replace('$.', '')}')`,
-      jsonExtractNested: (column: string, path1: string, path2: string) =>
-        `(${column}->>'${path1}')::json->>'${path2}'`,
-      extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
-      extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,
-      dateDiffMinutes: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate})) / 60`,
-      dateDiffSeconds: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate}))`,
-      stringAgg: (column: string) => `STRING_AGG(DISTINCT ${column}, ',')`,
-      concat: (...args: string[]) => args.join(' || ')
-    }
-  } else {
-    return {
-      // SQLite helpers
-      castToText: (column: string) => `CAST(${column} AS TEXT)`,
-      jsonExtract: (column: string, path: string) => `json_extract(${column}, '${path}')`,
-      jsonExtractNested: (column: string, path1: string, path2: string) =>
-        `json_extract(${column}, '$.${path1}.${path2}')`,
-      extractHour: (column: string) => `CAST(strftime('%H', ${column}) AS INTEGER)`,
-      extractDow: (column: string) => `CAST(strftime('%w', ${column}) AS INTEGER)`,
-      dateDiffMinutes: (endDate: string, startDate: string) =>
-        `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60`,
-      dateDiffSeconds: (endDate: string, startDate: string) =>
-        `(julianday(${endDate}) - julianday(${startDate})) * 24 * 60 * 60`,
-      stringAgg: (column: string) => `GROUP_CONCAT(DISTINCT ${column})`,
-      concat: (...args: string[]) => args.join(' || ')
-    }
+// Helpers de PostgreSQL para consultas SQL
+const getDbHelpers = () => {
+  return {
+    // PostgreSQL helpers
+    castToText: (column: string) => `${column}::text`,
+    jsonExtract: (column: string, path: string) => `(${column}->>'${path.replace('$.', '')}')`,
+    jsonExtractNested: (column: string, path1: string, path2: string) => `(${column}->>'${path1}')::json->>'${path2}'`,
+    extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
+    extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,
+    dateDiffMinutes: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate})) / 60`,
+    dateDiffSeconds: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate}))`,
+    stringAgg: (column: string) => `STRING_AGG(DISTINCT ${column}, ',')`,
+    concat: (...args: string[]) => args.join(' || '),
+    roundMinutes: (expression: string, decimals: number = 2) => `ROUND((${expression})::numeric, ${decimals})`,
+    roundSeconds: (expression: string, decimals: number = 2) => `ROUND((${expression})::numeric, ${decimals})`,
+    roundPercentage: (expression: string, decimals: number = 2) => `ROUND((${expression})::numeric, ${decimals})`
   }
 }
 
@@ -145,8 +127,8 @@ export default (bp: typeof sdk, db: Database) => {
   )
 
   const generateBotReports = async (db: Database, botId: string, reportDate: string) => {
-    // Detectar tipo de base de datos y obtener helpers apropiados
-    const dbHelpers = getDbHelpers(db)
+    // Obtener helpers específicos de PostgreSQL
+    const dbHelpers = getDbHelpers()
 
     // Eliminar las variables startDate y endDate ya que usaremos DATE() directamente
     const reports = []
@@ -300,10 +282,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         COUNT(*) as total_messages, 
         COUNT(CASE WHEN direction = 'incoming' THEN 1 END) as user_messages, 
         COUNT(CASE WHEN direction = 'outgoing' THEN 1 END) as bot_messages, 
-        COALESCE(ROUND(${dbHelpers.dateDiffMinutes(
-          'MAX("createdOn")',
-          'MIN("createdOn")'
-        )}, 2), 0) as duration_minutes, 
+        COALESCE(${dbHelpers.roundMinutes(
+          dbHelpers.dateDiffMinutes('MAX("createdOn")', 'MIN("createdOn")'),
+          2
+        )}, 0) as duration_minutes, 
         ${dbHelpers.stringAgg('type')} as message_types_used 
       FROM events 
       WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL 
@@ -367,7 +349,22 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
 
     // 5. Tipos de mensaje usando DATE() como en el script
     const messageTypes = await db.knex.raw(
-      'SELECT COALESCE(type, \'unknown\') as message_type, COALESCE(direction, \'unknown\') as direction, COUNT(*) as message_count, COALESCE(ROUND((COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?))), 2), 0) as percentage, COUNT(DISTINCT COALESCE("threadId", \'unknown_\' || id)) as conversations_with_this_type, COUNT(DISTINCT COALESCE(target, \'anonymous\')) as users_with_this_type, MIN("createdOn") as first_occurrence, MAX("createdOn") as last_occurrence FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) GROUP BY type, direction ORDER BY message_count DESC',
+      `SELECT 
+        COALESCE(type, 'unknown') as message_type, 
+        COALESCE(direction, 'unknown') as direction, 
+        COUNT(*) as message_count, 
+        COALESCE(${dbHelpers.roundPercentage(
+          '(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?)))',
+          2
+        )}, 0) as percentage, 
+        COUNT(DISTINCT COALESCE("threadId", 'unknown_' || id)) as conversations_with_this_type, 
+        COUNT(DISTINCT COALESCE(target, 'anonymous')) as users_with_this_type, 
+        MIN("createdOn") as first_occurrence, 
+        MAX("createdOn") as last_occurrence 
+      FROM events 
+      WHERE "botId" = ? AND DATE("createdOn") = DATE(?) 
+      GROUP BY type, direction 
+      ORDER BY message_count DESC`,
       [botId, reportDate, botId, reportDate]
     )
 
@@ -399,10 +396,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         )})) as conversations_participated, 
         MIN("createdOn") as first_message_time, 
         MAX("createdOn") as last_message_time, 
-        COALESCE(ROUND(${dbHelpers.dateDiffMinutes(
-          'MAX("createdOn")',
-          'MIN("createdOn")'
-        )}, 2), 0) as activity_duration_minutes 
+        COALESCE(${dbHelpers.roundMinutes(
+          dbHelpers.dateDiffMinutes('MAX("createdOn")', 'MIN("createdOn")'),
+          2
+        )}, 0) as activity_duration_minutes 
       FROM events 
       WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL 
       GROUP BY target, channel 
@@ -467,13 +464,19 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
           h."resolvedAt" as resolved_at,
           CASE 
             WHEN h."resolvedAt" IS NOT NULL AND h."createdAt" IS NOT NULL 
-            THEN COALESCE(ROUND(${dbHelpers.dateDiffMinutes('h."resolvedAt"', 'h."createdAt"')}, 2), 0) 
+            THEN COALESCE(${dbHelpers.roundMinutes(
+              dbHelpers.dateDiffMinutes('h."resolvedAt"', 'h."createdAt"'),
+              2
+            )}, 0) 
             ELSE NULL 
           END as duration_minutes,
           COALESCE(${dbHelpers.extractHour('h."createdAt"')}, 0) as hour_created,
           CASE 
             WHEN h."assignedAt" IS NOT NULL AND h."createdAt" IS NOT NULL 
-            THEN COALESCE(ROUND(${dbHelpers.dateDiffSeconds('h."assignedAt"', 'h."createdAt"')}, 2), 0) 
+            THEN COALESCE(${dbHelpers.roundSeconds(
+              dbHelpers.dateDiffSeconds('h."assignedAt"', 'h."createdAt"'),
+              2
+            )}, 0) 
             ELSE NULL 
           END as assignment_delay_seconds
         FROM handoffs h 

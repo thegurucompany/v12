@@ -316,11 +316,18 @@ class Message extends Component<MessageProps> {
 
     // Only show timestamp in HITL context (agent-user chat), not in emulator or regular web
     const isEmulator = this.props.store.config.isEmulator
+
+    // Detect HITL context using specific indicators
     const isHITLContext =
-      window.location.pathname.includes('hitl') ||
-      window.location.pathname.includes('agent') ||
-      window.parent !== window || // is in iframe (likely HITL)
-      !!window.opener // opened in popup (likely HITL)
+      // Check for HITL-specific userIdScope
+      this.props.store.config.userIdScope === 'hitlnext' ||
+      // Check URL patterns for HITL module
+      window.location.pathname.includes('/hitl') ||
+      window.location.pathname.includes('/agent') ||
+      window.location.href.includes('module=hitl') ||
+      window.location.href.includes('module=hitlnext') ||
+      // Check if we're in admin interface with conversations
+      (window.location.pathname.includes('/admin') && window.location.pathname.includes('conversation'))
 
     if (isEmulator || !isHITLContext) {
       return null

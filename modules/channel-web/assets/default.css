@@ -228,12 +228,6 @@ body {
   white-space: nowrap;
 }
 
-.bpw-from-user .bpw-message-timestamp {
-  float: left;
-  margin-left: -4px;
-  margin-right: 10px;
-}
-
 .bpw-chat-bubble-content {
   position: relative;
   overflow: hidden;
@@ -252,28 +246,26 @@ body {
 }
 
 .bpw-from-user {
-  padding-left: 0;
   padding-right: 0;
 }
 
 .bpw-from-user .bpw-message-container {
-  -webkit-box-pack: start;
-  -ms-flex-pack: start;
-  justify-content: flex-start;
-  -webkit-box-align: start;
-  -ms-flex-align: start;
-  align-items: flex-start;
+  -webkit-box-pack: end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  -webkit-box-align: end;
+  -ms-flex-align: end;
+  align-items: flex-end;
 }
 
 .bpw-from-user .bpw-message-group {
-  padding-right: 60px;
-  padding-left: 0;
-  -webkit-box-pack: start;
-  -ms-flex-pack: start;
-  justify-content: flex-start;
-  -webkit-box-align: start;
-  -ms-flex-align: start;
-  align-items: flex-start;
+  padding-left: 60px;
+  -webkit-box-pack: end;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  -webkit-box-align: end;
+  -ms-flex-align: end;
+  align-items: flex-end;
 }
 
 .bpw-msg-list-loading {

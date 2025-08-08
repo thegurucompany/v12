@@ -310,10 +310,48 @@ class Message extends Component<MessageProps> {
   }
 
   renderTimestamp() {
+    if (!this.props.sentOn) {
+      return null
+    }
+
+    // Only show timestamp in HITL context (agent-user chat), not in emulator or regular web
+    const isEmulator = this.props.store.config.isEmulator
+
+    // Detect HITL context using specific indicators
+    const isHITLContext =
+      // Check for HITL-specific userIdScope
+      this.props.store.config.userIdScope === 'hitlnext' ||
+      // Check URL patterns for HITL module
+      window.location.pathname.includes('/hitl') ||
+      window.location.pathname.includes('/agent') ||
+      window.location.href.includes('module=hitl') ||
+      window.location.href.includes('module=hitlnext') ||
+      // Check if we're in admin interface with conversations
+      (window.location.pathname.includes('/admin') && window.location.pathname.includes('conversation'))
+
+    if (isEmulator || !isHITLContext) {
+      return null
+    }
+
+    const timestamp = new Date(this.props.sentOn)
+    const formattedDate = this.props.store.intl.formatDate(timestamp, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+    const formattedTime = this.props.store.intl.formatTime(timestamp, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+
+    const type = this.props.type || (this.props.payload && this.props.payload.type)
+    const isSessionReset = type === 'session_reset'
+
     return (
-      <span className="bpw-message-timestamp">
-        {this.props.store.intl.formatTime(new Date(this.props.sentOn), { hour: 'numeric', minute: 'numeric' })}
-      </span>
+      <div className={`bpw-message-timestamp ${isSessionReset ? 'bpw-timestamp-center' : ''}`}>
+        {`${formattedDate} ${formattedTime}`}
+      </div>
     )
   }
 
@@ -337,6 +375,7 @@ class Message extends Component<MessageProps> {
     const renderer = (this[`render_${type}`] || this.render_unsupported).bind(this)
     const wrappedClass = `bpw-bubble-${wrappedType}`
     const isEmulator = this.props.store.config.isEmulator
+    const isSessionReset = type === 'session_reset'
 
     const rendered = renderer()
     if (rendered === null) {
@@ -349,6 +388,7 @@ class Message extends Component<MessageProps> {
       return (
         <div className={classnames(this.props.className, wrappedClass)} style={additionalStyle}>
           {rendered}
+          {isSessionReset && this.renderTimestamp()}
         </div>
       )
     }
@@ -364,6 +404,7 @@ class Message extends Component<MessageProps> {
         tabIndex={-1}
         style={additionalStyle}
       >
+        {isSessionReset && this.renderTimestamp()}
         <div
           tabIndex={-1}
           className="bpw-chat-bubble-content"
@@ -376,7 +417,7 @@ class Message extends Component<MessageProps> {
             })}
           </span>
           {rendered}
-          {this.props.store.config.showTimestamp && this.renderTimestamp()}
+          {!isSessionReset && this.renderTimestamp()}
         </div>
         {this.props.inlineFeedback}
       </div>

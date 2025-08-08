@@ -216,6 +216,33 @@ body {
 .bpw-message-timestamp {
   font-size: 0.6rem;
   float: right;
+  margin-top: 6px;
+  margin-left: 10px;
+  margin-right: -4px;
+  padding: 3px 6px;
+  color: #666;
+  opacity: 0.8;
+  line-height: 1.2;
+  clear: both;
+  display: block;
+  white-space: nowrap;
+}
+
+.bpw-chat-bubble-content {
+  position: relative;
+  overflow: hidden;
+}
+
+.bpw-chat-bubble .bpw-timestamp-center {
+  float: none !important;
+  text-align: center;
+  margin: 8px auto;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  max-width: 150px;
+  position: relative;
+  top: -4px;
 }
 
 .bpw-from-user {
@@ -341,7 +368,7 @@ body {
 
 .bpw-chat-bubble-content {
   border: 1px solid #f1f1f1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 0.75rem;
 }
 
 .bpw-message-feedback {

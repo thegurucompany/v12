@@ -216,29 +216,64 @@ body {
 .bpw-message-timestamp {
   font-size: 0.6rem;
   float: right;
+  margin-top: 6px;
+  margin-left: 10px;
+  margin-right: -4px;
+  padding: 3px 6px;
+  color: #666;
+  opacity: 0.8;
+  line-height: 1.2;
+  clear: both;
+  display: block;
+  white-space: nowrap;
+}
+
+.bpw-from-user .bpw-message-timestamp {
+  float: left;
+  margin-left: -4px;
+  margin-right: 10px;
+}
+
+.bpw-chat-bubble-content {
+  position: relative;
+  overflow: hidden;
+}
+
+.bpw-chat-bubble .bpw-timestamp-center {
+  float: none !important;
+  text-align: center;
+  margin: 8px auto;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  max-width: 150px;
+  position: relative;
+  top: -4px;
 }
 
 .bpw-from-user {
+  padding-left: 0;
   padding-right: 0;
 }
 
 .bpw-from-user .bpw-message-container {
-  -webkit-box-pack: end;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
-  -webkit-box-align: end;
-  -ms-flex-align: end;
-  align-items: flex-end;
+  -webkit-box-pack: start;
+  -ms-flex-pack: start;
+  justify-content: flex-start;
+  -webkit-box-align: start;
+  -ms-flex-align: start;
+  align-items: flex-start;
 }
 
 .bpw-from-user .bpw-message-group {
-  padding-left: 60px;
-  -webkit-box-pack: end;
-  -ms-flex-pack: end;
-  justify-content: flex-end;
-  -webkit-box-align: end;
-  -ms-flex-align: end;
-  align-items: flex-end;
+  padding-right: 60px;
+  padding-left: 0;
+  -webkit-box-pack: start;
+  -ms-flex-pack: start;
+  justify-content: flex-start;
+  -webkit-box-align: start;
+  -ms-flex-align: start;
+  align-items: flex-start;
 }
 
 .bpw-msg-list-loading {
@@ -341,7 +376,7 @@ body {
 
 .bpw-chat-bubble-content {
   border: 1px solid #f1f1f1;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 0.75rem;
 }
 
 .bpw-message-feedback {

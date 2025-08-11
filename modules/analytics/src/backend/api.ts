@@ -19,8 +19,13 @@ const getDbHelpers = () => {
   return {
     // PostgreSQL helpers
     castToText: (column: string) => `${column}::text`,
-    jsonExtract: (column: string, path: string) => `(${column}->>'${path.replace('$.', '')}')`,
-    jsonExtractNested: (column: string, path1: string, path2: string) => `(${column}->>'${path1}')::json->>'${path2}'`,
+    jsonExtract: (column: string, path: string) => {
+      const cleanPath = path.replace('$.', '')
+      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' THEN ${column}->>'${cleanPath}' ELSE NULL END`
+    },
+    jsonExtractNested: (column: string, path1: string, path2: string) => {
+      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' AND (${column}->>'${path1}') IS NOT NULL AND (${column}->>'${path1}')::text != 'null' AND (${column}->>'${path1}')::text != '{}' THEN (${column}->>'${path1}')::jsonb->>'${path2}' ELSE NULL END`
+    },
     extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
     extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,
     dateDiffMinutes: (endDate: string, startDate: string) => `EXTRACT(EPOCH FROM (${endDate} - ${startDate})) / 60`,
@@ -142,28 +147,28 @@ export default (bp: typeof sdk, db: Database) => {
 
     const uniqueUsersQuery = await db.knex.raw(
       'SELECT COUNT(DISTINCT target) as unique_users FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL',
-      [botId, reportDate]
-    )
-    const uniqueUsers = (uniqueUsersQuery.rows?.[0] || uniqueUsersQuery[0] || {}).unique_users || 0
+        [botId, reportDate]
+      )
+      const uniqueUsers = (uniqueUsersQuery.rows?.[0] || uniqueUsersQuery[0] || {}).unique_users || 0
 
-    const uniqueConversationsQuery = await db.knex.raw(
-      'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL',
-      [botId, reportDate]
-    )
-    const uniqueConversations =
-      (uniqueConversationsQuery.rows?.[0] || uniqueConversationsQuery[0] || {}).unique_conversations || 0
+      const uniqueConversationsQuery = await db.knex.raw(
+        'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL',
+        [botId, reportDate]
+      )
+      const uniqueConversations =
+        (uniqueConversationsQuery.rows?.[0] || uniqueConversationsQuery[0] || {}).unique_conversations || 0
 
-    const userMessagesQuery = await db.knex.raw(
-      'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'incoming\'',
-      [botId, reportDate]
-    )
-    const userMessages = (userMessagesQuery.rows?.[0] || userMessagesQuery[0] || {}).user_messages || 0
+      const userMessagesQuery = await db.knex.raw(
+        'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'incoming\'',
+        [botId, reportDate]
+      )
+      const userMessages = (userMessagesQuery.rows?.[0] || userMessagesQuery[0] || {}).user_messages || 0
 
-    const botMessagesQuery = await db.knex.raw(
-      'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'outgoing\'',
-      [botId, reportDate]
-    )
-    const botMessages = (botMessagesQuery.rows?.[0] || botMessagesQuery[0] || {}).bot_messages || 0
+      const botMessagesQuery = await db.knex.raw(
+        'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'outgoing\'',
+        [botId, reportDate]
+      )
+      const botMessages = (botMessagesQuery.rows?.[0] || botMessagesQuery[0] || {}).bot_messages || 0
 
     // Obtener métricas de handoffs
     let totalHandoffs = 0
@@ -222,7 +227,7 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
 `
     })
 
-    // 2. Mensajes detallados usando DATE() como en el script
+    // 2. Mensajes detallados usando DATE() como en el script - SIN CARACTERES UNICODE
     const detailedMessages = await db.knex.raw(
       `SELECT 
         COALESCE(${dbHelpers.castToText('id')}, 'unknown') as event_id, 
@@ -239,7 +244,7 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
           'event',
           'payload',
           'quick_replies'
-        )} IS NOT NULL THEN 'Sí' ELSE 'No' END as has_quick_replies, 
+        )} IS NOT NULL THEN 'Si' ELSE 'No' END as has_quick_replies, 
         "createdOn" as timestamp, 
         ${dbHelpers.extractHour('"createdOn"')} as hour_of_day, 
         ${dbHelpers.extractDow('"createdOn"')} as day_of_week, 
@@ -354,10 +359,10 @@ Generado: ${moment().format('ddd DD MMM YYYY HH:mm:ss')} CST
         COALESCE(direction, 'unknown') as direction, 
         COUNT(*) as message_count, 
         COALESCE(${dbHelpers.roundPercentage(
-          '(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?)))',
+          '(COUNT(*) * 100.0 / NULLIF((SELECT COUNT(*) FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?)), 0))',
           2
         )}, 0) as percentage, 
-        COUNT(DISTINCT COALESCE("threadId", 'unknown_' || id)) as conversations_with_this_type, 
+        COUNT(DISTINCT COALESCE("threadId", 'unknown_' || id::text)) as conversations_with_this_type, 
         COUNT(DISTINCT COALESCE(target, 'anonymous')) as users_with_this_type, 
         MIN("createdOn") as first_occurrence, 
         MAX("createdOn") as last_occurrence 

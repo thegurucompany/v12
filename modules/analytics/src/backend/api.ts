@@ -37,14 +37,7 @@ const getDbHelpers = () => {
         AND (${column}->>'${path1}') IS NOT NULL 
         AND (${column}->>'${path1}')::text != 'null' 
         AND (${column}->>'${path1}')::text != '{}' 
-        AND (${column}->>'${path1}')::text ~ '^[\\[\\{].*[\\]\\}]$'
-        THEN 
-          CASE 
-            WHEN jsonb_typeof((${column}->>'${path1}')::jsonb) = 'object' 
-            AND (${column}->>'${path1}')::jsonb->>'${path2}' IS NOT NULL 
-            THEN (${column}->>'${path1}')::jsonb->>'${path2}' 
-            ELSE NULL 
-          END
+        THEN COALESCE((${column}->>'${path1}')::jsonb->>'${path2}', NULL) 
         ELSE NULL 
       END`
     },

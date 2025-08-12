@@ -233,6 +233,12 @@ export interface Config {
    * Defaults to 'Embedded'
    */
   viewMode?: 'Embedded' | 'Fullscreen'
+  /** Enable file attachments in webchat (feature flag) */
+  enableFileUploads?: boolean
+  /** Maximum file size for uploads (in bytes) */
+  maxFileSize?: number
+  /** Allowed MIME types for file uploads */
+  allowedFileTypes?: string[]
 }
 
 type OverridableComponents = 'below_conversation' | 'before_container' | 'composer' | 'before_widget'

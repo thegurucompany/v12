@@ -60,13 +60,28 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
     const { botId } = req.params
     const config = (await bp.config.getModuleConfigForBot('channel-web', botId)) as Config
 
+    // Get upload configuration with defaults
+    const maxFileSize = config.maxFileSize || 10485760 // 10MB default
+    const allowedFileTypes = config.allowedFileTypes || [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf'
+    ]
+
+    // File filter function
+    const fileFilter = (req: any, file: any, cb: any) => {
+      // Check file type
+      if (!allowedFileTypes.includes(file.mimetype)) {
+        return cb(new Error(`File type ${file.mimetype} not allowed. Allowed types: ${allowedFileTypes.join(', ')}`))
+      }
+      cb(null, true)
+    }
+
     const diskStorage = multer.diskStorage({
       destination: config.fileUploadPath,
-      // @ts-ignore typing indicates that limits isn't supported
-      limits: {
-        files: 1,
-        fileSize: 5242880 // 5MB
-      },
       filename(req, file, cb) {
         const userId = _.get(req, 'params.userId') || 'anonymous'
         const ext = path.extname(file.originalname)
@@ -75,7 +90,14 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
       }
     })
 
-    let upload = multer({ storage: diskStorage })
+    let upload = multer({
+      storage: diskStorage,
+      limits: {
+        files: 1,
+        fileSize: maxFileSize
+      },
+      fileFilter
+    })
 
     if (config.uploadsUseS3) {
       /*
@@ -114,7 +136,14 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
         }
       })
 
-      upload = multer({ storage: s3Storage })
+      upload = multer({
+        storage: s3Storage,
+        limits: {
+          files: 1,
+          fileSize: maxFileSize
+        },
+        fileFilter
+      })
     }
 
     return upload.single('file')(req, res, next)
@@ -263,6 +292,11 @@ export default async (bp: typeof sdk, db: Database) => {
       const { botId, userId, conversationId } = req
       const payloadValue = req.body.payload || {}
       const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, botId)
+
+      // Check if file uploads are enabled for this bot
+      if (!config.enableFileUploads) {
+        return res.status(403).json({ error: 'File uploads are not enabled for this bot' })
+      }
 
       await bp.users.getOrCreateUser('web', userId, botId) // Just to create the user if it doesn't exist
 

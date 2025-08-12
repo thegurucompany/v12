@@ -8,6 +8,7 @@ import ToolTip from '../../../../../../packages/ui-shared-lite/ToolTip'
 import { RootStore, StoreDef } from '../store'
 import { isRTLText } from '../utils'
 
+import FileUpload from './FileUpload'
 import VoiceRecorder from './VoiceRecorder'
 
 const ENTER_CHAR_CODE = 13
@@ -99,6 +100,22 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
     )
   }
 
+  onFileUploadComplete = (uploadUrl: string, fileName: string, fileType: string) => {
+    // Determine message type based on file type
+    const isImage = fileType.startsWith('image/')
+    const messageType = isImage ? 'image' : 'file'
+
+    const message = {
+      type: messageType,
+      title: fileName,
+      ...(isImage ? { image: uploadUrl } : { url: uploadUrl }),
+      originalName: fileName,
+      mime: fileType
+    }
+
+    void this.props.sendMessage(message)
+  }
+
   render() {
     if (this.props.composerHidden) {
       return null
@@ -144,6 +161,13 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
           </div>
 
           <div className={'bpw-send-buttons'}>
+            {this.props.enableFileUploads && (
+              <FileUpload
+                store={this.props.store}
+                onUploadComplete={this.onFileUploadComplete}
+                disabled={this.props.composerLocked || this.state.isRecording}
+              />
+            )}
             <button
               className={'bpw-send-button'}
               disabled={!messageText.length || this.props.composerLocked || this.state.isRecording}
@@ -172,6 +196,8 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
 
 export default inject(({ store }: { store: RootStore }) => ({
   enableVoiceComposer: store.config.enableVoiceComposer,
+  enableFileUploads: store.config.enableFileUploads,
+  store,
   message: store.composer.message,
   composerLocked: store.composer.locked,
   composerHidden: store.composer.hidden,
@@ -220,7 +246,10 @@ type ComposerProps = {
     | 'isEmulator'
     | 'enableResetSessionShortcut'
     | 'enableVoiceComposer'
+    | 'enableFileUploads'
     | 'currentConversation'
     | 'preferredLanguage'
     | 'composerMaxTextLength'
-  >
+  > & {
+    store: RootStore
+  }

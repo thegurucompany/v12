@@ -1,0 +1,30 @@
+{
+  "$schema": "../../assets/config.schema.json",
+  "enableFileUploads": true,
+  "maxFileSize": 10485760,
+  "allowedFileTypes": ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "application/pdf"],
+  "uploadsUseS3": true,
+  "uploadsS3Bucket": "your-bucket-name",
+  "uploadsS3Region": "us-east-1",
+  "uploadsS3AWSAccessKey": "your-access-key",
+  "uploadsS3AWSAccessSecret": "your-secret-key",
+  "fileUploadPath": "./uploads",
+  "uploadsFileUploadedTextContentElement": "",
+  "startNewConvoOnTimeout": false,
+  "recentConversationLifetime": "6 hours",
+  "alwaysScrollDownOnMessages": false,
+  "maxMessageLength": 360,
+  "showBotInfoPage": false,
+  "infoPage": {
+    "enabled": false,
+    "description": ""
+  },
+  "maxMessagesHistory": 20,
+  "security": {
+    "escapeHTML": false
+  },
+  "chatUserAuthDuration": "24h",
+  "extraStylesheet": "",
+  "lazySocket": false,
+  "disableNotificationSound": false
+}

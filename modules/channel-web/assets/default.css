@@ -740,6 +740,64 @@ body {
   background: #d8d8d8;
 }
 
+/* File Upload Styles */
+.bpw-file-upload-container {
+  display: flex;
+  align-items: center;
+  margin-right: 5px;
+}
+
+.bpw-upload-button {
+  border: none;
+  border-radius: 5px;
+  background: #fff;
+  padding: 5px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.bpw-upload-button:hover:not(:disabled) {
+  background: #d8d8d8;
+}
+
+.bpw-upload-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bpw-uploading-state {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.bpw-progress-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+}
+
+.bpw-progress-bar {
+  width: 100%;
+  height: 3px;
+  background: #007bff;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.bpw-progress-text {
+  margin-top: 2px;
+  font-size: 10px;
+  color: #666;
+}
+
 /** HEADER STUFF */
 
 .bpw-header-container {

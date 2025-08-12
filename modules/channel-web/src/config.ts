@@ -108,4 +108,22 @@ export interface Config {
    * @default false
    */
   disableNotificationSound: boolean
+
+  /**
+   * Enable file attachments in webchat (feature flag)
+   * @default false
+   */
+  enableFileUploads: boolean
+
+  /**
+   * Maximum file size for uploads (in bytes)
+   * @default 10485760 (10MB)
+   */
+  maxFileSize: number
+
+  /**
+   * Allowed MIME types for file uploads
+   * @default ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+   */
+  allowedFileTypes: string[]
 }

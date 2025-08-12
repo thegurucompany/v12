@@ -25,7 +25,6 @@ const getDbHelpers = () => {
         WHEN ${column} IS NOT NULL 
         AND ${column}::text != 'null' 
         AND ${column}::text != '{}' 
-        AND ${column} ? '${cleanPath}'
         THEN ${column}->>'${cleanPath}' 
         ELSE NULL 
       END`
@@ -41,7 +40,8 @@ const getDbHelpers = () => {
         AND (${column}->>'${path1}')::text ~ '^[\\[\\{].*[\\]\\}]$'
         THEN 
           CASE 
-            WHEN (${column}->>'${path1}')::text::jsonb ? '${path2}' 
+            WHEN jsonb_typeof((${column}->>'${path1}')::jsonb) = 'object' 
+            AND (${column}->>'${path1}')::jsonb->>'${path2}' IS NOT NULL 
             THEN (${column}->>'${path1}')::jsonb->>'${path2}' 
             ELSE NULL 
           END

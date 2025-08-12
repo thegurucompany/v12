@@ -21,10 +21,32 @@ const getDbHelpers = () => {
     castToText: (column: string) => `${column}::text`,
     jsonExtract: (column: string, path: string) => {
       const cleanPath = path.replace('$.', '')
-      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' THEN ${column}->>'${cleanPath}' ELSE NULL END`
+      return `CASE 
+        WHEN ${column} IS NOT NULL 
+        AND ${column}::text != 'null' 
+        AND ${column}::text != '{}' 
+        AND ${column} ? '${cleanPath}'
+        THEN ${column}->>'${cleanPath}' 
+        ELSE NULL 
+      END`
     },
     jsonExtractNested: (column: string, path1: string, path2: string) => {
-      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' AND (${column}->>'${path1}') IS NOT NULL AND (${column}->>'${path1}')::text != 'null' AND (${column}->>'${path1}')::text != '{}' THEN (${column}->>'${path1}')::jsonb->>'${path2}' ELSE NULL END`
+      return `CASE 
+        WHEN ${column} IS NOT NULL 
+        AND ${column}::text != 'null' 
+        AND ${column}::text != '{}' 
+        AND (${column}->>'${path1}') IS NOT NULL 
+        AND (${column}->>'${path1}')::text != 'null' 
+        AND (${column}->>'${path1}')::text != '{}' 
+        AND (${column}->>'${path1}')::text ~ '^[\\[\\{].*[\\]\\}]$'
+        THEN 
+          CASE 
+            WHEN (${column}->>'${path1}')::text::jsonb ? '${path2}' 
+            THEN (${column}->>'${path1}')::jsonb->>'${path2}' 
+            ELSE NULL 
+          END
+        ELSE NULL 
+      END`
     },
     extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
     extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,

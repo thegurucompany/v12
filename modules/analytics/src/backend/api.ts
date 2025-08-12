@@ -21,10 +21,30 @@ const getDbHelpers = () => {
     castToText: (column: string) => `${column}::text`,
     jsonExtract: (column: string, path: string) => {
       const cleanPath = path.replace('$.', '')
-      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' THEN ${column}->>'${cleanPath}' ELSE NULL END`
+      return `CASE 
+        WHEN ${column} IS NOT NULL 
+        AND ${column}::text != 'null' 
+        AND ${column}::text != '{}' 
+        THEN ${column}->>'${cleanPath}' 
+        ELSE NULL 
+      END`
     },
     jsonExtractNested: (column: string, path1: string, path2: string) => {
-      return `CASE WHEN ${column} IS NOT NULL AND ${column}::text != 'null' AND ${column}::text != '{}' AND (${column}->>'${path1}') IS NOT NULL AND (${column}->>'${path1}')::text != 'null' AND (${column}->>'${path1}')::text != '{}' THEN (${column}->>'${path1}')::jsonb->>'${path2}' ELSE NULL END`
+      return `CASE 
+        WHEN ${column} IS NOT NULL 
+        AND ${column}::text != 'null' 
+        AND ${column}::text != '{}' 
+        AND (${column}->>'${path1}') IS NOT NULL 
+        AND (${column}->>'${path1}')::text != 'null' 
+        AND (${column}->>'${path1}')::text != '{}' 
+        THEN 
+          CASE 
+            WHEN (${column}->'${path1}')::text != 'null' 
+            THEN (${column}->'${path1}'->>'${path2}') 
+            ELSE NULL 
+          END
+        ELSE NULL 
+      END`
     },
     extractHour: (column: string) => `EXTRACT(HOUR FROM ${column})::integer`,
     extractDow: (column: string) => `EXTRACT(DOW FROM ${column})::integer`,
@@ -147,28 +167,28 @@ export default (bp: typeof sdk, db: Database) => {
 
     const uniqueUsersQuery = await db.knex.raw(
       'SELECT COUNT(DISTINCT target) as unique_users FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND target IS NOT NULL',
-        [botId, reportDate]
-      )
-      const uniqueUsers = (uniqueUsersQuery.rows?.[0] || uniqueUsersQuery[0] || {}).unique_users || 0
+      [botId, reportDate]
+    )
+    const uniqueUsers = (uniqueUsersQuery.rows?.[0] || uniqueUsersQuery[0] || {}).unique_users || 0
 
-      const uniqueConversationsQuery = await db.knex.raw(
-        'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL',
-        [botId, reportDate]
-      )
-      const uniqueConversations =
-        (uniqueConversationsQuery.rows?.[0] || uniqueConversationsQuery[0] || {}).unique_conversations || 0
+    const uniqueConversationsQuery = await db.knex.raw(
+      'SELECT COUNT(DISTINCT "threadId") as unique_conversations FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND "threadId" IS NOT NULL',
+      [botId, reportDate]
+    )
+    const uniqueConversations =
+      (uniqueConversationsQuery.rows?.[0] || uniqueConversationsQuery[0] || {}).unique_conversations || 0
 
-      const userMessagesQuery = await db.knex.raw(
-        'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'incoming\'',
-        [botId, reportDate]
-      )
-      const userMessages = (userMessagesQuery.rows?.[0] || userMessagesQuery[0] || {}).user_messages || 0
+    const userMessagesQuery = await db.knex.raw(
+      'SELECT COUNT(*) as user_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'incoming\'',
+      [botId, reportDate]
+    )
+    const userMessages = (userMessagesQuery.rows?.[0] || userMessagesQuery[0] || {}).user_messages || 0
 
-      const botMessagesQuery = await db.knex.raw(
-        'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'outgoing\'',
-        [botId, reportDate]
-      )
-      const botMessages = (botMessagesQuery.rows?.[0] || botMessagesQuery[0] || {}).bot_messages || 0
+    const botMessagesQuery = await db.knex.raw(
+      'SELECT COUNT(*) as bot_messages FROM events WHERE "botId" = ? AND DATE("createdOn") = DATE(?) AND direction = \'outgoing\'',
+      [botId, reportDate]
+    )
+    const botMessages = (botMessagesQuery.rows?.[0] || botMessagesQuery[0] || {}).bot_messages || 0
 
     // Obtener métricas de handoffs
     let totalHandoffs = 0

@@ -101,7 +101,9 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
   }
 
   onFileSelect = async (file: File) => {
-    await this.props.uploadFile('Imagen del usuario', '', file)
+    // Determine the appropriate title based on file type
+    const title = file.type === 'application/pdf' ? 'Archivo PDF del usuario' : 'Imagen del usuario'
+    await this.props.uploadFile(title, '', file)
   }
 
   render() {

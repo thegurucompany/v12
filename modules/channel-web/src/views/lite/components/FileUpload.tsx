@@ -16,11 +16,19 @@ const FileUpload: FC<FileUploadProps> = ({ onFileSelect, disabled = false, class
       return
     }
 
-    // Validate file type - only images
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+    // Validate file type - images and PDFs
+    const allowedTypes = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/bmp',
+      'application/pdf'
+    ]
 
     if (!allowedTypes.includes(file.type)) {
-      alert('Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP)')
+      alert('Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP) y documentos PDF')
       return
     }
 
@@ -61,7 +69,7 @@ const FileUpload: FC<FileUploadProps> = ({ onFileSelect, disabled = false, class
         type="file"
         style={{ display: 'none' }}
         onChange={handleFileSelect}
-        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp"
+        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp,image/bmp,application/pdf"
         disabled={disabled || isUploading}
       />
       <button
@@ -69,8 +77,8 @@ const FileUpload: FC<FileUploadProps> = ({ onFileSelect, disabled = false, class
         className="bpw-file-upload-button"
         onClick={triggerFileInput}
         disabled={disabled || isUploading}
-        title="Adjuntar imagen"
-        aria-label="Adjuntar imagen"
+        title="Adjuntar archivo (imagen o PDF)"
+        aria-label="Adjuntar archivo"
       >
         {isUploading ? <span>📤</span> : <span>📎</span>}
       </button>

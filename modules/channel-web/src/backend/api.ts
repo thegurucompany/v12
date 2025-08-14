@@ -269,13 +269,21 @@ export default async (bp: typeof sdk, db: Database) => {
       const payloadValue = req.body.payload || {}
       const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, botId)
 
-      // Validate file type - only allow images
-      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+      // Validate file type - allow images and PDFs
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'application/pdf'
+      ]
 
       const fileMimeType = req.file.contentType || req.file.mimetype
       if (!allowedMimeTypes.includes(fileMimeType)) {
         return res.status(400).json({
-          error: 'Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP)'
+          error: 'Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP) y documentos PDF'
         })
       }
 
@@ -289,13 +297,55 @@ export default async (bp: typeof sdk, db: Database) => {
 
       await bp.users.getOrCreateUser('web', userId, botId) // Just to create the user if it doesn't exist
 
+      // Debug logging
+      bp.logger.forBot(botId).info('Archivo subido - información de depuración', {
+        hasLocation: !!req.file.location,
+        hasPath: !!req.file.path,
+        locationType: typeof req.file.location,
+        pathType: typeof req.file.path,
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype
+      })
+
       // Use the S3 URL or local path as the text content for the bot
-      const imageUrl = req.file.location || req.file.path || undefined
-      let text = imageUrl || `Imagen: **${req.file.originalname}**`
+      let fileUrl = req.file.location || req.file.path
+
+      // Ensure fileUrl is a string
+      if (typeof fileUrl !== 'string') {
+        bp.logger.forBot(botId).error('La URL del archivo no es una string', {
+          location: req.file.location,
+          path: req.file.path,
+          filename: req.file.originalname,
+          fileUrlType: typeof fileUrl,
+          fileUrlValue: fileUrl
+        })
+
+        // Try to extract string value from object if possible
+        if (fileUrl && typeof fileUrl === 'object') {
+          fileUrl = fileUrl.toString()
+        } else {
+          return res.status(500).json({
+            error: 'Error al procesar la URL del archivo subido'
+          })
+        }
+      }
+
+      if (!fileUrl || fileUrl.trim() === '') {
+        bp.logger.forBot(botId).error('No se pudo obtener la URL del archivo subido', {
+          location: req.file.location,
+          path: req.file.path,
+          filename: req.file.originalname
+        })
+        return res.status(500).json({
+          error: 'Error al procesar el archivo subido'
+        })
+      }
+
+      let text = fileUrl || `Archivo: **${req.file.originalname}**`
 
       const variables = {
         storage: req.file.location ? 's3' : 'local',
-        url: imageUrl,
+        url: fileUrl,
         name: req.file.filename,
         originalName: req.file.originalname,
         mime: req.file.contentType || req.file.mimetype,
@@ -333,14 +383,28 @@ export default async (bp: typeof sdk, db: Database) => {
         }
       }
 
-      // For images, use image type and add image property
-      const payload = {
-        text,
-        type: 'image',
-        image: variables.url,
-        title: variables.originalName,
-        ...variables,
-        payload: payloadValue
+      // Determine if it's an image or PDF
+      const isImage = fileMimeType.startsWith('image/')
+      const isPdf = fileMimeType === 'application/pdf'
+
+      // Create payload based on file type
+      let payload
+      if (isImage) {
+        // For images, use image type and add image property
+        payload = {
+          text,
+          type: 'image',
+          image: variables.url,
+          payload: payloadValue
+        }
+      } else if (isPdf) {
+        // For PDFs, use file type and add file property
+        payload = {
+          text,
+          type: 'file',
+          file: variables.url,
+          payload: payloadValue
+        }
       }
 
       await sendNewMessage(req, payload, false)

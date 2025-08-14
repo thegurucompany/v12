@@ -96,25 +96,31 @@ class Message extends Component<MessageProps> {
       // Handle different payload structures
       let fileData = null
 
-      if (payload?.image || payload?.url) {
+      if (payload?.image) {
+        // Handle when image is directly a URL string
+        if (typeof payload.image === 'string') {
+          fileData = {
+            url: payload.image,
+            title: 'Imagen',
+            storage: 's3',
+            text: payload.text || ''
+          }
+        } else if (typeof payload.image === 'object') {
+          fileData = {
+            url: payload.image.url || payload.image,
+            title: payload.image.title || 'Imagen',
+            storage: payload.image.storage || 's3',
+            text: payload.image.text || payload.text || ''
+          }
+        }
+      } else if (payload?.url) {
         // Standard image payload structure
         fileData = {
-          url: payload.image || payload.url,
-          title: payload.title || payload.name || 'Imagen',
-          storage: payload.storage || 's3',
+          url: payload.url,
+          title: 'Imagen',
+          storage: 's3',
           text: payload.text || ''
         }
-      } else if (payload?.file) {
-        // Alternative structure where image data is in file property
-        fileData = {
-          url: payload.file.url || payload.file.image,
-          title: payload.file.title || payload.file.name || 'Imagen',
-          storage: payload.file.storage || 's3',
-          text: payload.file.text || payload.text || ''
-        }
-      } else {
-        // Fallback to the original payload structure
-        fileData = this.props.payload
       }
 
       if (!fileData || (!fileData.url && !fileData.image)) {
@@ -149,25 +155,32 @@ class Message extends Component<MessageProps> {
       // Handle different payload structures
       let fileData = null
 
-      if (payload?.url || payload?.file) {
-        // Standard file payload structure
+      if (payload?.url) {
+        // Standard file payload structure - prioritize direct URL
         fileData = {
-          url: payload.url || payload.file,
-          title: payload.title || payload.name || payload.filename || 'Archivo',
-          storage: payload.storage || 's3',
+          url: payload.url,
+          title: 'Archivo',
+          storage: 's3',
           text: payload.text || ''
         }
-      } else if (payload?.file && typeof payload.file === 'object') {
-        // Alternative structure where file data is nested in file property
-        fileData = {
-          url: payload.file.url,
-          title: payload.file.title || payload.file.name || payload.file.filename || 'Archivo',
-          storage: payload.file.storage || 's3',
-          text: payload.file.text || payload.text || ''
+      } else if (payload?.file) {
+        // Handle when file is directly a URL string or an object
+        if (typeof payload.file === 'string') {
+          fileData = {
+            url: payload.file,
+            title: 'Archivo',
+            storage: 's3',
+            text: payload.text || ''
+          }
+        } else if (typeof payload.file === 'object') {
+          // Alternative structure where file data is nested in file property
+          fileData = {
+            url: payload.file.url || payload.file,
+            title: payload.file.title || 'Archivo',
+            storage: payload.file.storage || 's3',
+            text: payload.file.text || payload.text || ''
+          }
         }
-      } else {
-        // Fallback to the original payload structure
-        fileData = this.props.payload
       }
 
       if (!fileData || !fileData.url) {
@@ -180,7 +193,11 @@ class Message extends Component<MessageProps> {
       }
 
       // Check if it's actually an image file
-      if (fileData.url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)) {
+      if (
+        fileData.url &&
+        typeof fileData.url === 'string' &&
+        fileData.url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i)
+      ) {
         // If it's an image, add image property for FileMessage to handle it correctly
         fileData.image = fileData.url
       }

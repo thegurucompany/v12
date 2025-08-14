@@ -289,11 +289,13 @@ export default async (bp: typeof sdk, db: Database) => {
 
       await bp.users.getOrCreateUser('web', userId, botId) // Just to create the user if it doesn't exist
 
-      let text = `Imagen: **${req.file.originalname}**`
+      // Use the S3 URL or local path as the text content for the bot
+      const imageUrl = req.file.location || req.file.path || undefined
+      let text = imageUrl || `Imagen: **${req.file.originalname}**`
 
       const variables = {
         storage: req.file.location ? 's3' : 'local',
-        url: req.file.location || req.file.path || undefined,
+        url: imageUrl,
         name: req.file.filename,
         originalName: req.file.originalname,
         mime: req.file.contentType || req.file.mimetype,

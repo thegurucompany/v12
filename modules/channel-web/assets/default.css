@@ -723,6 +723,7 @@ body {
 .bpw-send-buttons {
   display: flex;
   flex-direction: row;
+  align-items: center;
 }
 
 .bpw-file-upload {
@@ -757,10 +758,14 @@ body {
   border: none;
   border-radius: 5px;
   background: #fff;
-  padding: 5px;
+  padding: 5px 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bpw-send-button:hover,

@@ -193,8 +193,13 @@ export default class WebchatApi {
       data.append('conversationId', conversationId)
       data.append('payload', payload)
 
-      return this.axios.post('/messages/files', data, this.axiosConfig)
+      const response = await this.axios.post('/messages/files', data, this.axiosConfig)
+      return response.data
     } catch (err) {
+      // Handle specific error messages from the server
+      if (err.response?.data?.error) {
+        throw new Error(err.response.data.error)
+      }
       await this.handleApiError(err)
     }
   }

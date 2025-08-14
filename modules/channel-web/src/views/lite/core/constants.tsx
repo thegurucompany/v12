@@ -34,6 +34,7 @@ export default {
     enablePersistHistory: true,
     enableResetSessionShortcut: false,
     enableVoiceComposer: false,
+    enableFileUpload: false,
     enableConversationDeletion: false,
     closeOnEscape: true
   }

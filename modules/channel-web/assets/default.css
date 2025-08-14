@@ -725,6 +725,34 @@ body {
   flex-direction: row;
 }
 
+.bpw-file-upload {
+  margin-right: 5px;
+}
+
+.bpw-file-upload-button {
+  border: none;
+  border-radius: 5px;
+  background: #fff;
+  padding: 5px 8px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.bpw-file-upload-button:hover:not(:disabled),
+.bpw-file-upload-button:focus:not(:disabled) {
+  background: #d8d8d8;
+}
+
+.bpw-file-upload-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .bpw-send-button {
   border: none;
   border-radius: 5px;

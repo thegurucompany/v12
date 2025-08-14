@@ -65,7 +65,7 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
       // @ts-ignore typing indicates that limits isn't supported
       limits: {
         files: 1,
-        fileSize: 5242880 // 5MB
+        fileSize: 10485760 // 10MB (aumentado de 5MB para imágenes)
       },
       filename(req, file, cb) {
         const userId = _.get(req, 'params.userId') || 'anonymous'
@@ -114,7 +114,12 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
         }
       })
 
-      upload = multer({ storage: s3Storage })
+      upload = multer({
+        storage: s3Storage,
+        limits: {
+          fileSize: 10485760 // 10MB para imágenes
+        }
+      })
     }
 
     return upload.single('file')(req, res, next)
@@ -264,9 +269,27 @@ export default async (bp: typeof sdk, db: Database) => {
       const payloadValue = req.body.payload || {}
       const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, botId)
 
+      // Validate file type - only allow images
+      const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+
+      const fileMimeType = req.file.contentType || req.file.mimetype
+      if (!allowedMimeTypes.includes(fileMimeType)) {
+        return res.status(400).json({
+          error: 'Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP)'
+        })
+      }
+
+      // Validate file size - max 10MB
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({
+          error: 'El archivo es demasiado grande. El tamaño máximo es 10MB.'
+        })
+      }
+
       await bp.users.getOrCreateUser('web', userId, botId) // Just to create the user if it doesn't exist
 
-      let text = `Uploaded a file **${req.file.originalname}**`
+      let text = `Imagen: **${req.file.originalname}**`
 
       const variables = {
         storage: req.file.location ? 's3' : 'local',
@@ -308,9 +331,12 @@ export default async (bp: typeof sdk, db: Database) => {
         }
       }
 
+      // For images, use image type and add image property
       const payload = {
         text,
-        type: 'file',
+        type: 'image',
+        image: variables.url,
+        title: variables.originalName,
         ...variables,
         payload: payloadValue
       }

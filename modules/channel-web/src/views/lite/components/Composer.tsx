@@ -8,6 +8,7 @@ import ToolTip from '../../../../../../packages/ui-shared-lite/ToolTip'
 import { RootStore, StoreDef } from '../store'
 import { isRTLText } from '../utils'
 
+import FileUpload from './FileUpload'
 import VoiceRecorder from './VoiceRecorder'
 
 const ENTER_CHAR_CODE = 13
@@ -99,6 +100,10 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
     )
   }
 
+  onFileSelect = async (file: File) => {
+    await this.props.uploadFile('Imagen del usuario', '', file)
+  }
+
   render() {
     if (this.props.composerHidden) {
       return null
@@ -144,6 +149,13 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
           </div>
 
           <div className={'bpw-send-buttons'}>
+            {this.props.enableFileUpload && (
+              <FileUpload
+                onFileSelect={this.onFileSelect}
+                disabled={this.props.composerLocked || this.state.isRecording}
+                className="bpw-file-upload"
+              />
+            )}
             <button
               className={'bpw-send-button'}
               disabled={!messageText.length || this.props.composerLocked || this.state.isRecording}
@@ -172,6 +184,7 @@ class Composer extends React.Component<ComposerProps, { isRecording: boolean }> 
 
 export default inject(({ store }: { store: RootStore }) => ({
   enableVoiceComposer: store.config.enableVoiceComposer,
+  enableFileUpload: store.config.enableFileUpload,
   message: store.composer.message,
   composerLocked: store.composer.locked,
   composerHidden: store.composer.hidden,
@@ -182,6 +195,7 @@ export default inject(({ store }: { store: RootStore }) => ({
   intl: store.intl,
   sendMessage: store.sendMessage,
   sendVoiceMessage: store.sendVoiceMessage,
+  uploadFile: store.uploadFile,
   botName: store.botName,
   setFocus: store.view.setFocus,
   focusedArea: store.view.focusedArea,
@@ -209,6 +223,7 @@ type ComposerProps = {
     | 'focusedArea'
     | 'sendMessage'
     | 'sendVoiceMessage'
+    | 'uploadFile'
     | 'focusPrevious'
     | 'focusNext'
     | 'recallHistory'
@@ -220,6 +235,7 @@ type ComposerProps = {
     | 'isEmulator'
     | 'enableResetSessionShortcut'
     | 'enableVoiceComposer'
+    | 'enableFileUpload'
     | 'currentConversation'
     | 'preferredLanguage'
     | 'composerMaxTextLength'

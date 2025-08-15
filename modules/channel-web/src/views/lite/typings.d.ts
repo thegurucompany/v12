@@ -208,6 +208,8 @@ export interface Config {
   enableResetSessionShortcut: boolean
   /** When true, webchat tries to use native webspeech api (uses hosted mozilla and google voice services) */
   enableVoiceComposer: boolean
+  /** When true, enables file upload functionality (only images up to 10MB) */
+  enableFileUpload: boolean
   recentConversationLifetime: string
   startNewConvoOnTimeout: boolean
   /** Use sessionStorage instead of localStorage, which means the session expires when tab is closed */

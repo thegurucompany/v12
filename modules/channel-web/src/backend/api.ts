@@ -65,7 +65,7 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
       // @ts-ignore typing indicates that limits isn't supported
       limits: {
         files: 1,
-        fileSize: 5242880 // 5MB
+        fileSize: 10485760 // 10MB (aumentado de 5MB para imágenes)
       },
       filename(req, file, cb) {
         const userId = _.get(req, 'params.userId') || 'anonymous'
@@ -114,7 +114,12 @@ const scopedUploadMiddlware = (bp: typeof sdk) => {
         }
       })
 
-      upload = multer({ storage: s3Storage })
+      upload = multer({
+        storage: s3Storage,
+        limits: {
+          fileSize: 10485760 // 10MB para imágenes
+        }
+      })
     }
 
     return upload.single('file')(req, res, next)
@@ -264,13 +269,83 @@ export default async (bp: typeof sdk, db: Database) => {
       const payloadValue = req.body.payload || {}
       const config: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, botId)
 
+      // Validate file type - allow images and PDFs
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'application/pdf'
+      ]
+
+      const fileMimeType = req.file.contentType || req.file.mimetype
+      if (!allowedMimeTypes.includes(fileMimeType)) {
+        return res.status(400).json({
+          error: 'Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP, BMP) y documentos PDF'
+        })
+      }
+
+      // Validate file size - max 10MB
+      const maxSize = 10 * 1024 * 1024 // 10MB
+      if (req.file.size > maxSize) {
+        return res.status(400).json({
+          error: 'El archivo es demasiado grande. El tamaño máximo es 10MB.'
+        })
+      }
+
       await bp.users.getOrCreateUser('web', userId, botId) // Just to create the user if it doesn't exist
 
-      let text = `Uploaded a file **${req.file.originalname}**`
+      // Debug logging
+      bp.logger.forBot(botId).info('Archivo subido - información de depuración', {
+        hasLocation: !!req.file.location,
+        hasPath: !!req.file.path,
+        locationType: typeof req.file.location,
+        pathType: typeof req.file.path,
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype
+      })
+
+      // Use the S3 URL or local path as the text content for the bot
+      let fileUrl = req.file.location || req.file.path
+
+      // Ensure fileUrl is a string
+      if (typeof fileUrl !== 'string') {
+        bp.logger.forBot(botId).error('La URL del archivo no es una string', {
+          location: req.file.location,
+          path: req.file.path,
+          filename: req.file.originalname,
+          fileUrlType: typeof fileUrl,
+          fileUrlValue: fileUrl
+        })
+
+        // Try to extract string value from object if possible
+        if (fileUrl && typeof fileUrl === 'object') {
+          fileUrl = fileUrl.toString()
+        } else {
+          return res.status(500).json({
+            error: 'Error al procesar la URL del archivo subido'
+          })
+        }
+      }
+
+      if (!fileUrl || fileUrl.trim() === '') {
+        bp.logger.forBot(botId).error('No se pudo obtener la URL del archivo subido', {
+          location: req.file.location,
+          path: req.file.path,
+          filename: req.file.originalname
+        })
+        return res.status(500).json({
+          error: 'Error al procesar el archivo subido'
+        })
+      }
+
+      let text = fileUrl || `Archivo: **${req.file.originalname}**`
 
       const variables = {
         storage: req.file.location ? 's3' : 'local',
-        url: req.file.location || req.file.path || undefined,
+        url: fileUrl,
         name: req.file.filename,
         originalName: req.file.originalname,
         mime: req.file.contentType || req.file.mimetype,
@@ -308,11 +383,28 @@ export default async (bp: typeof sdk, db: Database) => {
         }
       }
 
-      const payload = {
-        text,
-        type: 'file',
-        ...variables,
-        payload: payloadValue
+      // Determine if it's an image or PDF
+      const isImage = fileMimeType.startsWith('image/')
+      const isPdf = fileMimeType === 'application/pdf'
+
+      // Create payload based on file type
+      let payload
+      if (isImage) {
+        // For images, use image type and add image property
+        payload = {
+          text,
+          type: 'image',
+          image: variables.url,
+          payload: payloadValue
+        }
+      } else if (isPdf) {
+        // For PDFs, use file type and add file property
+        payload = {
+          text,
+          type: 'file',
+          file: variables.url,
+          payload: payloadValue
+        }
       }
 
       await sendNewMessage(req, payload, false)

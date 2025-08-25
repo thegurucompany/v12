@@ -39,6 +39,9 @@ export default class HitlDb {
         table.boolean('paused')
         table.string('paused_trigger')
         table.string('thread_id')
+        table.enu('sentiment', ['positivo', 'negativo', 'neutro']).defaultTo('neutro')
+        table.jsonb('tags').defaultTo('[]')
+        table.boolean('issue_resolved').defaultTo(false)
       })
       .then(() => {
         return this.knex.createTableIfNotExists(TABLE_NAME_MESSAGES, function(table) {
@@ -87,12 +90,16 @@ export default class HitlDb {
       if (user.attributes.webchatCustomId) {
         const { firstName, lastName } = user.attributes.webchatCustomId
         if (displayName.startsWith('#') && (firstName || lastName)) {
-          displayName = firstName && lastName ? `${firstName} ${lastName}` : (firstName || lastName || displayName)
+          displayName = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || displayName
         }
       }
     }
 
-    if (!user?.attributes?.full_name && !user?.attributes?.first_name && !user?.attributes?.webchatCustomId?.firstName) {
+    if (
+      !user?.attributes?.full_name &&
+      !user?.attributes?.first_name &&
+      !user?.attributes?.webchatCustomId?.firstName
+    ) {
       try {
         if (event.channel === 'whatsapp' || event.channel === 'vonage') {
           this.bp.logger.info(`Canal detectado como WhatsApp/Vonage: ${event.channel}`)
@@ -326,6 +333,9 @@ export default class HitlDb {
           lastHeardOn: res.last_heard_on,
           isPaused: res.paused,
           pausedBy: res.paused_trigger,
+          sentiment: res.sentiment,
+          tags: this.parseTags(res.tags),
+          issueResolved: res.issue_resolved,
           lastMessage: {
             id: res.mId,
             type: res.type,
@@ -378,9 +388,7 @@ export default class HitlDb {
 
       if (cleanSearchTerm.match(/^\+?\d+$/)) {
         const numberOnly = cleanSearchTerm.replace(/^\+/, '')
-        query = query
-          .orWhere('full_name', 'like', `%${numberOnly}%`)
-          .orWhere('full_name', 'like', `%+${numberOnly}%`)
+        query = query.orWhere('full_name', 'like', `%${numberOnly}%`).orWhere('full_name', 'like', `%+${numberOnly}%`)
       }
 
       try {
@@ -390,32 +398,56 @@ export default class HitlDb {
           if (this.knex.isLite) {
             query = query
               .leftJoin('srv_channel_users', function() {
-                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`)
-                  .andOn('srv_channel_users.channel', '=', `${TABLE_NAME_SESSIONS}.channel`)
+                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`).andOn(
+                  'srv_channel_users.channel',
+                  '=',
+                  `${TABLE_NAME_SESSIONS}.channel`
+                )
               })
               .orWhere('srv_channel_users.user_id', 'like', `%${cleanSearchTerm}%`)
 
             if (cleanSearchTerm.length > 2) {
-              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.full_name') like '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.firstName') like '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.lastName') like '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.email') like '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`json_extract(srv_channel_users.attributes, '$.webchatCustomId.msisdn') like '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(
+                `json_extract(srv_channel_users.attributes, '$.full_name') like '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `json_extract(srv_channel_users.attributes, '$.webchatCustomId.firstName') like '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `json_extract(srv_channel_users.attributes, '$.webchatCustomId.lastName') like '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `json_extract(srv_channel_users.attributes, '$.webchatCustomId.email') like '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `json_extract(srv_channel_users.attributes, '$.webchatCustomId.msisdn') like '%${cleanSearchTerm}%'`
+              )
             }
           } else {
             query = query
               .leftJoin('srv_channel_users', function() {
-                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`)
-                  .andOn('srv_channel_users.channel', '=', `${TABLE_NAME_SESSIONS}.channel`)
+                this.on('srv_channel_users.user_id', '=', `${TABLE_NAME_SESSIONS}.userId`).andOn(
+                  'srv_channel_users.channel',
+                  '=',
+                  `${TABLE_NAME_SESSIONS}.channel`
+                )
               })
               .orWhere('srv_channel_users.user_id', 'like', `%${cleanSearchTerm}%`)
 
             if (cleanSearchTerm.length > 2) {
               query = query.orWhereRaw(`srv_channel_users.attributes ->>'full_name' ilike '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'firstName' ilike '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'lastName' ilike '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'email' ilike '%${cleanSearchTerm}%'`)
-              query = query.orWhereRaw(`srv_channel_users.attributes ->'webchatCustomId'->>'msisdn' ilike '%${cleanSearchTerm}%'`)
+              query = query.orWhereRaw(
+                `srv_channel_users.attributes ->'webchatCustomId'->>'firstName' ilike '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `srv_channel_users.attributes ->'webchatCustomId'->>'lastName' ilike '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `srv_channel_users.attributes ->'webchatCustomId'->>'email' ilike '%${cleanSearchTerm}%'`
+              )
+              query = query.orWhereRaw(
+                `srv_channel_users.attributes ->'webchatCustomId'->>'msisdn' ilike '%${cleanSearchTerm}%'`
+              )
             }
           }
         } else {
@@ -434,7 +466,6 @@ export default class HitlDb {
       const sessionIds = results.map(r => r.id.toString())
 
       return sessionIds
-
     } catch (error) {
       this.bp.logger.error('Error en searchSessions:', error)
       try {
@@ -534,6 +565,30 @@ export default class HitlDb {
     } catch (error) {
       this.bp.logger.error('Error obteniendo identificador de usuario web:', error)
       return null
+    }
+  }
+
+  private parseTags(tagsValue: any): string[] {
+    try {
+      if (!tagsValue) {
+        return []
+      }
+
+      if (typeof tagsValue === 'string') {
+        if (tagsValue.trim() === '' || tagsValue.trim() === '[]') {
+          return []
+        }
+        return JSON.parse(tagsValue)
+      }
+
+      if (Array.isArray(tagsValue)) {
+        return tagsValue
+      }
+
+      return []
+    } catch (error) {
+      this.bp.logger.debug('Error parsing tags:', error.message)
+      return []
     }
   }
 }

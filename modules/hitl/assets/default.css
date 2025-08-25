@@ -112,19 +112,23 @@
 }
 
 .bph-user-container {
-  height: 80px;
+  height: 90px;
   position: relative;
   min-width: 310px;
   color: #a3a3a3;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .bph-user-container-info {
-  padding-top: 20px;
+  padding-top: 8px;
+  width: 100%;
 }
 
 .bph-user-name {
   font-size: 16px;
   color: #fff;
+  margin-bottom: 4px;
 }
 
 .bph-user-source {
@@ -132,27 +136,82 @@
 }
 
 .bph-user-summary {
-  max-width: 300px;
+  max-width: 250px;
+  margin-bottom: 6px;
 }
 
 .bph-user-date {
-  width: 100px;
+  width: 80px;
   position: absolute;
-  right: 40px;
+  right: 50px;
+  top: 12px;
   text-align: right;
+  font-size: 12px;
 }
 
 .bph-user-paused {
-  width: 18px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   position: absolute;
-  right: 10px;
+  right: 12px;
+  top: 12px;
   text-align: center;
 }
 
 .bph-user-paused-active {
   background: #e2e2e2;
   border-radius: 10px;
+  padding: 2px;
+}
+
+/* Estilos para los nuevos elementos HITL */
+.bph-user-tags {
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+.bph-user-tag {
+  font-size: 10px;
+  background-color: #e1f5fe;
+  color: #0277bd;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-right: 4px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.bph-user-status-indicators {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  align-items: center;
+}
+
+.bph-status-icon {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bph-status-icon:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.bph-picture-small {
+  margin: 8px 12px 8px 0;
+  height: 45px;
+  width: 45px;
+  border-radius: 50%;
+  background-color: #e2e2e2;
+  float: left;
+  flex-shrink: 0;
 }
 
 .bph-conversation {
@@ -332,6 +391,7 @@ video {
 .bph-sidebar-user {
   font-size: 80%;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 .bph-sidebar-user:hover {
@@ -340,4 +400,19 @@ video {
 
 .bph-sidebar-user-current {
   background: var(--sidebar-current-user);
+}
+
+/* Mejoras adicionales para el layout general */
+.bph-user-container:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+.bph-user-container:not(:last-child) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Ajustes para texto que se ve cortado */
+.bph-user-summary .bp3-text-overflow-ellipsis {
+  line-height: 1.3;
 }

@@ -13,6 +13,9 @@ export interface HitlSession {
   lastHeardOn: Date
   isPaused: boolean
   pausedBy: string
+  sentiment?: 'positivo' | 'negativo' | 'neutro'
+  tags?: string[]
+  issueResolved?: boolean
 }
 
 export interface User {

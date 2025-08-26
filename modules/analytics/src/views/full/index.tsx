@@ -833,12 +833,14 @@ Generado el: ${new Date().toLocaleString()}
                   },
                   tooltip: {
                     callbacks: {
-                      label: context => {
-                        const data = context.dataset.data as number[]
-                        const total = data.reduce((a: number, b: number) => a + b, 0)
-                        const value = data[context.dataIndex]
-                        const percentage = ((value / total) * 100).toFixed(1)
-                        return `${context.label}: ${percentage}%`
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const tagData = tags.slice(0, 5)[dataIndex]
+                        const total = tags.slice(0, 5).reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const count = Number(tagData.count) || 0
+                        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
+
+                        return `${tagData.tag_value}: ${count} (${percentage}%)`
                       }
                     }
                   }
@@ -894,12 +896,14 @@ Generado el: ${new Date().toLocaleString()}
                   },
                   tooltip: {
                     callbacks: {
-                      label: context => {
-                        const data = context.dataset.data as number[]
-                        const total = data.reduce((a: number, b: number) => a + b, 0)
-                        const value = data[context.dataIndex]
-                        const percentage = ((value / total) * 100).toFixed(1)
-                        return `${context.label}: ${percentage}%`
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const sentimentData = sentiment[dataIndex]
+                        const total = sentiment.reduce((sum, item) => sum + item.count, 0)
+                        const percentage = total > 0 ? ((sentimentData.count / total) * 100).toFixed(1) : '0.0'
+                        const label = sentimentData.sentiment.charAt(0).toUpperCase() + sentimentData.sentiment.slice(1)
+
+                        return `${label}: ${sentimentData.count} (${percentage}%)`
                       }
                     }
                   }
@@ -953,12 +957,14 @@ Generado el: ${new Date().toLocaleString()}
                   },
                   tooltip: {
                     callbacks: {
-                      label: context => {
-                        const data = context.dataset.data as number[]
-                        const total = data.reduce((a: number, b: number) => a + b, 0)
-                        const value = data[context.dataIndex]
-                        const percentage = ((value / total) * 100).toFixed(1)
-                        return `${context.label}: ${percentage}%`
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const resolvedData = issueResolved[dataIndex]
+                        const total = issueResolved.reduce((sum, item) => sum + item.count, 0)
+                        const percentage = total > 0 ? ((resolvedData.count / total) * 100).toFixed(1) : '0.0'
+                        const label = resolvedData.issue_resolved ? 'Resueltas' : 'No Resueltas'
+
+                        return `${label}: ${resolvedData.count} (${percentage}%)`
                       }
                     }
                   }

@@ -846,5 +846,40 @@ ${getConclusionHandoffs()}
     })
   )
 
+  // Endpoint para obtener total de conversaciones por rango de fechas
+  router.get(
+    '/conversations-count/:botId',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { start, end } = req.query
+
+      try {
+        const startDate = start
+          ? moment.unix(Number(start)).format('YYYY-MM-DD')
+          : moment()
+              .subtract(7, 'days')
+              .format('YYYY-MM-DD')
+        const endDate = end ? moment.unix(Number(end)).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+
+        // Obtener total de conversaciones en el rango de fechas
+        const conversationsCount = await db.knex.raw(
+          `SELECT 
+            COUNT(*) as total
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?`,
+          [botId, startDate, endDate]
+        )
+
+        const total = conversationsCount.rows?.[0]?.total || conversationsCount[0]?.total || 0
+
+        res.send({ total: parseInt(total) })
+      } catch (err) {
+        throw new StandardError('Cannot get conversations count', err)
+      }
+    })
+  )
+
   // ...existing code...
 }

@@ -68,6 +68,7 @@ interface State {
     issueResolved: { issue_resolved: boolean; count: number }[]
     timeSeries: { date: string; sentiment: string; count: number }[]
   }
+  conversationsCount?: number
 }
 
 interface ExportPeriod {
@@ -170,6 +171,11 @@ const fetchReducer = (state: State, action): State => {
       ...state,
       reportModalDate: action.data.reportModalDate
     }
+  } else if (action.type === 'receivedConversationsCount') {
+    return {
+      ...state,
+      conversationsCount: action.data.conversationsCount
+    }
   } else {
     throw new Error("That action type isn't supported.")
   }
@@ -248,6 +254,13 @@ const Analytics: FC<any> = ({ bp }) => {
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchSentimentData()
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchConversationsCount()
+  }, [state.dateRange])
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchConversationsCount()
   }, [state.dateRange])
 
   const fetchAnalytics = async (channel: string, dateRange): Promise<MetricEntry[]> => {
@@ -340,6 +353,28 @@ const Analytics: FC<any> = ({ bp }) => {
       dispatch({ type: 'receivedSentimentData', data: { sentimentData: data } })
     } catch (err) {
       console.error('Error fetching sentiment data:', err)
+    }
+  }
+
+  const fetchConversationsCount = async () => {
+    if (!state.dateRange?.[0] || !state.dateRange?.[1]) {
+      return
+    }
+
+    try {
+      const startDate = moment(state.dateRange[0]).unix()
+      const endDate = moment(state.dateRange[1]).unix()
+
+      const { data } = await bp.axios.get(`mod/analytics/conversations-count/${window.BOT_ID}`, {
+        params: {
+          start: startDate,
+          end: endDate
+        }
+      })
+
+      dispatch({ type: 'receivedConversationsCount', data: { conversationsCount: data.total } })
+    } catch (err) {
+      console.error('Error fetching conversations count:', err)
     }
   }
 
@@ -795,10 +830,16 @@ Generado el: ${new Date().toLocaleString()}
     return (
       <div className={style.metricsContainer}>
         {/* Métricas principales */}
-        <NumberMetric className={style.quarter} name="Total Conversaciones" value={totalSentiment.toString()} />
         <NumberMetric className={style.quarter} name="Temas Únicos" value={tags.length.toString()} />
         <RadialMetric className={style.quarter} name="% Conversaciones Resueltas" value={resolvedPercentage} />
         <RadialMetric className={style.quarter} name="% Sentimiento Positivo" value={positivoPercentage} />
+
+        {/* Nuevo cuadro para conversaciones del rango seleccionado */}
+        <NumberMetric
+          className={style.quarter}
+          name="Total del Rango Seleccionado"
+          value={state.conversationsCount?.toString() || '0'}
+        />
 
         {/* Primera fila con barras de progreso alineadas - usando nueva estructura */}
         <div className={cx(style.genericMetric, style.quarter)}>

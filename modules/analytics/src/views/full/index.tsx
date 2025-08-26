@@ -15,10 +15,14 @@ import { DateRange, DateRangePicker, IDateRangeShortcut, DatePicker } from '@blu
 import '@blueprintjs/datetime/lib/css/blueprint-datetime.css'
 import axios from 'axios'
 import { lang, utils } from 'botpress/shared'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import cx from 'classnames'
 import _ from 'lodash'
 import moment from 'moment'
 import React, { FC, Fragment, useEffect, useRef, useState } from 'react'
+import { Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 import { MetricTypes } from '../../backend/db'
 import { MetricEntry } from '../../backend/typings'
@@ -799,64 +803,168 @@ Generado el: ${new Date().toLocaleString()}
         {/* Primera fila con barras de progreso alineadas - usando nueva estructura */}
         <div className={cx(style.genericMetric, style.quarter)}>
           <div className={style.metricName}>Top 5 Temas</div>
-          <div>
-            {tags.slice(0, 5).map((tag, index) => {
-              const totalConversations = sentiment.reduce((acc, item) => acc + item.count, 0)
-              const percentage = totalConversations > 0 ? ((tag.count / totalConversations) * 100).toFixed(1) : '0'
-              const colors = ['#ffdd98', '#83aeee', '#463cff', '#ff8989', '#56b149']
-              return (
-                <FlatProgressChart
-                  key={tag.tag_value}
-                  value={percentage}
-                  color={colors[index] || '#1f8ffa'}
-                  name={`${tag.tag_value}: ${percentage}%`}
-                />
-              )
-            })}
+          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: tags.slice(0, 5).map(tag => tag.tag_value),
+                datasets: [
+                  {
+                    data: tags.slice(0, 5).map(tag => tag.count),
+                    backgroundColor: ['#ffdd98', '#83aeee', '#463cff', '#ff8989', '#56b149'],
+                    borderColor: ['#ffdd98', '#83aeee', '#463cff', '#ff8989', '#56b149'],
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 15,
+                      font: {
+                        size: 11
+                      }
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: context => {
+                        const data = context.dataset.data as number[]
+                        const total = data.reduce((a: number, b: number) => a + b, 0)
+                        const value = data[context.dataIndex]
+                        const percentage = ((value / total) * 100).toFixed(1)
+                        return `${context.label}: ${percentage}%`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
           </div>
         </div>
 
         <div className={cx(style.genericMetric, style.quarter)}>
           <div className={style.metricName}>Distribución de Sentimientos</div>
-          <div>
-            {sentiment.map(item => {
-              const percentage = totalSentiment > 0 ? ((item.count / totalSentiment) * 100).toFixed(1) : '0'
-              const sentimentColors = {
-                positivo: '#56b149',
-                negativo: '#d14319',
-                neutro: '#5c7080'
-              }
-              return (
-                <FlatProgressChart
-                  key={item.sentiment}
-                  value={percentage}
-                  color={sentimentColors[item.sentiment] || '#5c7080'}
-                  name={`${item.sentiment.charAt(0).toUpperCase() + item.sentiment.slice(1)}: ${percentage}%`}
-                />
-              )
-            })}
+          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: sentiment.map(item => item.sentiment.charAt(0).toUpperCase() + item.sentiment.slice(1)),
+                datasets: [
+                  {
+                    data: sentiment.map(item => item.count),
+                    backgroundColor: sentiment.map(item => {
+                      const sentimentColors = {
+                        positivo: '#56b149',
+                        negativo: '#d14319',
+                        neutro: '#5c7080'
+                      }
+                      return sentimentColors[item.sentiment] || '#5c7080'
+                    }),
+                    borderColor: sentiment.map(item => {
+                      const sentimentColors = {
+                        positivo: '#56b149',
+                        negativo: '#d14319',
+                        neutro: '#5c7080'
+                      }
+                      return sentimentColors[item.sentiment] || '#5c7080'
+                    }),
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 15,
+                      font: {
+                        size: 11
+                      }
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: context => {
+                        const data = context.dataset.data as number[]
+                        const total = data.reduce((a: number, b: number) => a + b, 0)
+                        const value = data[context.dataIndex]
+                        const percentage = ((value / total) * 100).toFixed(1)
+                        return `${context.label}: ${percentage}%`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
           </div>
         </div>
 
         <div className={cx(style.genericMetric, style.quarter)}>
           <div className={style.metricName}>Estado de Resolución</div>
-          <div>
-            {issueResolved.map(item => {
-              const percentage = resolvedTotal > 0 ? ((item.count / resolvedTotal) * 100).toFixed(1) : '0'
-              const resolvedColors = {
-                true: '#56b149',
-                false: '#d14319'
-              }
-              const label = item.issue_resolved ? 'Resueltas' : 'No Resueltas'
-              return (
-                <FlatProgressChart
-                  key={item.issue_resolved.toString()}
-                  value={percentage}
-                  color={resolvedColors[item.issue_resolved.toString()] || '#d14319'}
-                  name={`${label}: ${percentage}%`}
-                />
-              )
-            })}
+          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: issueResolved.map(item => (item.issue_resolved ? 'Resueltas' : 'No Resueltas')),
+                datasets: [
+                  {
+                    data: issueResolved.map(item => item.count),
+                    backgroundColor: issueResolved.map(item => {
+                      const resolvedColors = {
+                        true: '#56b149',
+                        false: '#d14319'
+                      }
+                      return resolvedColors[item.issue_resolved.toString()] || '#d14319'
+                    }),
+                    borderColor: issueResolved.map(item => {
+                      const resolvedColors = {
+                        true: '#56b149',
+                        false: '#d14319'
+                      }
+                      return resolvedColors[item.issue_resolved.toString()] || '#d14319'
+                    }),
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 15,
+                      font: {
+                        size: 11
+                      }
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: context => {
+                        const data = context.dataset.data as number[]
+                        const total = data.reduce((a: number, b: number) => a + b, 0)
+                        const value = data[context.dataIndex]
+                        const percentage = ((value / total) * 100).toFixed(1)
+                        return `${context.label}: ${percentage}%`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
           </div>
         </div>
       </div>

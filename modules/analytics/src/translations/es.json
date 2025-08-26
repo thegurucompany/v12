@@ -52,6 +52,7 @@
   "positiveQnaFeedback": "{nb} retroalimentación positivos",
   "negativeQnaFeedback": "{nb} retroalimentación negativos",
   "humanInTheLoopStats": "Estadísticas de Human in the loop",
+  "sentimentOverview": "Resumen de Sentimientos",
   "advancedReports": "Reportes Avanzados",
   "generateReportsDescription": "Genera reportes detallados del bot para la fecha seleccionada",
   "downloadReports": "Descargar Reportes",

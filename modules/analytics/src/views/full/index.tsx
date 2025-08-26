@@ -15,10 +15,14 @@ import { DateRange, DateRangePicker, IDateRangeShortcut, DatePicker } from '@blu
 import '@blueprintjs/datetime/lib/css/blueprint-datetime.css'
 import axios from 'axios'
 import { lang, utils } from 'botpress/shared'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import cx from 'classnames'
 import _ from 'lodash'
 import moment from 'moment'
 import React, { FC, Fragment, useEffect, useRef, useState } from 'react'
+import { Doughnut } from 'react-chartjs-2'
+
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 import { MetricTypes } from '../../backend/db'
 import { MetricEntry } from '../../backend/typings'
@@ -57,6 +61,14 @@ interface State {
   generatingReport?: boolean
   showReportModal?: boolean
   reportModalDate?: Date
+  // Nuevos campos para sentiment
+  sentimentData?: {
+    sentiment: { sentiment: string; count: number }[]
+    tags: { tag_value: string; count: number }[]
+    issueResolved: { issue_resolved: boolean; count: number }[]
+    timeSeries: { date: string; sentiment: string; count: number }[]
+  }
+  conversationsCount?: number
 }
 
 interface ExportPeriod {
@@ -139,6 +151,11 @@ const fetchReducer = (state: State, action): State => {
       ...state,
       topQnaQuestions: action.data.topQnaQuestions
     }
+  } else if (action.type === 'receivedSentimentData') {
+    return {
+      ...state,
+      sentimentData: action.data.sentimentData
+    }
   } else if (action.type === 'setGeneratingReport') {
     return {
       ...state,
@@ -153,6 +170,11 @@ const fetchReducer = (state: State, action): State => {
     return {
       ...state,
       reportModalDate: action.data.reportModalDate
+    }
+  } else if (action.type === 'receivedConversationsCount') {
+    return {
+      ...state,
+      conversationsCount: action.data.conversationsCount
     }
   } else {
     throw new Error("That action type isn't supported.")
@@ -229,6 +251,18 @@ const Analytics: FC<any> = ({ bp }) => {
     fetchQnaQuestions()
   }, [state.metrics])
 
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchSentimentData()
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchConversationsCount()
+  }, [state.dateRange])
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchConversationsCount()
+  }, [state.dateRange])
+
   const fetchAnalytics = async (channel: string, dateRange): Promise<MetricEntry[]> => {
     const startDate = moment(dateRange[0]).unix()
     const endDate = moment(dateRange[1]).unix()
@@ -298,6 +332,50 @@ const Analytics: FC<any> = ({ bp }) => {
   const fetchQnaQuestion = async (id: string): Promise<any> => {
     const { data } = await bp.axios.get(`qna/questions/${id}`)
     return data
+  }
+
+  const fetchSentimentData = async () => {
+    if (!state.dateRange?.[0] || !state.dateRange?.[1]) {
+      return
+    }
+
+    try {
+      const startDate = moment(state.dateRange[0]).unix()
+      const endDate = moment(state.dateRange[1]).unix()
+
+      const { data } = await bp.axios.get(`mod/analytics/sentiment/${window.BOT_ID}`, {
+        params: {
+          start: startDate,
+          end: endDate
+        }
+      })
+
+      dispatch({ type: 'receivedSentimentData', data: { sentimentData: data } })
+    } catch (err) {
+      console.error('Error fetching sentiment data:', err)
+    }
+  }
+
+  const fetchConversationsCount = async () => {
+    if (!state.dateRange?.[0] || !state.dateRange?.[1]) {
+      return
+    }
+
+    try {
+      const startDate = moment(state.dateRange[0]).unix()
+      const endDate = moment(state.dateRange[1]).unix()
+
+      const { data } = await bp.axios.get(`mod/analytics/conversations-count/${window.BOT_ID}`, {
+        params: {
+          start: startDate,
+          end: endDate
+        }
+      })
+
+      dispatch({ type: 'receivedConversationsCount', data: { conversationsCount: data.total } })
+    } catch (err) {
+      console.error('Error fetching conversations count:', err)
+    }
   }
 
   const handleChannelChange = async ({ target: { value: selectedChannel } }) => {
@@ -719,6 +797,248 @@ Generado el: ${new Date().toLocaleString()}
     )
   }
 
+  const renderSentimentOverview = () => {
+    if (!state.sentimentData) {
+      return (
+        <div className={style.metricsContainer}>
+          <div className={cx(style.genericMetric, style.fullGrid)}>
+            <p>Cargando datos de sentimiento...</p>
+          </div>
+        </div>
+      )
+    }
+
+    const { sentiment, tags, issueResolved } = state.sentimentData
+
+    // Calcular totales y porcentajes
+    const totalSentiment = sentiment.reduce((sum, item) => sum + item.count, 0)
+    const totalTags = tags.reduce((sum, item) => sum + item.count, 0)
+    const resolvedTotal = issueResolved.reduce((sum, item) => sum + item.count, 0)
+
+    const resolvedCount = issueResolved.find(item => item.issue_resolved)?.count || 0
+    const resolvedPercentage = resolvedTotal > 0 ? Math.round((resolvedCount / resolvedTotal) * 100) : 0
+
+    const positivoCount = sentiment.find(s => s.sentiment === 'positivo')?.count || 0
+    const positivoPercentage = totalSentiment > 0 ? Math.round((positivoCount / totalSentiment) * 100) : 0
+
+    const negativoCount = sentiment.find(s => s.sentiment === 'negativo')?.count || 0
+    const negativoPercentage = totalSentiment > 0 ? Math.round((negativoCount / totalSentiment) * 100) : 0
+
+    const neutroCount = sentiment.find(s => s.sentiment === 'neutro')?.count || 0
+    const neutroPercentage = totalSentiment > 0 ? Math.round((neutroCount / totalSentiment) * 100) : 0
+
+    return (
+      <div className={style.metricsContainer}>
+        {/* Métricas principales */}
+        <NumberMetric className={style.quarter} name="Temas Únicos" value={tags.length.toString()} />
+        <RadialMetric className={style.quarter} name="% Conversaciones Resueltas" value={resolvedPercentage} />
+        <RadialMetric className={style.quarter} name="% Sentimiento Positivo" value={positivoPercentage} />
+
+        {/* Nuevo cuadro para conversaciones del rango seleccionado */}
+        <NumberMetric
+          className={style.quarter}
+          name="Total del Rango Seleccionado"
+          value={state.conversationsCount?.toString() || '0'}
+        />
+
+        {/* Primera fila con barras de progreso alineadas - usando nueva estructura */}
+        <div className={cx(style.genericMetric, style.quarter)}>
+          <div className={style.metricName}>Todos los Temas</div>
+          <div style={{ height: '280px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: tags.map(tag => tag.tag_value),
+                datasets: [
+                  {
+                    data: tags.map(tag => tag.count),
+                    backgroundColor: [
+                      '#ffdd98', // activacion
+                      '#83aeee', // pagos
+                      '#463cff', // falla_de_servicio
+                      '#ff8989', // bug
+                      '#56b149', // problema
+                      '#f39c12', // consulta
+                      '#9b59b6' // info
+                    ],
+                    borderColor: [
+                      '#ffdd98', // activacion
+                      '#83aeee', // pagos
+                      '#463cff', // falla_de_servicio
+                      '#ff8989', // bug
+                      '#56b149', // problema
+                      '#f39c12', // consulta
+                      '#9b59b6' // info
+                    ],
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 8,
+                      font: {
+                        size: 10
+                      },
+                      boxWidth: 12,
+                      boxHeight: 12
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const tagData = tags[dataIndex] // Usar todos los tags, no slice
+                        // Usar el total de TODOS los tags
+                        const totalAllTags = tags.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const count = Number(tagData.count) || 0
+                        const percentage = totalAllTags > 0 ? ((count / totalAllTags) * 100).toFixed(1) : '0.0'
+
+                        return `${tagData.tag_value}: ${count} (${percentage}%)`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div className={cx(style.genericMetric, style.quarter)}>
+          <div className={style.metricName}>Distribución de Sentimientos</div>
+          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: sentiment.map(item => item.sentiment.charAt(0).toUpperCase() + item.sentiment.slice(1)),
+                datasets: [
+                  {
+                    data: sentiment.map(item => item.count),
+                    backgroundColor: sentiment.map(item => {
+                      const sentimentColors = {
+                        positivo: '#56b149',
+                        negativo: '#d14319',
+                        neutro: '#5c7080'
+                      }
+                      return sentimentColors[item.sentiment] || '#5c7080'
+                    }),
+                    borderColor: sentiment.map(item => {
+                      const sentimentColors = {
+                        positivo: '#56b149',
+                        negativo: '#d14319',
+                        neutro: '#5c7080'
+                      }
+                      return sentimentColors[item.sentiment] || '#5c7080'
+                    }),
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 15,
+                      font: {
+                        size: 11
+                      }
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const sentimentData = sentiment[dataIndex]
+                        // Asegurar que usamos números válidos
+                        const total = sentiment.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const count = Number(sentimentData.count) || 0
+                        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
+                        const label = sentimentData.sentiment.charAt(0).toUpperCase() + sentimentData.sentiment.slice(1)
+
+                        return `${label}: ${count} (${percentage}%)`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <div className={cx(style.genericMetric, style.quarter)}>
+          <div className={style.metricName}>Estado de Resolución</div>
+          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: issueResolved.map(item => (item.issue_resolved ? 'Resueltas' : 'No Resueltas')),
+                datasets: [
+                  {
+                    data: issueResolved.map(item => item.count),
+                    backgroundColor: issueResolved.map(item => {
+                      const resolvedColors = {
+                        true: '#56b149',
+                        false: '#d14319'
+                      }
+                      return resolvedColors[item.issue_resolved.toString()] || '#d14319'
+                    }),
+                    borderColor: issueResolved.map(item => {
+                      const resolvedColors = {
+                        true: '#56b149',
+                        false: '#d14319'
+                      }
+                      return resolvedColors[item.issue_resolved.toString()] || '#d14319'
+                    }),
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 15,
+                      font: {
+                        size: 11
+                      }
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const resolvedData = issueResolved[dataIndex]
+                        const total = issueResolved.reduce((sum, item) => sum + item.count, 0)
+                        const percentage = total > 0 ? ((resolvedData.count / total) * 100).toFixed(1) : '0.0'
+                        const label = resolvedData.issue_resolved ? 'Resueltas' : 'No Resueltas'
+
+                        return `${label}: ${resolvedData.count} (${percentage}%)`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!isLoaded()) {
     return null
   }
@@ -885,6 +1205,10 @@ Generado el: ${new Date().toLocaleString()}
           <div className={style.section}>
             <h2>{lang.tr('module.analytics.humanInTheLoopStats')}</h2>
             {renderHumanInTheLoopStats()}
+          </div>
+          <div className={style.section}>
+            <h2>{lang.tr('module.analytics.sentimentOverview')}</h2>
+            {renderSentimentOverview()}
           </div>
         </div>
         <input type="file" ref={loadJson} onChange={readFile} style={{ visibility: 'hidden' }}></input>

@@ -754,4 +754,132 @@ ${getConclusionHandoffs()}
 
     return moment.utc(momentDate.format('YYYY-MM-DD')).toDate()
   }
+
+  // Nuevos endpoints para sentiment analytics
+  router.get(
+    '/sentiment/:botId',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { start, end } = req.query
+
+      try {
+        const startDate = start
+          ? moment.unix(Number(start)).format('YYYY-MM-DD')
+          : moment()
+              .subtract(7, 'days')
+              .format('YYYY-MM-DD')
+        const endDate = end ? moment.unix(Number(end)).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+
+        // Obtener distribución de sentimientos
+        const sentimentDistribution = await db.knex.raw(
+          `SELECT 
+            sentiment,
+            COUNT(*) as count
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?
+          AND sentiment IS NOT NULL
+          GROUP BY sentiment`,
+          [botId, startDate, endDate]
+        )
+
+        // Obtener distribución de tags
+        const tagsDistribution = await db.knex.raw(
+          `SELECT 
+            tag_value,
+            COUNT(*) as count
+          FROM (
+            SELECT 
+              jsonb_array_elements_text(tags) as tag_value
+            FROM hitl_sessions 
+            WHERE "botId" = ? 
+            AND DATE(last_event_on) >= ? 
+            AND DATE(last_event_on) <= ?
+            AND tags IS NOT NULL 
+            AND tags != '[]'::jsonb
+          ) as extracted_tags
+          GROUP BY tag_value
+          ORDER BY count DESC`,
+          [botId, startDate, endDate]
+        )
+
+        // Obtener distribución de issue_resolved
+        const issueResolvedDistribution = await db.knex.raw(
+          `SELECT 
+            issue_resolved,
+            COUNT(*) as count
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?
+          AND issue_resolved IS NOT NULL
+          GROUP BY issue_resolved`,
+          [botId, startDate, endDate]
+        )
+
+        // Obtener datos por fecha para series temporales
+        const sentimentTimeSeries = await db.knex.raw(
+          `SELECT 
+            DATE(last_event_on) as date,
+            sentiment,
+            COUNT(*) as count
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?
+          AND sentiment IS NOT NULL
+          GROUP BY DATE(last_event_on), sentiment
+          ORDER BY date`,
+          [botId, startDate, endDate]
+        )
+
+        res.send({
+          sentiment: sentimentDistribution.rows || sentimentDistribution,
+          tags: tagsDistribution.rows || tagsDistribution,
+          issueResolved: issueResolvedDistribution.rows || issueResolvedDistribution,
+          timeSeries: sentimentTimeSeries.rows || sentimentTimeSeries
+        })
+      } catch (err) {
+        throw new StandardError('Cannot get sentiment analytics', err)
+      }
+    })
+  )
+
+  // Endpoint para obtener total de conversaciones por rango de fechas
+  router.get(
+    '/conversations-count/:botId',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { start, end } = req.query
+
+      try {
+        const startDate = start
+          ? moment.unix(Number(start)).format('YYYY-MM-DD')
+          : moment()
+              .subtract(7, 'days')
+              .format('YYYY-MM-DD')
+        const endDate = end ? moment.unix(Number(end)).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+
+        // Obtener total de conversaciones en el rango de fechas
+        const conversationsCount = await db.knex.raw(
+          `SELECT 
+            COUNT(*) as total
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?`,
+          [botId, startDate, endDate]
+        )
+
+        const total = conversationsCount.rows?.[0]?.total || conversationsCount[0]?.total || 0
+
+        res.send({ total: parseInt(total) })
+      } catch (err) {
+        throw new StandardError('Cannot get conversations count', err)
+      }
+    })
+  )
+
+  // ...existing code...
 }

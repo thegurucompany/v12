@@ -802,16 +802,32 @@ Generado el: ${new Date().toLocaleString()}
 
         {/* Primera fila con barras de progreso alineadas - usando nueva estructura */}
         <div className={cx(style.genericMetric, style.quarter)}>
-          <div className={style.metricName}>Top 5 Temas</div>
-          <div style={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div className={style.metricName}>Todos los Temas</div>
+          <div style={{ height: '280px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <Doughnut
               data={{
-                labels: tags.slice(0, 5).map(tag => tag.tag_value),
+                labels: tags.map(tag => tag.tag_value),
                 datasets: [
                   {
-                    data: tags.slice(0, 5).map(tag => tag.count),
-                    backgroundColor: ['#ffdd98', '#83aeee', '#463cff', '#ff8989', '#56b149'],
-                    borderColor: ['#ffdd98', '#83aeee', '#463cff', '#ff8989', '#56b149'],
+                    data: tags.map(tag => tag.count),
+                    backgroundColor: [
+                      '#ffdd98', // activacion
+                      '#83aeee', // pagos
+                      '#463cff', // falla_de_servicio
+                      '#ff8989', // bug
+                      '#56b149', // problema
+                      '#f39c12', // consulta
+                      '#9b59b6' // info
+                    ],
+                    borderColor: [
+                      '#ffdd98', // activacion
+                      '#83aeee', // pagos
+                      '#463cff', // falla_de_servicio
+                      '#ff8989', // bug
+                      '#56b149', // problema
+                      '#f39c12', // consulta
+                      '#9b59b6' // info
+                    ],
                     borderWidth: 1
                   }
                 ]
@@ -825,20 +841,23 @@ Generado el: ${new Date().toLocaleString()}
                     labels: {
                       usePointStyle: true,
                       pointStyle: 'circle',
-                      padding: 15,
+                      padding: 8,
                       font: {
-                        size: 11
-                      }
+                        size: 10
+                      },
+                      boxWidth: 12,
+                      boxHeight: 12
                     }
                   },
                   tooltip: {
                     callbacks: {
                       label(context) {
                         const dataIndex = context.dataIndex
-                        const tagData = tags.slice(0, 5)[dataIndex]
-                        const total = tags.slice(0, 5).reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const tagData = tags[dataIndex] // Usar todos los tags, no slice
+                        // Usar el total de TODOS los tags
+                        const totalAllTags = tags.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
                         const count = Number(tagData.count) || 0
-                        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
+                        const percentage = totalAllTags > 0 ? ((count / totalAllTags) * 100).toFixed(1) : '0.0'
 
                         return `${tagData.tag_value}: ${count} (${percentage}%)`
                       }
@@ -899,11 +918,13 @@ Generado el: ${new Date().toLocaleString()}
                       label(context) {
                         const dataIndex = context.dataIndex
                         const sentimentData = sentiment[dataIndex]
-                        const total = sentiment.reduce((sum, item) => sum + item.count, 0)
-                        const percentage = total > 0 ? ((sentimentData.count / total) * 100).toFixed(1) : '0.0'
+                        // Asegurar que usamos números válidos
+                        const total = sentiment.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const count = Number(sentimentData.count) || 0
+                        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
                         const label = sentimentData.sentiment.charAt(0).toUpperCase() + sentimentData.sentiment.slice(1)
 
-                        return `${label}: ${sentimentData.count} (${percentage}%)`
+                        return `${label}: ${count} (${percentage}%)`
                       }
                     }
                   }

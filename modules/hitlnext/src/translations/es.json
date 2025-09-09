@@ -32,6 +32,7 @@
     "selectAgent": "Seleccionar Agente",
     "selectAgentToReassign": "Selecciona un agente para reasignar esta conversación:",
     "noOnlineAgents": "No hay otros agentes en línea en este momento",
+    "noOtherAgents": "No hay otros agentes disponibles en este momento",
     "reassignAllConfirm": "Todas las conversaciones se reasignarán a un agente disponible o se devolverán al bot. ¿Seguro que desea continuar? Esta acción no se puede deshacer.",
     "reassignAllSuccess": "Todas las conversaciones han sido reasignadas exitosamente. Tu estado ha sido cambiado a desconectado.",
     "reassignAllError": "Error al reasignar las conversaciones",

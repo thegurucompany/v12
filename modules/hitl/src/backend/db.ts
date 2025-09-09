@@ -356,6 +356,7 @@ export default class HitlDb {
           sentiment: res.sentiment,
           tags: this.parseTags(res.tags),
           issueResolved: res.issue_resolved,
+          userType: res.user_type,
           lastMessage: {
             id: res.mId,
             type: res.type,

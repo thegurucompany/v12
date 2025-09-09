@@ -16,6 +16,7 @@ export interface HitlSession {
   sentiment?: 'positivo' | 'negativo' | 'neutro'
   tags?: string[]
   issueResolved?: boolean
+  userType?: string
 }
 
 export interface User {

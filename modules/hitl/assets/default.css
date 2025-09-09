@@ -112,7 +112,7 @@
 }
 
 .bph-user-container {
-  height: 90px;
+  min-height: 90px;
   position: relative;
   min-width: 310px;
   color: #a3a3a3;
@@ -122,7 +122,8 @@
 
 .bph-user-container-info {
   padding-top: 8px;
-  width: 100%;
+  width: calc(100% - 100px);
+  padding-right: 8px;
 }
 
 .bph-user-name {
@@ -168,17 +169,45 @@
 .bph-user-tags {
   margin-top: 6px;
   margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
 .bph-user-tag {
   font-size: 10px;
-  background-color: #e1f5fe;
-  color: #0277bd;
-  padding: 2px 6px;
-  border-radius: 10px;
-  margin-right: 4px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  padding: 3px 8px;
+  border-radius: 12px;
   display: inline-block;
-  margin-bottom: 2px;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+  white-space: nowrap;
+}
+
+.bph-user-type-tag {
+  font-size: 10px;
+  background-color: #ffebee;
+  color: #d32f2f;
+  padding: 3px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  font-weight: 600;
+  border: 1px solid #ffcdd2;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bph-user-tag-more {
+  font-size: 9px;
+  color: #999;
+  font-weight: 500;
+  padding: 2px 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
 }
 
 .bph-user-status-indicators {
@@ -187,7 +216,7 @@
   margin-top: 8px;
   position: absolute;
   right: 12px;
-  bottom: 12px;
+  bottom: 16px;
   align-items: center;
 }
 
@@ -198,10 +227,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .bph-status-icon:hover {
   background-color: rgba(255, 255, 255, 0.2);
+}
+
+.bph-user-date {
+  width: 80px;
+  position: absolute;
+  right: 16px;
+  top: 12px;
+  text-align: right;
+  font-size: 12px;
+  z-index: 1;
 }
 
 .bph-picture-small {

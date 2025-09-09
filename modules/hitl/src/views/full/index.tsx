@@ -26,6 +26,7 @@ interface State {
 export default class HitlModule extends React.Component<{ bp: any }, State> {
   private api = makeApi(this.props.bp)
   private debounceQuerySessions = _.debounce(() => this.querySessions(), 700)
+  private _isMounted: boolean = false
 
   state: State = {
     loading: false,
@@ -37,34 +38,61 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
   }
 
   async componentDidMount() {
-    this.props.bp.events.on('hitl.message', this.updateSessionOverview)
-    this.props.bp.events.on('hitl.new_session', this.refreshSessions)
-    this.props.bp.events.on('hitl.session.changed', this.updateSession)
+    this._isMounted = true
 
-    await this.fetchAttributesConfig()
-    await this.refreshSessions()
+    try {
+      this.props.bp.events.on('hitl.message', this.updateSessionOverview)
+      this.props.bp.events.on('hitl.new_session', this.refreshSessions)
+      this.props.bp.events.on('hitl.session.changed', this.updateSession)
+
+      await this.fetchAttributesConfig()
+      await this.refreshSessions()
+    } catch (error) {
+      console.error('Error initializing HITL module:', error)
+    }
   }
 
   componentWillUnmount() {
-    this.props.bp.events.off('hitl.message', this.updateSessionOverview)
-    this.props.bp.events.off('hitl.new_session', this.refreshSessions)
-    this.props.bp.events.off('hitl.session.changed', this.updateSession)
+    this._isMounted = false
+
+    try {
+      this.props.bp.events.off('hitl.message', this.updateSessionOverview)
+      this.props.bp.events.off('hitl.new_session', this.refreshSessions)
+      this.props.bp.events.off('hitl.session.changed', this.updateSession)
+    } catch (error) {
+      console.warn('Error removing event listeners in HITL module:', error.message)
+    }
   }
 
   async fetchAttributesConfig() {
-    this.setState({ attributesConfig: await this.api.getAttributes() })
+    if (!this._isMounted) {
+      return
+    }
+
+    try {
+      const attributesConfig = await this.api.getAttributes()
+      if (this._isMounted) {
+        this.setState({ attributesConfig })
+      }
+    } catch (error) {
+      console.error('Error fetching attributes config:', error)
+    }
   }
 
   refreshSessions = async () => {
+    if (!this._isMounted) {
+      return
+    }
+
     await this.querySessions()
 
-    if (!this.state.currentSession && this.state.sessions) {
+    if (this._isMounted && !this.state.currentSession && this.state.sessions) {
       this.switchSession(_.head(this.state.sessions).id)
     }
   }
 
   updateSession = (changes: any) => {
-    if (!this.state.sessions) {
+    if (!this._isMounted || !this.state.sessions) {
       return
     }
 
@@ -74,13 +102,13 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
       })
     })
 
-    if (this.state.currentSession) {
+    if (this._isMounted && this.state.currentSession) {
       this.switchSession(this.state.currentSession.id)
     }
   }
 
   updateSessionOverview = (message: HitlMessage) => {
-    if (!this.state.sessions) {
+    if (!this._isMounted || !this.state.sessions) {
       return
     }
 
@@ -97,23 +125,45 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
       } as HitlMessage
     })
 
-    this.setState({ sessions: [updatedSessionOverview, ..._.without(this.state.sessions, session)] })
-  }
-
-  querySessions = async () => {
-    try {
-      const sessions = await this.api.findSessions(this.state.filterSearchText, this.state.filterPaused)
-      this.setState({ loading: false, sessions })
-    } catch (err) {
-      toast.failure(err.message)
+    if (this._isMounted) {
+      this.setState({ sessions: [updatedSessionOverview, ..._.without(this.state.sessions, session)] })
     }
   }
 
-  toggleFilterPaused = () => this.setState({ filterPaused: !this.state.filterPaused }, this.debounceQuerySessions)
-  setFilterSearchText = (filterSearchText: string) => this.setState({ filterSearchText }, this.debounceQuerySessions)
+  querySessions = async () => {
+    if (!this._isMounted) {
+      return
+    }
 
-  switchSession = (sessionId: string) =>
-    this.setState({ currentSession: this.state.sessions.find(x => x.id === sessionId) })
+    try {
+      const sessions = await this.api.findSessions(this.state.filterSearchText, this.state.filterPaused)
+      if (this._isMounted) {
+        this.setState({ loading: false, sessions })
+      }
+    } catch (err) {
+      if (this._isMounted) {
+        toast.failure(err.message)
+      }
+    }
+  }
+
+  toggleFilterPaused = () => {
+    if (this._isMounted) {
+      this.setState({ filterPaused: !this.state.filterPaused }, this.debounceQuerySessions)
+    }
+  }
+
+  setFilterSearchText = (filterSearchText: string) => {
+    if (this._isMounted) {
+      this.setState({ filterSearchText }, this.debounceQuerySessions)
+    }
+  }
+
+  switchSession = (sessionId: string) => {
+    if (this._isMounted) {
+      this.setState({ currentSession: this.state.sessions.find(x => x.id === sessionId) })
+    }
+  }
 
   render() {
     if (this.state.loading) {

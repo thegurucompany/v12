@@ -31,35 +31,44 @@ export default async (bp: SDK, db: Database) => {
       return next()
     }
 
-    const session = await db.getOrCreateUserSession(event)
-    if (!session) {
-      return next()
+    try {
+      const session = await db.getOrCreateUserSession(event)
+      if (!session) {
+        return next()
+      }
+
+      const message = await db.appendMessageToSession(event, session.id, 'in')
+
+      // Verificar si el módulo aún está montado antes de enviar el payload
+      if (db && message) {
+        bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.message', message))
+      }
+
+      if (session.is_new_session && db) {
+        bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.new_session', session))
+      }
+
+      const config = await bp.config.getModuleConfigForBot('hitl', event.botId)
+
+      if ((!!session.paused || config.paused) && _.includes(['text', 'message', 'quick_reply'], event.type)) {
+        debugSwallow('message swallowed / session paused', {
+          target: event.target,
+          channel: event.channel,
+          preview: event.preview,
+          type: event.type
+        })
+        // the session or bot is paused, swallow the message
+        // @ts-ignore
+        Object.assign(event, { isPause: true })
+
+        return
+      }
+
+      next()
+    } catch (error) {
+      bp.logger.error('Error in HITL incoming handler:', error)
+      next() // Continue processing even if HITL fails
     }
-
-    const message = await db.appendMessageToSession(event, session.id, 'in')
-    bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.message', message))
-
-    if (session.is_new_session) {
-      bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.new_session', session))
-    }
-
-    const config = await bp.config.getModuleConfigForBot('hitl', event.botId)
-
-    if ((!!session.paused || config.paused) && _.includes(['text', 'message', 'quick_reply'], event.type)) {
-      debugSwallow('message swallowed / session paused', {
-        target: event.target,
-        channel: event.channel,
-        preview: event.preview,
-        type: event.type
-      })
-      // the session or bot is paused, swallow the message
-      // @ts-ignore
-      Object.assign(event, { isPause: true })
-
-      return
-    }
-
-    next()
   }
 
   async function outgoingHandler(event: sdk.IO.Event, next) {
@@ -67,18 +76,27 @@ export default async (bp: SDK, db: Database) => {
       return next()
     }
 
-    const session = await db.getOrCreateUserSession(event)
-    if (!session) {
-      return next()
+    try {
+      const session = await db.getOrCreateUserSession(event)
+      if (!session) {
+        return next()
+      }
+
+      const message = await db.appendMessageToSession(event, session.id, 'out')
+
+      // Verificar si el módulo aún está montado antes de enviar el payload
+      if (db && message) {
+        bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.message', message))
+      }
+
+      if (session.is_new_session && db) {
+        bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.new_session', session))
+      }
+
+      next()
+    } catch (error) {
+      bp.logger.error('Error in HITL outgoing handler:', error)
+      next() // Continue processing even if HITL fails
     }
-
-    const message = await db.appendMessageToSession(event, session.id, 'out')
-    bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.message', message))
-
-    if (session.is_new_session) {
-      bp.realtime.sendPayload(bp.RealTimePayload.forAdmins('hitl.new_session', session))
-    }
-
-    next()
   }
 }

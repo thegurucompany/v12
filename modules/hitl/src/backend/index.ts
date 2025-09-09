@@ -27,9 +27,16 @@ const onServerReady = async (bp: SDK) => {
 }
 
 const onModuleUnmount = async (bp: typeof sdk) => {
-  bp.events.removeMiddleware('hitl.captureInMessages')
-  bp.events.removeMiddleware('hitl.captureOutMessages')
-  bp.http.deleteRouterForBot('hitl')
+  try {
+    bp.events.removeMiddleware('hitl.captureInMessages')
+    bp.events.removeMiddleware('hitl.captureOutMessages')
+    bp.http.deleteRouterForBot('hitl')
+  } catch (error) {
+    bp.logger.warn('Error during HITL module unmount:', error.message)
+  }
+
+  // Clear the database reference to prevent memory leaks
+  db = undefined
 }
 
 const entryPoint: sdk.ModuleEntryPoint = {

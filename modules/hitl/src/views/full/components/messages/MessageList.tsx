@@ -20,12 +20,21 @@ class MessageWrapper extends React.Component<{ message: any }> {
     return { hasError: true }
   }
 
+  componentDidCatch(error, errorInfo) {
+    console.error('MessageWrapper caught an error:', error, errorInfo)
+  }
+
   render() {
     if (this.state.hasError) {
       return <p className="bph-chat-error">* Cannot display message *</p>
     }
 
-    return <Message message={this.props.message} />
+    try {
+      return <Message message={this.props.message} />
+    } catch (error) {
+      console.error('Error rendering message:', error)
+      return <p className="bph-chat-error">* Cannot display message *</p>
+    }
   }
 }
 

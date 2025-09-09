@@ -141,53 +141,58 @@ export default class HitlDb {
       return undefined
     }
 
-    const where = { botId: event.botId, channel: event.channel, userId: event.target }
-    if (event.threadId) {
-      where['thread_id'] = event.threadId
-    }
+    try {
+      const where = { botId: event.botId, channel: event.channel, userId: event.target }
+      if (event.threadId) {
+        where['thread_id'] = event.threadId
+      }
 
-    return this.knex(TABLE_NAME_SESSIONS)
-      .where(where)
-      .select('*')
-      .limit(1)
-      .then(async users => {
-        if (!users || users.length === 0) {
-          return this.createUserSession(event)
-        } else {
-          const existingSession = users[0]
+      return this.knex(TABLE_NAME_SESSIONS)
+        .where(where)
+        .select('*')
+        .limit(1)
+        .then(async users => {
+          if (!users || users.length === 0) {
+            return this.createUserSession(event)
+          } else {
+            const existingSession = users[0]
 
-          if (existingSession.full_name && existingSession.full_name.startsWith('#')) {
-            try {
-              let newDisplayName = null
+            if (existingSession.full_name && existingSession.full_name.startsWith('#')) {
+              try {
+                let newDisplayName = null
 
-              if (event.channel === 'whatsapp' || event.channel === 'vonage') {
-                const whatsappNumber = await this.getWhatsAppNumber(event)
-                if (whatsappNumber) {
-                  newDisplayName = `+${whatsappNumber}`
+                if (event.channel === 'whatsapp' || event.channel === 'vonage') {
+                  const whatsappNumber = await this.getWhatsAppNumber(event)
+                  if (whatsappNumber) {
+                    newDisplayName = `+${whatsappNumber}`
+                  }
+                } else if (event.channel === 'web') {
+                  const user = (await this.bp.users.getOrCreateUser(event.channel, event.target, event.botId)).result
+                  const webIdentifier = await this.getWebUserIdentifier(event, user)
+                  if (webIdentifier) {
+                    newDisplayName = webIdentifier
+                  }
                 }
-              } else if (event.channel === 'web') {
-                const user = (await this.bp.users.getOrCreateUser(event.channel, event.target, event.botId)).result
-                const webIdentifier = await this.getWebUserIdentifier(event, user)
-                if (webIdentifier) {
-                  newDisplayName = webIdentifier
+
+                if (newDisplayName) {
+                  await this.knex(TABLE_NAME_SESSIONS)
+                    .where({ id: existingSession.id })
+                    .update({ full_name: newDisplayName })
+
+                  existingSession.full_name = newDisplayName
                 }
+              } catch (error) {
+                this.bp.logger.warn('Error actualizando nombre de sesión HITL:', error.message)
               }
-
-              if (newDisplayName) {
-                await this.knex(TABLE_NAME_SESSIONS)
-                  .where({ id: existingSession.id })
-                  .update({ full_name: newDisplayName })
-
-                existingSession.full_name = newDisplayName
-              }
-            } catch (error) {
-              this.bp.logger.warn('Error actualizando nombre de sesión HITL:', error.message)
             }
-          }
 
-          return existingSession
-        }
-      })
+            return existingSession
+          }
+        })
+    } catch (error) {
+      this.bp.logger.error('Error in getOrCreateUserSession:', error)
+      return undefined
+    }
   }
 
   async getSessionById(sessionId: string): Promise<HitlSession | undefined> {
@@ -224,72 +229,87 @@ export default class HitlDb {
   }
 
   async appendMessageToSession(event: sdk.IO.Event, sessionId: string, direction: string) {
-    const payload = event.payload || {}
-    const text = event.preview || payload.text || (payload.wrapped && payload.wrapped.text)
+    try {
+      const payload = event.payload || {}
+      const text = event.preview || payload.text || (payload.wrapped && payload.wrapped.text)
 
-    let source = 'user'
-    if (direction === 'out') {
-      source = event.payload.agent ? 'agent' : 'bot'
+      let source = 'user'
+      if (direction === 'out') {
+        source = event.payload.agent ? 'agent' : 'bot'
+      }
+
+      const message = {
+        session_id: sessionId,
+        type: event.type,
+        raw_message: event.payload,
+        text,
+        source,
+        direction,
+        ts: new Date()
+      }
+
+      return Bluebird.join(
+        this.knex(TABLE_NAME_MESSAGES).insert({
+          ...message,
+          raw_message: this.knex.json.set(message.raw_message || {}),
+          ts: this.knex.date.now()
+        }),
+        this.knex(TABLE_NAME_SESSIONS)
+          .where({ id: sessionId })
+          .update(this.buildUpdate(direction)),
+        () => toPlainObject(message)
+      )
+    } catch (error) {
+      this.bp.logger.error('Error appending message to session:', error)
+      throw error
     }
-
-    const message = {
-      session_id: sessionId,
-      type: event.type,
-      raw_message: event.payload,
-      text,
-      source,
-      direction,
-      ts: new Date()
-    }
-
-    return Bluebird.join(
-      this.knex(TABLE_NAME_MESSAGES).insert({
-        ...message,
-        raw_message: this.knex.json.set(message.raw_message || {}),
-        ts: this.knex.date.now()
-      }),
-      this.knex(TABLE_NAME_SESSIONS)
-        .where({ id: sessionId })
-        .update(this.buildUpdate(direction)),
-      () => toPlainObject(message)
-    )
   }
 
   async setSessionPauseState(isPaused: boolean, session: SessionIdentity, trigger: string): Promise<number> {
-    const { botId, channel, userId, sessionId, threadId } = session
+    try {
+      const { botId, channel, userId, sessionId, threadId } = session
 
-    if (sessionId) {
-      return this.knex(TABLE_NAME_SESSIONS)
-        .where({ id: sessionId })
-        .update({ paused: isPaused ? 1 : 0, paused_trigger: trigger })
-        .then(() => parseInt(sessionId))
-    } else {
-      const where = { botId, channel, userId }
-      if (threadId) {
-        where['thread_id'] = threadId
+      if (sessionId) {
+        return this.knex(TABLE_NAME_SESSIONS)
+          .where({ id: sessionId })
+          .update({ paused: isPaused ? 1 : 0, paused_trigger: trigger })
+          .then(() => parseInt(sessionId))
+      } else {
+        const where = { botId, channel, userId }
+        if (threadId) {
+          where['thread_id'] = threadId
+        }
+        return this.knex(TABLE_NAME_SESSIONS)
+          .where(where)
+          .update({ paused: isPaused ? 1 : 0, paused_trigger: trigger })
+          .then(() => {
+            return this.knex(TABLE_NAME_SESSIONS)
+              .where(where)
+              .select('id')
+          })
+          .then(sessions => parseInt(sessions[0].id))
       }
-      return this.knex(TABLE_NAME_SESSIONS)
-        .where(where)
-        .update({ paused: isPaused ? 1 : 0, paused_trigger: trigger })
-        .then(() => {
-          return this.knex(TABLE_NAME_SESSIONS)
-            .where(where)
-            .select('id')
-        })
-        .then(sessions => parseInt(sessions[0].id))
+    } catch (error) {
+      this.bp.logger.error('Error setting session pause state:', error)
+      throw error
     }
   }
 
   async isSessionPaused(session: SessionIdentity): Promise<boolean> {
-    const { botId, channel, userId, sessionId, threadId } = session
+    try {
+      const { botId, channel, userId, sessionId, threadId } = session
 
-    const toBool = s => this.knex.bool.parse(s)
-    return this.knex(TABLE_NAME_SESSIONS)
-      .where(sessionId ? { id: sessionId } : { botId, channel, userId, threadId })
-      .select('paused')
-      .then()
-      .get(0)
-      .then(s => s && toBool(s.paused))
+      const toBool = s => this.knex.bool.parse(s)
+      return this.knex(TABLE_NAME_SESSIONS)
+        .where(sessionId ? { id: sessionId } : { botId, channel, userId, threadId })
+        .select('paused')
+        .then()
+        .get(0)
+        .then(s => s && toBool(s.paused))
+    } catch (error) {
+      this.bp.logger.error('Error checking if session is paused:', error)
+      return false
+    }
   }
 
   async getAllSessions(

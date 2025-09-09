@@ -16,6 +16,7 @@ interface Props {
 
 export default class Conversation extends React.Component<Props> {
   private messagesDiv: HTMLElement
+  private _isMounted: boolean = false
 
   state = {
     loading: true,
@@ -23,15 +24,26 @@ export default class Conversation extends React.Component<Props> {
   }
 
   componentDidMount() {
+    this._isMounted = true
     this.tryScrollToBottom(true)
     this.props.events.on('hitl.message', this.appendMessage)
   }
 
   componentWillUnmount() {
-    this.props.events.off('hitl.message', this.appendMessage)
+    this._isMounted = false
+    try {
+      this.props.events.off('hitl.message', this.appendMessage)
+    } catch (error) {
+      // Silently handle any errors during cleanup
+      console.warn('Error removing event listener in HITL Conversation:', error.message)
+    }
   }
 
   async componentDidUpdate(prevProps) {
+    if (!this._isMounted) {
+      return
+    }
+
     this.tryScrollToBottom()
     if (prevProps.currentSessionId !== this.props.currentSessionId) {
       await this.fetchSessionMessages(this.props.currentSessionId)
@@ -39,16 +51,29 @@ export default class Conversation extends React.Component<Props> {
   }
 
   async fetchSessionMessages(sessionId) {
+    if (!this._isMounted) {
+      return
+    }
+
     this.setState({ loading: true })
 
-    const messages = await this.props.api.fetchSessionMessages(sessionId)
-    this.setState({ loading: false, messages })
+    try {
+      const messages = await this.props.api.fetchSessionMessages(sessionId)
 
-    this.tryScrollToBottom()
+      if (this._isMounted) {
+        this.setState({ loading: false, messages })
+        this.tryScrollToBottom()
+      }
+    } catch (error) {
+      if (this._isMounted) {
+        this.setState({ loading: false })
+      }
+      console.error('Error fetching session messages:', error)
+    }
   }
 
   appendMessage = (message: HitlMessage) => {
-    if (!this.state.messages || message.session_id !== this.props.currentSessionId) {
+    if (!this._isMounted || !this.state.messages || message.session_id !== this.props.currentSessionId) {
       return
     }
 
@@ -60,9 +85,12 @@ export default class Conversation extends React.Component<Props> {
     setTimeout(
       () => {
         try {
-          this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight
+          if (this._isMounted && this.messagesDiv && this.messagesDiv.parentNode) {
+            this.messagesDiv.scrollTop = this.messagesDiv.scrollHeight
+          }
         } catch (err) {
-          // Discard the error
+          // Silently handle scroll errors to prevent DOM manipulation issues
+          console.warn('Error scrolling messages in HITL:', err.message)
         }
       },
       delayed ? 200 : 0
@@ -81,7 +109,15 @@ export default class Conversation extends React.Component<Props> {
       <div className="bph-conversation" style={{ overflow: 'hidden' }}>
         <ConversationHeader api={this.props.api} displayName={displayName} isPaused={!!isPaused} sessionId={id} />
 
-        <div className="bph-conversation-messages" ref={m => (this.messagesDiv = m)}>
+        <div
+          className="bph-conversation-messages"
+          ref={m => {
+            // Verificar que el componente aún está montado antes de asignar la referencia
+            if (this._isMounted && m) {
+              this.messagesDiv = m
+            }
+          }}
+        >
           <MessageList messages={this.state.messages} />
         </div>
       </div>

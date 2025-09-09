@@ -5,6 +5,7 @@ import moment from 'moment'
 import React, { FC } from 'react'
 
 import { HitlSessionOverview } from '../../../backend/typings'
+import { Avatar } from './Avatar'
 
 interface Props {
   session: HitlSessionOverview
@@ -52,7 +53,7 @@ const User: FC<Props> = props => {
 
   return (
     <div className={classnames('bph-user-container', props.className)} onClick={props.switchSession}>
-      <img src={avatarUrl} className="bph-picture-small" />
+      <Avatar url={avatarUrl} className="bph-picture-small" />
 
       <div className="bph-user-container-info">
         <div>

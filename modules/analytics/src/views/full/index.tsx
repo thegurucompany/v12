@@ -69,6 +69,10 @@ interface State {
     timeSeries: { date: string; sentiment: string; count: number }[]
   }
   conversationsCount?: number
+  // Nuevo campo para user_type
+  userTypeData?: {
+    userType: { user_type: string; count: number }[]
+  }
 }
 
 interface ExportPeriod {
@@ -156,6 +160,16 @@ const fetchReducer = (state: State, action): State => {
       ...state,
       sentimentData: action.data.sentimentData
     }
+  } else if (action.type === 'receivedUserTypeData') {
+    return {
+      ...state,
+      userTypeData: action.data.userTypeData
+    }
+  } else if (action.type === 'receivedConversationsCount') {
+    return {
+      ...state,
+      conversationsCount: action.data.conversationsCount
+    }
   } else if (action.type === 'setGeneratingReport') {
     return {
       ...state,
@@ -170,11 +184,6 @@ const fetchReducer = (state: State, action): State => {
     return {
       ...state,
       reportModalDate: action.data.reportModalDate
-    }
-  } else if (action.type === 'receivedConversationsCount') {
-    return {
-      ...state,
-      conversationsCount: action.data.conversationsCount
     }
   } else {
     throw new Error("That action type isn't supported.")
@@ -255,10 +264,7 @@ const Analytics: FC<any> = ({ bp }) => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchSentimentData()
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchConversationsCount()
-  }, [state.dateRange])
-
-  useEffect(() => {
+    fetchUserTypeData()
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchConversationsCount()
   }, [state.dateRange])
@@ -353,6 +359,28 @@ const Analytics: FC<any> = ({ bp }) => {
       dispatch({ type: 'receivedSentimentData', data: { sentimentData: data } })
     } catch (err) {
       console.error('Error fetching sentiment data:', err)
+    }
+  }
+
+  const fetchUserTypeData = async () => {
+    if (!state.dateRange?.[0] || !state.dateRange?.[1]) {
+      return
+    }
+
+    try {
+      const startDate = moment(state.dateRange[0]).unix()
+      const endDate = moment(state.dateRange[1]).unix()
+
+      const { data } = await bp.axios.get(`mod/analytics/user-type/${window.BOT_ID}`, {
+        params: {
+          start: startDate,
+          end: endDate
+        }
+      })
+
+      dispatch({ type: 'receivedUserTypeData', data: { userTypeData: data } })
+    } catch (err) {
+      console.error('Error fetching user type data:', err)
     }
   }
 
@@ -831,8 +859,6 @@ Generado el: ${new Date().toLocaleString()}
       <div className={style.metricsContainer}>
         {/* Métricas principales */}
         <NumberMetric className={style.quarter} name="Temas Únicos" value={tags.length.toString()} />
-        <RadialMetric className={style.quarter} name="% Conversaciones Resueltas" value={resolvedPercentage} />
-        <RadialMetric className={style.quarter} name="% Sentimiento Positivo" value={positivoPercentage} />
 
         {/* Nuevo cuadro para conversaciones del rango seleccionado */}
         <NumberMetric
@@ -1039,6 +1065,103 @@ Generado el: ${new Date().toLocaleString()}
     )
   }
 
+  const renderUserTypeOverview = () => {
+    if (!state.userTypeData) {
+      return (
+        <div className={style.metricsContainer}>
+          <p>Cargando datos de tipos de usuario...</p>
+        </div>
+      )
+    }
+
+    const { userType } = state.userTypeData
+
+    if (!userType || userType.length === 0) {
+      return (
+        <div className={style.metricsContainer}>
+          <p>No hay datos de tipos de usuario disponibles para el rango seleccionado</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className={style.metricsContainer}>
+        <div className={cx(style.genericMetric, style.quarter)}>
+          <div className={style.metricName}>Tipos de Usuario</div>
+          <div style={{ height: '280px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Doughnut
+              data={{
+                labels: userType.map(type => type.user_type),
+                datasets: [
+                  {
+                    data: userType.map(type => type.count),
+                    backgroundColor: [
+                      '#ffdd98', // primer tipo
+                      '#83aeee', // segundo tipo
+                      '#463cff', // tercer tipo
+                      '#ff8989', // cuarto tipo
+                      '#56b149', // quinto tipo
+                      '#f39c12', // sexto tipo
+                      '#9b59b6', // séptimo tipo
+                      '#e74c3c', // octavo tipo
+                      '#34495e', // noveno tipo
+                      '#1abc9c' // décimo tipo
+                    ],
+                    borderColor: [
+                      '#ffdd98',
+                      '#83aeee',
+                      '#463cff',
+                      '#ff8989',
+                      '#56b149',
+                      '#f39c12',
+                      '#9b59b6',
+                      '#e74c3c',
+                      '#34495e',
+                      '#1abc9c'
+                    ],
+                    borderWidth: 1
+                  }
+                ]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: {
+                      usePointStyle: true,
+                      pointStyle: 'circle',
+                      padding: 8,
+                      font: {
+                        size: 10
+                      },
+                      boxWidth: 12,
+                      boxHeight: 12
+                    }
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label(context) {
+                        const dataIndex = context.dataIndex
+                        const typeData = userType[dataIndex]
+                        const total = userType.reduce((sum, item) => sum + (Number(item.count) || 0), 0)
+                        const count = Number(typeData.count) || 0
+                        const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0'
+
+                        return `${typeData.user_type}: ${count} (${percentage}%)`
+                      }
+                    }
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!isLoaded()) {
     return null
   }
@@ -1209,6 +1332,10 @@ Generado el: ${new Date().toLocaleString()}
           <div className={style.section}>
             <h2>{lang.tr('module.analytics.sentimentOverview')}</h2>
             {renderSentimentOverview()}
+          </div>
+          <div className={style.section}>
+            <h2>{lang.tr('module.analytics.userTypeOverview')}</h2>
+            {renderUserTypeOverview()}
           </div>
         </div>
         <input type="file" ref={loadJson} onChange={readFile} style={{ visibility: 'hidden' }}></input>

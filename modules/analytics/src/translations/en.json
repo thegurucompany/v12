@@ -52,6 +52,8 @@
   "positiveQnaFeedback": "{nb} positive feedback",
   "negativeQnaFeedback": "{nb} negative feedback",
   "humanInTheLoopStats": "Human in the loop Statistics",
+  "sentimentOverview": "Sentiment Overview",
+  "userTypeOverview": "User Types",
   "advancedReports": "Advanced Reports",
   "generateReportsDescription": "Generate detailed bot reports for the selected date",
   "downloadReports": "Download Reports",

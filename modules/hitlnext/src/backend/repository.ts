@@ -370,7 +370,7 @@ export default class Repository {
 
     // TODO filter out properly this is a quick fix
     const users = (await this.bp.workspaces.getWorkspaceUsers(workspace, options)).filter(
-      u => u.role === 'admin' || u.role === 'agent'
+      u => u.role === 'admin' || u.role === 'agent' || u.role === 'supervisor'
     ) as sdk.WorkspaceUserWithAttributes[]
 
     return Promise.map(users, async user => {

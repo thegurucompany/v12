@@ -561,16 +561,13 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         throw new UnprocessableEntityError('You can only reassign your own conversations')
       }
 
-      // Verify target agent exists and is online
+      // Verify target agent exists
       const targetAgent = await repository.getAgent(targetAgentId)
       if (!targetAgent) {
         throw new UnprocessableEntityError('Target agent not found')
       }
 
-      const isTargetAgentOnline = await repository.getAgentOnline(botId, targetAgentId)
-      if (!isTargetAgentOnline) {
-        throw new UnprocessableEntityError('Target agent is not online')
-      }
+      // Note: Removed online status check to allow assignment to offline agents
 
       try {
         await service.reassignSingleConversation(botId, handoff, currentAgentId, targetAgentId)

@@ -32,6 +32,7 @@
     "selectAgent": "Select Agent",
     "selectAgentToReassign": "Select an agent to reassign this conversation to:",
     "noOnlineAgents": "No other agents are online at the moment",
+    "noOtherAgents": "No other agents are available at the moment",
     "reassignAllConfirm": "All conversations will be reassigned to an available agent or returned to the bot. Are you sure you want to continue? This action cannot be undone.",
     "reassignAllSuccess": "All conversations have been successfully reassigned. Your status has been changed to offline.",
     "reassignAllError": "Error reassigning conversations",

@@ -21,17 +21,17 @@ const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgen
 
   useEffect(() => {
     if (isOpen) {
-      void loadOnlineAgents()
+      void loadAvailableAgents()
     }
   }, [isOpen])
 
-  const loadOnlineAgents = async () => {
+  const loadAvailableAgents = async () => {
     setLoading(true)
     try {
       const allAgents = await api.getAgents()
-      // Filter online agents and exclude current agent
-      const onlineAgents = allAgents.filter(agent => agent.online && agent.agentId !== currentAgentId)
-      setAgents(onlineAgents)
+      // Filter out current agent (allow both online and offline agents)
+      const availableAgents = allAgents.filter(agent => agent.agentId !== currentAgentId)
+      setAgents(availableAgents)
 
       // Reset selection
       setSelectedAgentId('')
@@ -59,12 +59,19 @@ const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgen
     }
   }
 
-  const agentOptions = agents.map(agent => ({
-    value: agent.agentId,
-    label: agent.attributes?.firstname
+  const agentOptions = agents.map(agent => {
+    const agentName = agent.attributes?.firstname
       ? `${agent.attributes.firstname} ${agent.attributes.lastname || ''}`.trim()
       : agent.attributes?.email || agent.agentId
-  }))
+
+    const status = agent.online ? '🟢' : '🔴'
+    const statusText = agent.online ? 'online' : 'offline'
+
+    return {
+      value: agent.agentId,
+      label: `${status} ${agentName} (${statusText})`
+    }
+  })
 
   return (
     <Dialog
@@ -79,7 +86,7 @@ const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgen
         {loading ? (
           <p>{lang.tr('loading')}...</p>
         ) : agents.length === 0 ? (
-          <p>{lang.tr('module.hitlnext.agent.noOnlineAgents')}</p>
+          <p>{lang.tr('module.hitlnext.agent.noOtherAgents')}</p>
         ) : (
           <>
             <p>{lang.tr('module.hitlnext.agent.selectAgentToReassign')}</p>

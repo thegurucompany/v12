@@ -38,6 +38,14 @@ export interface Message {
   readonly session_id?: string
 }
 
+export interface UserIdentification {
+  id: number
+  number: string
+  user_type: string
+  created_at: Date
+  updated_at: Date
+}
+
 // Hitl sessions can either be identified by sessionId, or a combination of botId, channel and target
 export interface SessionIdentity {
   botId?: string

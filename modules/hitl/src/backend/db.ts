@@ -13,6 +13,7 @@ const toPlainObject = object =>
 
 export const TABLE_NAME_SESSIONS = 'hitl_sessions'
 export const TABLE_NAME_MESSAGES = 'hitl_messages'
+export const TABLE_NAME_USER_IDENTIFICATION = 'user_identification'
 
 export default class HitlDb {
   knex: any
@@ -56,6 +57,14 @@ export default class HitlDb {
           table.jsonb('raw_message')
           table.enu('direction', ['in', 'out'])
           table.timestamp('ts')
+        })
+      })
+      .then(() => {
+        return this.knex.createTableIfNotExists(TABLE_NAME_USER_IDENTIFICATION, table => {
+          table.increments('id').primary()
+          table.string('number').notNullable()
+          table.string('user_type').notNullable()
+          table.timestamps(true, true)
         })
       })
       .then(() =>

@@ -881,5 +881,44 @@ ${getConclusionHandoffs()}
     })
   )
 
+  // Endpoint para obtener distribución de user_type
+  router.get(
+    '/user-type/:botId',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { start, end } = req.query
+
+      try {
+        const startDate = start
+          ? moment.unix(Number(start)).format('YYYY-MM-DD')
+          : moment()
+              .subtract(7, 'days')
+              .format('YYYY-MM-DD')
+        const endDate = end ? moment.unix(Number(end)).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+
+        // Obtener distribución de user_type
+        const userTypeDistribution = await db.knex.raw(
+          `SELECT 
+            user_type,
+            COUNT(*) as count
+          FROM hitl_sessions 
+          WHERE "botId" = ? 
+          AND DATE(last_event_on) >= ? 
+          AND DATE(last_event_on) <= ?
+          AND user_type IS NOT NULL
+          GROUP BY user_type
+          ORDER BY count DESC`,
+          [botId, startDate, endDate]
+        )
+
+        res.send({
+          userType: userTypeDistribution.rows || userTypeDistribution
+        })
+      } catch (err) {
+        throw new StandardError('Cannot get user type analytics', err)
+      }
+    })
+  )
+
   // ...existing code...
 }

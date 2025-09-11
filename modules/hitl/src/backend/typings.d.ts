@@ -16,6 +16,7 @@ export interface HitlSession {
   sentiment?: 'positivo' | 'negativo' | 'neutro'
   tags?: string[]
   issueResolved?: boolean
+  userType?: string
 }
 
 export interface User {
@@ -35,6 +36,14 @@ export interface Message {
   source: 'bot' | 'user' | 'agent'
   ts: Date
   readonly session_id?: string
+}
+
+export interface UserIdentification {
+  id: number
+  number: string
+  user_type: string
+  created_at: Date
+  updated_at: Date
 }
 
 // Hitl sessions can either be identified by sessionId, or a combination of botId, channel and target

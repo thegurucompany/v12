@@ -5,6 +5,7 @@ import moment from 'moment'
 import React, { FC } from 'react'
 
 import { HitlSessionOverview } from '../../../backend/typings'
+import { Avatar } from './Avatar'
 
 interface Props {
   session: HitlSessionOverview
@@ -13,7 +14,7 @@ interface Props {
 }
 
 const User: FC<Props> = props => {
-  const { lastEventOn, user, lastMessage, isPaused, sentiment, tags, issueResolved } = props.session
+  const { lastEventOn, user, lastMessage, isPaused, sentiment, tags, issueResolved, userType } = props.session
 
   const dateFormatted = moment(lastEventOn)
     .fromNow()
@@ -52,7 +53,7 @@ const User: FC<Props> = props => {
 
   return (
     <div className={classnames('bph-user-container', props.className)} onClick={props.switchSession}>
-      <img src={avatarUrl} className="bph-picture-small" />
+      <Avatar url={avatarUrl} className="bph-picture-small" />
 
       <div className="bph-user-container-info">
         <div>
@@ -64,19 +65,24 @@ const User: FC<Props> = props => {
             </Text>
           </span>
 
-          {/* Mostrar tags si existen */}
-          {tags && tags.length > 0 && (
+          {/* Mostrar tags y user_type en un solo contenedor */}
+          {(tags && tags.length > 0) || userType ? (
             <div className="bph-user-tags">
-              {tags.slice(0, 3).map((tag, index) => (
-                <span key={index} className="bph-user-tag">
-                  {tag}
-                </span>
-              ))}
-              {tags.length > 3 && (
-                <span style={{ fontSize: '10px', color: '#999', marginLeft: '4px' }}>+{tags.length - 3}</span>
+              {/* Mostrar user_type primero si existe */}
+              {userType && <span className="bph-user-type-tag">{userType}</span>}
+              {/* Mostrar tags si existen */}
+              {tags && tags.length > 0 && (
+                <>
+                  {tags.slice(0, 2).map((tag, index) => (
+                    <span key={index} className="bph-user-tag">
+                      {tag}
+                    </span>
+                  ))}
+                  {tags.length > 2 && <span className="bph-user-tag-more">+{tags.length - 2}</span>}
+                </>
               )}
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="bph-user-date">{dateFormatted}</div>

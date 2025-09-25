@@ -8,15 +8,37 @@ export default async (bp: SDK, db: Database) => {
   const router = bp.http.createRouterForBot('hitl')
 
   router.get('/sessions', async (req, res) => {
-    const pausedOnly = req.query.pausedOnly === 'true'
-    const sessionIds = req.query.searchText && (await db.searchSessions(req.query.searchText))
+    try {
+      const pausedOnly = req.query.pausedOnly === 'true'
+      const searchText = req.query.searchText
+      let sessionIds = null
 
-    res.send(await db.getAllSessions(pausedOnly, req.params.botId, sessionIds))
+      if (searchText) {
+        sessionIds = await db.searchSessions(searchText)
+        bp.logger.debug(`Search sessions for "${searchText}" returned ${sessionIds.length} results`)
+      }
+
+      const result = await db.getAllSessions(pausedOnly, req.params.botId, sessionIds)
+      res.send(result)
+    } catch (error) {
+      bp.logger.error('Error in /sessions endpoint:', error)
+      res.status(500).send({ error: 'Internal server error' })
+    }
   })
 
   router.get('/sessions/:sessionId', async (req, res) => {
-    const messages = await db.getSessionMessages(req.params.sessionId)
-    res.send(messages)
+    try {
+      const sessionId = req.params.sessionId
+      if (!sessionId || sessionId === 'undefined' || sessionId === 'null') {
+        return res.status(400).send({ error: 'Invalid session ID' })
+      }
+
+      const messages = await db.getSessionMessages(sessionId)
+      res.send(messages)
+    } catch (error) {
+      bp.logger.error('Error fetching session messages:', error)
+      res.status(500).send({ error: 'Internal server error' })
+    }
   })
 
   router.post('/sessions/:sessionId/message', async (req, res) => {

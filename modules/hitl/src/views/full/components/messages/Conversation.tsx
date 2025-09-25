@@ -51,7 +51,7 @@ export default class Conversation extends React.Component<Props> {
   }
 
   async fetchSessionMessages(sessionId) {
-    if (!this._isMounted) {
+    if (!this._isMounted || !sessionId || sessionId === 'undefined') {
       return
     }
 

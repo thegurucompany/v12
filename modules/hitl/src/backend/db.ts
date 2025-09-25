@@ -386,23 +386,34 @@ export default class HitlDb {
   }
 
   async getSessionMessages(sessionId: string): Promise<Message[]> {
-    return this.knex
-      .orderBy('ts', 'asc')
-      .select('*')
-      .from(function() {
-        this.from(TABLE_NAME_MESSAGES)
-          .where({ session_id: sessionId })
-          .orderBy('ts', 'desc')
-          .limit(100)
-          .select('*')
-          .as('q1')
-      })
-      .then(messages =>
-        messages.map(msg => ({
-          ...msg,
-          raw_message: this.knex.json.get(msg.raw_message)
-        }))
-      )
+    // Validar que sessionId no sea undefined o null
+    if (!sessionId || sessionId === 'undefined' || sessionId === 'null') {
+      this.bp.logger.warn('getSessionMessages: sessionId inválido:', sessionId)
+      return []
+    }
+
+    try {
+      return this.knex
+        .orderBy('ts', 'asc')
+        .select('*')
+        .from(function() {
+          this.from(TABLE_NAME_MESSAGES)
+            .where({ session_id: sessionId })
+            .orderBy('ts', 'desc')
+            .limit(100)
+            .select('*')
+            .as('q1')
+        })
+        .then(messages =>
+          messages.map(msg => ({
+            ...msg,
+            raw_message: this.knex.json.get(msg.raw_message)
+          }))
+        )
+    } catch (error) {
+      this.bp.logger.error('Error en getSessionMessages:', error)
+      return []
+    }
   }
 
   async searchSessions(searchTerm: string): Promise<string[]> {
@@ -488,7 +499,7 @@ export default class HitlDb {
       }
 
       const results = await query
-        .select(`${TABLE_NAME_SESSIONS}.id`)
+        .select(`${TABLE_NAME_SESSIONS}.id`, `${TABLE_NAME_SESSIONS}.last_heard_on`)
         .distinct()
         .orderBy(`${TABLE_NAME_SESSIONS}.last_heard_on`, 'desc')
         .limit(100)

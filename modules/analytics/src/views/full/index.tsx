@@ -233,15 +233,21 @@ const Analytics: FC<any> = ({ bp }) => {
       return
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchAnalytics(state.selectedChannel, state.dateRange).then(metrics => {
-      utils.inspect({ id: state.dateRange, metrics })
-      dispatch({ type: 'receivedMetrics', data: { dateRange: state.dateRange, metrics } })
-      const newChannels = _.uniq(_.map(metrics, 'channel')).map(x => {
-        return { value: x, label: capitalize(x) }
+    // Fetch current range metrics with error handling
+    fetchAnalytics(state.selectedChannel, state.dateRange)
+      .then(metrics => {
+        utils.inspect({ id: state.dateRange, metrics })
+        dispatch({ type: 'receivedMetrics', data: { dateRange: state.dateRange, metrics } })
+        const newChannels = _.uniq(_.map(metrics, 'channel')).map(x => {
+          return { value: x, label: capitalize(x) }
+        })
+        setChannels(_.uniqBy([...channels, ...newChannels], 'value'))
       })
-      setChannels(_.uniqBy([...channels, ...newChannels], 'value'))
-    })
+      .catch(err => {
+        console.error('Error fetching analytics for current range:', err)
+        // Set empty metrics to prevent UI breaks
+        dispatch({ type: 'receivedMetrics', data: { dateRange: state.dateRange, metrics: [] } })
+      })
 
     /* Get the previous range data so we can compare them and see what changed */
     const startDate = moment(state.dateRange[0])
@@ -249,10 +255,16 @@ const Analytics: FC<any> = ({ bp }) => {
     const oldEndDate = moment(state.dateRange[0]).subtract(1, 'days')
     const previousRange = [startDate.subtract(endDate.diff(startDate, 'days') + 1, 'days'), oldEndDate]
 
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    fetchAnalytics(state.selectedChannel, previousRange).then(metrics => {
-      dispatch({ type: 'receivedPreviousRangeMetrics', data: { dateRange: previousRange, metrics } })
-    })
+    // Fetch previous range metrics with error handling
+    fetchAnalytics(state.selectedChannel, previousRange)
+      .then(metrics => {
+        dispatch({ type: 'receivedPreviousRangeMetrics', data: { dateRange: previousRange, metrics } })
+      })
+      .catch(err => {
+        console.error('Error fetching analytics for previous range:', err)
+        // Set empty metrics to prevent comparison breaks
+        dispatch({ type: 'receivedPreviousRangeMetrics', data: { dateRange: previousRange, metrics: [] } })
+      })
   }, [state.dateRange, state.selectedChannel])
 
   useEffect(() => {
@@ -270,16 +282,42 @@ const Analytics: FC<any> = ({ bp }) => {
   }, [state.dateRange])
 
   const fetchAnalytics = async (channel: string, dateRange): Promise<MetricEntry[]> => {
-    const startDate = moment(dateRange[0]).unix()
-    const endDate = moment(dateRange[1]).unix()
+    // Validate date range
+    if (!dateRange || !dateRange[0] || !dateRange[1]) {
+      console.error('Invalid date range provided to fetchAnalytics:', dateRange)
+      return []
+    }
 
-    const { data } = await bp.axios.get(`mod/analytics/channel/${channel}`, {
-      params: {
-        start: startDate,
-        end: endDate
-      }
-    })
-    return data.metrics
+    const startMoment = moment(dateRange[0])
+    const endMoment = moment(dateRange[1])
+
+    // Validate moment objects are valid
+    if (!startMoment.isValid() || !endMoment.isValid()) {
+      console.error('Invalid dates in range:', { start: dateRange[0], end: dateRange[1] })
+      return []
+    }
+
+    const startDate = startMoment.unix()
+    const endDate = endMoment.unix()
+
+    // Validate unix timestamps
+    if (isNaN(startDate) || isNaN(endDate)) {
+      console.error('Invalid unix timestamps:', { startDate, endDate })
+      return []
+    }
+
+    try {
+      const { data } = await bp.axios.get(`mod/analytics/channel/${channel}`, {
+        params: {
+          start: startDate,
+          end: endDate
+        }
+      })
+      return data.metrics || []
+    } catch (error) {
+      console.error('Error in fetchAnalytics API call:', error)
+      throw error
+    }
   }
 
   const fetchQnaQuestions = async () => {

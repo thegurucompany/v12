@@ -50,7 +50,10 @@ export default async (bp: SDK, db: Database) => {
 
       const config = await bp.config.getModuleConfigForBot('hitl', event.botId)
 
-      if ((!!session.paused || config.paused) && _.includes(['text', 'message', 'quick_reply'], event.type)) {
+      if (
+        (!!session.paused || config.paused) &&
+        _.includes(['text', 'message', 'quick_reply', 'image', 'file', 'video', 'voice'], event.type)
+      ) {
         debugSwallow('message swallowed / session paused', {
           target: event.target,
           channel: event.channel,

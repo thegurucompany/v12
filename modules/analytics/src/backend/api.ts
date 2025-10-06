@@ -920,5 +920,73 @@ ${getConclusionHandoffs()}
     })
   )
 
+  // Endpoint para obtener conversaciones por estado de resolución
+  router.get(
+    '/conversations-by-resolution/:botId',
+    asyncMiddleware(async (req, res) => {
+      const { botId } = req.params
+      const { start, end, type, page = 1, pageSize = 25 } = req.query
+
+      try {
+        const startDate = start
+          ? moment.unix(Number(start)).format('YYYY-MM-DD')
+          : moment()
+              .subtract(7, 'days')
+              .format('YYYY-MM-DD')
+        const endDate = end ? moment.unix(Number(end)).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
+
+        const pageNum = parseInt(page as string) || 1
+        const limit = parseInt(pageSize as string) || 25
+        const offset = (pageNum - 1) * limit
+
+        // Validar que el tipo sea 'resolved' o 'unresolved'
+        const isResolved = type === 'resolved'
+
+        // Obtener conversaciones por estado de resolución con paginación
+        const conversationsQuery = await db.knex.raw(
+          `SELECT
+            DISTINCT ON (hs.thread_id)
+            hs.thread_id as conversation_id,
+            COALESCE(hs.full_name, 'Usuario desconocido') as full_name,
+            hs.issue_resolved
+          FROM hitl_sessions hs
+          WHERE hs."botId" = ?
+          AND DATE(hs.last_event_on) >= ?
+          AND DATE(hs.last_event_on) <= ?
+          AND hs.issue_resolved = ?
+          AND hs.thread_id IS NOT NULL
+          ORDER BY hs.thread_id, hs.last_event_on DESC
+          LIMIT ? OFFSET ?`,
+          [botId, startDate, endDate, isResolved, limit, offset]
+        )
+
+        // Obtener el total de conversaciones para la paginación
+        const totalQuery = await db.knex.raw(
+          `SELECT
+            COUNT(DISTINCT hs.thread_id) as total
+          FROM hitl_sessions hs
+          WHERE hs."botId" = ?
+          AND DATE(hs.last_event_on) >= ?
+          AND DATE(hs.last_event_on) <= ?
+          AND hs.issue_resolved = ?
+          AND hs.thread_id IS NOT NULL`,
+          [botId, startDate, endDate, isResolved]
+        )
+
+        const total = parseInt(totalQuery.rows?.[0]?.total || totalQuery[0]?.total || 0)
+
+        res.send({
+          conversations: conversationsQuery.rows || conversationsQuery,
+          total,
+          page: pageNum,
+          pageSize: limit
+        })
+      } catch (err) {
+        console.error('Error fetching conversations by resolution:', err)
+        throw new StandardError('Cannot get conversations by resolution', err)
+      }
+    })
+  )
+
   // ...existing code...
 }

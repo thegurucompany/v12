@@ -46,6 +46,7 @@ import NumberMetric from './NumberMetric'
 import RadialMetric from './RadialMetric'
 import style from './style.scss'
 import TimeSeriesChart from './TimeSeriesChart'
+import ResolutionModal from './ResolutionModal'
 import { fillMissingValues, getNotNaN } from './utils'
 
 interface State {
@@ -73,6 +74,9 @@ interface State {
   userTypeData?: {
     userType: { user_type: string; count: number }[]
   }
+  // Estados para el modal de resolución
+  resolutionModalOpen: boolean
+  resolutionType: 'resolved' | 'unresolved'
 }
 
 interface ExportPeriod {
@@ -185,6 +189,16 @@ const fetchReducer = (state: State, action): State => {
       ...state,
       reportModalDate: action.data.reportModalDate
     }
+  } else if (action.type === 'setResolutionModalOpen') {
+    return {
+      ...state,
+      resolutionModalOpen: action.data.resolutionModalOpen
+    }
+  } else if (action.type === 'setResolutionType') {
+    return {
+      ...state,
+      resolutionType: action.data.resolutionType
+    }
   } else {
     throw new Error("That action type isn't supported.")
   }
@@ -209,7 +223,9 @@ const Analytics: FC<any> = ({ bp }) => {
     pageTitle: lang.tr('module.analytics.dashboard'),
     selectedChannel: defaultChannels[0].value,
     shownSection: 'dashboard',
-    topQnaQuestions: []
+    topQnaQuestions: [],
+    resolutionModalOpen: false,
+    resolutionType: 'resolved'
   })
 
   useEffect(() => {
@@ -493,6 +509,15 @@ const Analytics: FC<any> = ({ bp }) => {
 
   const handleReportDateChange = (date: Date) => {
     dispatch({ type: 'setReportModalDate', data: { reportModalDate: date } })
+  }
+
+  const handleOpenResolutionModal = (resolutionType: 'resolved' | 'unresolved') => {
+    dispatch({ type: 'setResolutionType', data: { resolutionType } })
+    dispatch({ type: 'setResolutionModalOpen', data: { resolutionModalOpen: true } })
+  }
+
+  const handleCloseResolutionModal = () => {
+    dispatch({ type: 'setResolutionModalOpen', data: { resolutionModalOpen: false } })
   }
 
   const downloadReportsAsZip = (reports: any[], reportDate: string) => {
@@ -1062,13 +1087,23 @@ Generado el: ${new Date().toLocaleString()}
                       }
                       return resolvedColors[item.issue_resolved.toString()] || '#d14319'
                     }),
-                    borderWidth: 1
+                    borderWidth: 1,
+                    hoverBorderWidth: 3
                   }
                 ]
               }}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                  if (elements && elements.length > 0) {
+                    const dataIndex = elements[0].index
+                    const resolvedData = issueResolved[dataIndex]
+                    if (resolvedData && resolvedData.count > 0) {
+                      handleOpenResolutionModal(resolvedData.issue_resolved ? 'resolved' : 'unresolved')
+                    }
+                  }
+                },
                 plugins: {
                   legend: {
                     position: 'bottom' as const,
@@ -1416,6 +1451,15 @@ Generado el: ${new Date().toLocaleString()}
             </div>
           </div>
         </Dialog>
+
+        {/* Modal para conversaciones por estado de resolución */}
+        <ResolutionModal
+          isOpen={state.resolutionModalOpen}
+          onClose={handleCloseResolutionModal}
+          resolutionType={state.resolutionType}
+          dateRange={state.dateRange}
+          bp={bp}
+        />
       </div>
     </div>
   )

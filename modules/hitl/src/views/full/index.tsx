@@ -45,6 +45,14 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
       this.props.bp.events.on('hitl.new_session', this.refreshSessions)
       this.props.bp.events.on('hitl.session.changed', this.updateSession)
 
+      // Lee el parámetro searchText de la URL
+      const urlParams = new URLSearchParams(window.location.search)
+      const searchText = urlParams.get('searchText')
+
+      if (searchText) {
+        this.setState({ filterSearchText: searchText })
+      }
+
       await this.fetchAttributesConfig()
       await this.refreshSessions()
     } catch (error) {

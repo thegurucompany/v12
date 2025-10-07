@@ -1,17 +1,8 @@
-import React, { FC, useEffect, useState } from 'react'
-import {
-  Dialog,
-  Classes,
-  Button,
-  Intent,
-  HTMLTable,
-  Spinner,
-  Position,
-  Tooltip
-} from '@blueprintjs/core'
+import { Dialog, Classes, Button, Intent, HTMLTable, Spinner, Position, Tooltip } from '@blueprintjs/core'
+import axios from 'axios'
 import { lang } from 'botpress/shared'
 import moment from 'moment'
-import axios from 'axios'
+import React, { FC, useEffect, useState } from 'react'
 
 interface ResolutionModalProps {
   isOpen: boolean
@@ -33,13 +24,7 @@ interface ConversationsResponse {
   pageSize: number
 }
 
-const ResolutionModal: FC<ResolutionModalProps> = ({
-  isOpen,
-  onClose,
-  resolutionType,
-  dateRange,
-  bp
-}) => {
+const ResolutionModal: FC<ResolutionModalProps> = ({ isOpen, onClose, resolutionType, dateRange, bp }) => {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -96,15 +81,16 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
     }
   }
 
-  const handleConversationClick = (conversationId: string) => {
+  const handleConversationClick = (conversation: Conversation) => {
     onClose()
-    window.location.href = `/modules/hitl?conversationId=${conversationId}`
+    // Usar el full_name en el searchText para que HITL busque la conversación
+    const searchParam = conversation.full_name || conversation.conversation_id
+    const botId = window.BOT_ID || window['BOT_ID']
+    window.location.href = `/studio/${botId}/modules/hitl?searchText=${encodeURIComponent(searchParam)}`
   }
 
   const getTitle = () => {
-    return resolutionType === 'resolved'
-      ? 'Conversaciones Resueltas'
-      : 'Conversaciones No Resueltas'
+    return resolutionType === 'resolved' ? 'Conversaciones Resueltas' : 'Conversaciones No Resueltas'
   }
 
   const getStartIndex = () => {
@@ -119,39 +105,25 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
   const totalPages = Math.ceil(totalConversations / pageSize)
 
   return (
-    <Dialog
-      isOpen={isOpen}
-      onClose={onClose}
-      title={getTitle()}
-      className={Classes.DIALOG}
-      style={{ width: '600px' }}
-    >
+    <Dialog isOpen={isOpen} onClose={onClose} title={getTitle()} className={Classes.DIALOG} style={{ width: '600px' }}>
       <div className={Classes.DIALOG_BODY}>
         {loading && conversations.length === 0 ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
             <Spinner size={50} />
           </div>
         ) : error ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#d14319' }}>
-            {error}
-          </div>
+          <div style={{ padding: '20px', textAlign: 'center', color: '#d14319' }}>{error}</div>
         ) : (
           <>
             <div style={{ marginBottom: '15px', fontSize: '14px', color: '#666' }}>
-              {totalConversations > 0 ? (
-                `Mostrando ${getStartIndex()}-${getEndIndex()} de ${totalConversations} conversaciones`
-              ) : (
-                'No se encontraron conversaciones'
-              )}
+              {totalConversations > 0
+                ? `Mostrando ${getStartIndex()}-${getEndIndex()} de ${totalConversations} conversaciones`
+                : 'No se encontraron conversaciones'}
             </div>
 
             {conversations.length > 0 && (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                <HTMLTable
-                  striped
-                  interactive
-                  style={{ width: '100%' }}
-                >
+                <HTMLTable striped interactive style={{ width: '100%' }}>
                   <thead>
                     <tr>
                       <th style={{ width: '50%' }}>ID de Conversación</th>
@@ -162,37 +134,38 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
                     {conversations.map((conversation, index) => (
                       <tr
                         key={`${conversation.conversation_id}-${index}`}
-                        onClick={() => handleConversationClick(conversation.conversation_id)}
+                        onClick={() => handleConversationClick(conversation)}
                         style={{
                           cursor: 'pointer',
                           transition: 'background-color 0.2s'
                         }}
-                        onMouseEnter={(e) => {
+                        onMouseEnter={e => {
                           e.currentTarget.style.backgroundColor = '#f5f5f5'
                         }}
-                        onMouseLeave={(e) => {
+                        onMouseLeave={e => {
                           e.currentTarget.style.backgroundColor = ''
                         }}
                       >
                         <td>
-                          <Tooltip
-                            content="Click para ver en HITL"
-                            position={Position.TOP}
-                          >
-                            <span style={{
-                              fontFamily: 'monospace',
-                              fontSize: '12px',
-                              color: '#0073b7'
-                            }}>
+                          <Tooltip content="Click para ver en HITL" position={Position.TOP}>
+                            <span
+                              style={{
+                                fontFamily: 'monospace',
+                                fontSize: '12px',
+                                color: '#0073b7'
+                              }}
+                            >
                               {conversation.conversation_id}
                             </span>
                           </Tooltip>
                         </td>
                         <td>
-                          <span style={{
-                            fontWeight: 500,
-                            color: '#333'
-                          }}>
+                          <span
+                            style={{
+                              fontWeight: 500,
+                              color: '#333'
+                            }}
+                          >
                             {conversation.full_name || 'Usuario desconocido'}
                           </span>
                         </td>
@@ -209,13 +182,15 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
       {!loading && !error && totalPages > 1 && (
         <div className={Classes.DIALOG_FOOTER}>
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontSize: '14px',
-              color: '#666'
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '14px',
+                color: '#666'
+              }}
+            >
               <Button
                 icon="chevron-left"
                 disabled={currentPage === 1}
@@ -239,10 +214,7 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
               </Button>
             </div>
 
-            <Button
-              intent={Intent.NONE}
-              onClick={onClose}
-            >
+            <Button intent={Intent.NONE} onClick={onClose}>
               Cerrar
             </Button>
           </div>
@@ -252,21 +224,20 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
       {loading && conversations.length > 0 && (
         <div className={Classes.DIALOG_FOOTER}>
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              fontSize: '14px',
-              color: '#666'
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '14px',
+                color: '#666'
+              }}
+            >
               <Spinner size={16} />
               <span>Cargando...</span>
             </div>
 
-            <Button
-              intent={Intent.NONE}
-              onClick={onClose}
-            >
+            <Button intent={Intent.NONE} onClick={onClose}>
               Cerrar
             </Button>
           </div>
@@ -276,10 +247,7 @@ const ResolutionModal: FC<ResolutionModalProps> = ({
       {!loading && !error && totalPages <= 1 && (
         <div className={Classes.DIALOG_FOOTER}>
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
-            <Button
-              intent={Intent.NONE}
-              onClick={onClose}
-            >
+            <Button intent={Intent.NONE} onClick={onClose}>
               Cerrar
             </Button>
           </div>

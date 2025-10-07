@@ -17,6 +17,7 @@ export interface HitlSession {
   tags?: string[]
   issueResolved?: boolean
   userType?: string
+  messageChannel?: string
 }
 
 export interface User {

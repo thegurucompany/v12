@@ -43,6 +43,7 @@ export default class HitlDb {
         table.enu('sentiment', ['positivo', 'negativo', 'neutro']).defaultTo('neutro')
         table.jsonb('tags').defaultTo('[]')
         table.boolean('issue_resolved').defaultTo(false)
+        table.string('message_channel')
       })
       .then(() => {
         return this.knex.createTableIfNotExists(TABLE_NAME_MESSAGES, function(table) {
@@ -137,7 +138,8 @@ export default class HitlDb {
       last_heard_on: this.knex.date.now(),
       paused: 0,
       full_name: displayName,
-      paused_trigger: undefined
+      paused_trigger: undefined,
+      message_channel: event.channel
     }
 
     const dbSession = await this.knex.insertAndRetrieve(TABLE_NAME_SESSIONS, session, '*')
@@ -366,6 +368,7 @@ export default class HitlDb {
           tags: this.parseTags(res.tags),
           issueResolved: res.issue_resolved,
           userType: res.user_type,
+          messageChannel: res.message_channel,
           lastMessage: {
             id: res.mId,
             type: res.type,

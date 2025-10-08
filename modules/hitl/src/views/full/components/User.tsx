@@ -14,7 +14,17 @@ interface Props {
 }
 
 const User: FC<Props> = props => {
-  const { lastEventOn, user, lastMessage, isPaused, sentiment, tags, issueResolved, userType } = props.session
+  const {
+    lastEventOn,
+    user,
+    lastMessage,
+    isPaused,
+    sentiment,
+    tags,
+    issueResolved,
+    userType,
+    messageChannel
+  } = props.session
 
   const dateFormatted = moment(lastEventOn)
     .fromNow()
@@ -58,6 +68,11 @@ const User: FC<Props> = props => {
       <div className="bph-user-container-info">
         <div>
           <div className="bph-user-name">{displayName}</div>
+          {messageChannel && (
+            <div className="bph-message-channel">
+              <Text className="bph-channel-label">Canal: {messageChannel}</Text>
+            </div>
+          )}
           <span>
             <Text ellipsize={true} className="bph-user-summary">
               <span className="bph-user-source">{textPrefix}</span>

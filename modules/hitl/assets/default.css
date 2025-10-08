@@ -132,6 +132,22 @@
   margin-bottom: 4px;
 }
 
+.bph-message-channel {
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+.bph-channel-label {
+  font-size: 11px;
+  color: #9db4c8;
+  font-weight: 500;
+  background-color: rgba(157, 180, 200, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  letter-spacing: 0.3px;
+}
+
 .bph-user-source {
   font-weight: bold;
 }

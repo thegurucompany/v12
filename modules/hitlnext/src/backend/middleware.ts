@@ -273,6 +273,15 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       }
     }
 
+    // Handle location messages
+    if (event.type === 'location') {
+      // Set preview for location messages
+      if (!event.preview) {
+        const locationText = event.payload.title || event.payload.address || 'Ubicación'
+        ;(event as any).preview = `📍 ${locationText}`
+      }
+    }
+
     // There only is an agentId & agentThreadId after assignation
     if (handoff.status === 'assigned') {
       debug.forBot(handoff.botId, 'Piping user message to agent', {
@@ -746,8 +755,8 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
       }
     }
 
-    // Handle text, image, file, video and voice types for HITL
-    if (!['text', 'image', 'file', 'video', 'voice'].includes(event.type)) {
+    // Handle text, image, file, video, voice and location types for HITL
+    if (!['text', 'image', 'file', 'video', 'voice', 'location'].includes(event.type)) {
       return next(undefined, false, true)
     }
 

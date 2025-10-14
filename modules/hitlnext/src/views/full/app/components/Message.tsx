@@ -154,6 +154,80 @@ const renderPayload = (event: IO.Event) => {
     )
   }
 
+  // Handle location messages - check multiple possible structures
+  if (payload.type === 'location' || payload.payload?.type === 'location') {
+    const latitude = payload.latitude || payload.payload?.latitude
+    const longitude = payload.longitude || payload.payload?.longitude
+    const address = payload.address || payload.payload?.address
+    const title = payload.title || payload.payload?.title
+
+    // If we have valid coordinates, show them
+    if (latitude !== undefined && longitude !== undefined) {
+      const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+
+      return (
+        <div className="location-message">
+          <div
+            style={{
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              backgroundColor: '#f9f9f9'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ fontSize: '24px', marginRight: '8px' }}>📍</div>
+              <div style={{ fontWeight: 'bold', color: '#333' }}>{title || address || 'Ubicación compartida'}</div>
+            </div>
+            <div style={{ fontSize: '13px', color: '#666', marginLeft: '32px' }}>
+              <div style={{ marginBottom: '4px' }}>
+                <strong>Latitud:</strong> {latitude}
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <strong>Longitud:</strong> {longitude}
+              </div>
+              {address && <div style={{ marginBottom: '8px', fontStyle: 'italic' }}>{address}</div>}
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: 'none',
+                  color: '#0066cc',
+                  fontWeight: 'bold',
+                  fontSize: '12px'
+                }}
+              >
+                🗺️ Ver en Google Maps
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    } else {
+      // If we don't have coordinates but it's a location message, show a generic message
+      return (
+        <div className="location-message">
+          <div
+            style={{
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              backgroundColor: '#f9f9f9'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ fontSize: '24px', marginRight: '8px' }}>📍</div>
+              <div style={{ fontWeight: 'bold', color: '#333' }}>
+                {title || address || 'Ubicación compartida (sin coordenadas)'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  }
+
   // Default rendering for other message types
   try {
     return (

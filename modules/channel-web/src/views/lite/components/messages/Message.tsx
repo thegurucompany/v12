@@ -271,6 +271,32 @@ class Message extends Component<MessageProps> {
     return null
   }
 
+  render_location() {
+    const { payload } = this.props
+    const latitude = payload?.latitude
+    const longitude = payload?.longitude
+    const address = payload?.address
+    const title = payload?.title
+
+    if (latitude !== undefined && longitude !== undefined) {
+      return (
+        <div style={{ padding: '8px' }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 {title || address || 'Ubicación'}</div>
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            <div>Latitud: {latitude}</div>
+            <div>Longitud: {longitude}</div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div style={{ padding: '8px' }}>
+        <div style={{ fontWeight: 'bold' }}>📍 {title || address || 'Ubicación'}</div>
+      </div>
+    )
+  }
+
   render_unsupported() {
     return '*Unsupported message type*'
   }

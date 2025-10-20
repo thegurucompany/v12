@@ -382,6 +382,32 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
     })
   )
 
+  // Toggle waiting status
+  router.post(
+    '/handoffs/:id/toggle-waiting',
+    errorMiddleware(async (req: RequestWithUser, res: Response) => {
+      const handoff = await repository.findHandoff(req.params.botId, req.params.id)
+
+      // Toggle between assigned and waiting
+      const newStatus: HandoffStatus = handoff.status === 'waiting' ? 'assigned' : 'waiting'
+
+      const payload: Pick<IHandoff, 'status'> = {
+        status: newStatus
+      }
+
+      const updated = await repository.updateHandoff(req.params.botId, req.params.id, payload)
+
+      service.sendPayload(req.params.botId, {
+        resource: 'handoff',
+        type: 'update',
+        id: updated.id,
+        payload: updated
+      })
+
+      res.send(updated)
+    })
+  )
+
   // Resolving -> can only occur after being assigned
   // Rejecting -> can only occur if pending or assigned
   router.post(

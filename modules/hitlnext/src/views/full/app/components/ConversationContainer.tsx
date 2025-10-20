@@ -39,6 +39,20 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
     }
   }
 
+  async function handleToggleWaiting() {
+    try {
+      const handoff = await api.toggleWaitingStatus(state.selectedHandoffId)
+      const messageKey =
+        handoff.status === 'waiting' ? 'module.hitlnext.handoff.setWaiting' : 'module.hitlnext.handoff.setAssigned'
+
+      toast.success(lang.tr(messageKey), '', {
+        toasterProps: { position: Position.TOP }
+      })
+    } catch (error) {
+      dispatch({ type: 'setError', payload: error })
+    }
+  }
+
   async function handleResolve() {
     try {
       const handoff = await api.resolveHandoff(state.selectedHandoffId)
@@ -75,7 +89,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
 
   const shouldRenderLiveChat =
     state.currentAgent.online &&
-    selectedHandoff.status === 'assigned' &&
+    (selectedHandoff.status === 'assigned' || selectedHandoff.status === 'waiting') &&
     selectedHandoff.agentId === state.currentAgent.agentId
 
   const liveChatButtons = () =>
@@ -89,6 +103,18 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
             onClick={() => setShowReassignModal(true)}
             text={lang.tr('module.hitlnext.agent.reassignConversation')}
             disabled={!currentAgentHasPermission('write') || !state.currentAgent.online}
+          />
+        )
+      },
+      {
+        content: (
+          <Button
+            className={style.coversationButton}
+            minimal
+            rightIcon={selectedHandoff.status === 'waiting' ? 'play' : 'pause'}
+            onClick={handleToggleWaiting}
+            text={lang.tr('module.hitlnext.handoff.toggleWaiting')}
+            intent={selectedHandoff.status === 'waiting' ? 'success' : 'none'}
           />
         )
       },
@@ -129,6 +155,18 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
             }
             onClick={handleAssign}
             text={lang.tr('module.hitlnext.handoff.assign')}
+          />
+        )
+      },
+      (selectedHandoff.status === 'assigned' || selectedHandoff.status === 'waiting') && {
+        content: (
+          <Button
+            className={style.coversationButton}
+            minimal
+            rightIcon={selectedHandoff.status === 'waiting' ? 'play' : 'pause'}
+            onClick={handleToggleWaiting}
+            text={lang.tr('module.hitlnext.handoff.toggleWaiting')}
+            intent={selectedHandoff.status === 'waiting' ? 'success' : 'none'}
           />
         )
       },

@@ -25,6 +25,7 @@ const HandoffList: FC<Props> = ({ tags, handoffs, loading }) => {
     unassigned: true,
     assignedMe: true,
     assignedOther: false,
+    waiting: false,
     expired: false,
     resolved: false,
     rejected: false,
@@ -34,9 +35,12 @@ const HandoffList: FC<Props> = ({ tags, handoffs, loading }) => {
 
   function filterBy(item: IHandoff): boolean {
     const conditions = {
-      unassigned: item.agentId == null && !['expired', 'rejected', 'resolved'].includes(item.status),
-      assignedMe: item.status === 'assigned' && item.agentId === state.currentAgent?.agentId,
-      assignedOther: item.status === 'assigned' && item.agentId !== state.currentAgent?.agentId,
+      unassigned: item.agentId == null && !['expired', 'rejected', 'resolved', 'waiting'].includes(item.status),
+      assignedMe:
+        (item.status === 'assigned' || item.status === 'waiting') && item.agentId === state.currentAgent?.agentId,
+      assignedOther:
+        (item.status === 'assigned' || item.status === 'waiting') && item.agentId !== state.currentAgent?.agentId,
+      waiting: item.status === 'waiting',
       expired: item.status === 'expired',
       resolved: item.status === 'resolved',
       rejected: item.status === 'rejected'

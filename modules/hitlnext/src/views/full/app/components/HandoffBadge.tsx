@@ -6,7 +6,12 @@ interface Props {
   status: string
 }
 
-const statusIntents = { resolved: Intent.NONE, assigned: Intent.PRIMARY, pending: Intent.WARNING }
+const statusIntents = {
+  resolved: Intent.NONE,
+  assigned: Intent.PRIMARY,
+  pending: Intent.WARNING,
+  waiting: Intent.SUCCESS
+}
 
 const HandoffBadge: FC<Props> = ({ status }) => {
   return <Tag intent={statusIntents[status]}>{lang.tr(`module.hitlnext.handoff.status.${status}`)}</Tag>

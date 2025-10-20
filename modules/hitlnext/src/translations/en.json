@@ -9,6 +9,7 @@
     "unassigned": "Unassigned",
     "assignedMe": "Assigned to Me",
     "assignedOther": "Assigned to Others",
+    "waiting": "On Hold",
     "resolved": "Resolved",
     "rejected": "Rejected",
     "expired": "Expired"
@@ -57,7 +58,8 @@
       "assigned": "assigned",
       "resolved": "resolved",
       "rejected": "rejected",
-      "expired": "expired"
+      "expired": "expired",
+      "waiting": "waiting"
     },
     "assignedToAgent": "You've been assigned to an agent",
     "assignedToYou": "Conversation Handed to You",
@@ -67,7 +69,10 @@
     "resolved": "Handoff {id} successfully resolved",
     "rejected": "Handoff {id} successfully rejected",
     "you": "You",
-    "from": "From {channel}"
+    "from": "From {channel}",
+    "toggleWaiting": "On Hold",
+    "setWaiting": "Conversation marked as on hold",
+    "setAssigned": "Conversation marked as assigned"
   },
   "user": {
     "anonymous": "Anonymous User",

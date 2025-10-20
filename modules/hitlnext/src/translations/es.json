@@ -9,6 +9,7 @@
     "unassigned": "Pendientes",
     "assignedMe": "Asignados a Mi",
     "assignedOther": "Asignados a Otros",
+    "waiting": "En Espera",
     "resolved": "Resuelto",
     "rejected": "Rechazado",
     "expired": "Expirado"
@@ -57,7 +58,8 @@
       "assigned": "assignado",
       "resolved": "resuelto",
       "rejected": "rechazado",
-      "expired": "expirado"
+      "expired": "expirado",
+      "waiting": "en espera"
     },
     "assignedToAgent": "Se le ha asignado un agente.",
     "assignedToYou": "Se le ha asignado la conversación.",
@@ -67,7 +69,10 @@
     "resolved": "La conversación {id} fué resuelta",
     "rejected": "La conversación {id} fué rechazada",
     "you": "Tú",
-    "from": "Desde {channel}"
+    "from": "Desde {channel}",
+    "toggleWaiting": "En Espera",
+    "setWaiting": "Conversación marcada como en espera",
+    "setAssigned": "Conversación marcada como asignada"
   },
   "user": {
     "anonymous": "Usuario Anónimo",

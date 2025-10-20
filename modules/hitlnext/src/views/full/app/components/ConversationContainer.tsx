@@ -223,6 +223,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
         onClose={() => setShowReassignModal(false)}
         handoffId={selectedHandoff?.id}
         currentAgentId={state.currentAgent?.agentId}
+        currentAgent={state.currentAgent}
       />
     </Fragment>
   )

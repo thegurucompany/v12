@@ -575,10 +575,6 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       // Validate request body
       Joi.attempt({ targetAgentId }, ReassignHandoffSchema)
 
-      if (targetAgentId === currentAgentId) {
-        throw new UnprocessableEntityError('Cannot reassign to the same agent')
-      }
-
       const handoff = await repository.findHandoff(botId, id)
 
       if (handoff.status !== 'assigned') {
@@ -589,6 +585,11 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       const currentAgent = await repository.getCurrentAgent(req as BPRequest, botId, currentAgentId)
       const isSupervisor = currentAgent.role === 'supervisor'
       const isOnline = await repository.getAgentOnline(botId, currentAgentId)
+
+      // Only supervisors can reassign to themselves
+      if (targetAgentId === currentAgentId && !isSupervisor) {
+        throw new UnprocessableEntityError('Cannot reassign to the same agent')
+      }
 
       // Only supervisors can reassign conversations that are not theirs
       if (!isSupervisor && handoff.agentId !== currentAgentId) {

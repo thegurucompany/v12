@@ -445,6 +445,17 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
       const handoff = await repository.findHandoff(req.params.botId, req.params.id)
 
+      // Get current agent to check if they are a supervisor
+      const currentAgent = await repository.getCurrentAgent(req as BPRequest, req.params.botId, agentId)
+      const isSupervisor = currentAgent.role === 'supervisor'
+      const isOnline = await repository.getAgentOnline(req.params.botId, agentId)
+
+      // Supervisors can create comments even when offline
+      // Regular agents must be online
+      if (!isSupervisor && !isOnline) {
+        throw new UnprocessableEntityError('You must be online to create comments')
+      }
+
       const payload: Pick<IComment, 'content' | 'uploadUrl' | 'handoffId' | 'threadId' | 'agentId'> = {
         ...req.body,
         handoffId: handoff.id,

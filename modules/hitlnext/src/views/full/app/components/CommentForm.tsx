@@ -14,8 +14,15 @@ const CommentForm: FC<Props> = ({ onSubmit }) => {
   const [content, setContent] = useState('')
 
   function currentAgentHasPermission(operation: PermissionOperation): boolean {
+    const isSupervisor = state.currentAgent?.role === 'supervisor'
+
+    // Supervisors can create comments even when offline
+    const canPerformAction = isSupervisor
+      ? true
+      : state.currentAgent?.online
+
     return (
-      state.currentAgent?.online &&
+      canPerformAction &&
       isOperationAllowed({ user: state.currentAgent, resource: 'module.hitlnext', operation })
     )
   }

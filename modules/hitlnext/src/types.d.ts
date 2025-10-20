@@ -10,6 +10,7 @@ export interface AuthRule {
 export type IAgent = sdk.WorkspaceUserWithAttributes & {
   agentId: string
   online: boolean
+  role: string
   attributes: Partial<{ firstname: string; lastname: string; picture_url: string }>
 }
 

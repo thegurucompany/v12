@@ -560,11 +560,13 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
 
   router.post(
     '/handoffs/:id/reassign',
-    agentOnlineMiddleware,
     errorMiddleware(async (req: HITLBPRequest, res: Response) => {
       const { botId, id } = req.params
       const { targetAgentId } = req.body
-      const currentAgentId = req.agentId!
+
+      // Get current agent ID from token
+      const { email, strategy } = req.tokenUser!
+      const currentAgentId = makeAgentId(strategy, email)
 
       if (!targetAgentId) {
         throw new UnprocessableEntityError('Target agent ID is required')
@@ -583,8 +585,19 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
         throw new UnprocessableEntityError('Only assigned handoffs can be reassigned')
       }
 
-      if (handoff.agentId !== currentAgentId) {
+      // Get current agent to check if they are a supervisor
+      const currentAgent = await repository.getCurrentAgent(req as BPRequest, botId, currentAgentId)
+      const isSupervisor = currentAgent.role === 'supervisor'
+      const isOnline = await repository.getAgentOnline(botId, currentAgentId)
+
+      // Only supervisors can reassign conversations that are not theirs
+      if (!isSupervisor && handoff.agentId !== currentAgentId) {
         throw new UnprocessableEntityError('You can only reassign your own conversations')
+      }
+
+      // Regular agents must be online to reassign
+      if (!isSupervisor && !isOnline) {
+        throw new UnprocessableEntityError('You must be online to reassign conversations')
       }
 
       // Verify target agent exists
@@ -598,7 +611,10 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       try {
         await service.reassignSingleConversation(botId, handoff, currentAgentId, targetAgentId)
 
-        await extendAgentSession(repository, realtime, botId, currentAgentId)
+        // Only extend session if the agent is online
+        if (isOnline) {
+          await extendAgentSession(repository, realtime, botId, currentAgentId)
+        }
 
         res.send({ success: true, message: 'Conversation reassigned successfully' })
       } catch (error) {

@@ -11,9 +11,10 @@ interface Props {
   onClose: () => void
   handoffId: string
   currentAgentId: string
+  currentAgent?: IAgent
 }
 
-const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgentId }) => {
+const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgentId, currentAgent }) => {
   const [agents, setAgents] = useState<IAgent[]>([])
   const [selectedAgentId, setSelectedAgentId] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
@@ -29,8 +30,12 @@ const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgen
     setLoading(true)
     try {
       const allAgents = await api.getAgents()
-      // Filter out current agent (allow both online and offline agents)
-      const availableAgents = allAgents.filter(agent => agent.agentId !== currentAgentId)
+      const isSupervisor = currentAgent?.role === 'supervisor'
+
+      // Supervisors can see all agents (including themselves)
+      // Regular agents cannot see themselves
+      const availableAgents = isSupervisor ? allAgents : allAgents.filter(agent => agent.agentId !== currentAgentId)
+
       setAgents(availableAgents)
 
       // Reset selection
@@ -67,9 +72,12 @@ const ReassignModal: FC<Props> = ({ api, isOpen, onClose, handoffId, currentAgen
     const status = agent.online ? '🟢' : '🔴'
     const statusText = agent.online ? 'online' : 'offline'
 
+    // Show role badge for supervisors
+    const roleText = agent.role === 'supervisor' ? ' [Supervisor]' : ''
+
     return {
       value: agent.agentId,
-      label: `${status} ${agentName} (${statusText})`
+      label: `${status} ${agentName}${roleText} (${statusText})`
     }
   })
 

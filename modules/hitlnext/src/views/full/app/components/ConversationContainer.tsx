@@ -86,6 +86,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
   }
 
   const selectedHandoff = state.handoffs[state.selectedHandoffId]
+  const isSupervisor = state.currentAgent?.role === 'supervisor'
 
   const shouldRenderLiveChat =
     state.currentAgent.online &&
@@ -102,7 +103,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
             rightIcon="refresh"
             onClick={() => setShowReassignModal(true)}
             text={lang.tr('module.hitlnext.agent.reassignConversation')}
-            disabled={!currentAgentHasPermission('write') || !state.currentAgent.online}
+            disabled={!currentAgentHasPermission('write') || (!state.currentAgent.online && !isSupervisor)}
           />
         )
       },
@@ -158,6 +159,20 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
           />
         )
       },
+      // Show reassign button for supervisors even if conversation is not theirs
+      isSupervisor &&
+        (selectedHandoff.status === 'assigned' || selectedHandoff.status === 'waiting') && {
+          content: (
+            <Button
+              className={style.coversationButton}
+              minimal
+              rightIcon="refresh"
+              onClick={() => setShowReassignModal(true)}
+              text={lang.tr('module.hitlnext.agent.reassignConversation')}
+              disabled={!currentAgentHasPermission('write')}
+            />
+          )
+        },
       (selectedHandoff.status === 'assigned' || selectedHandoff.status === 'waiting') && {
         content: (
           <Button
@@ -208,6 +223,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
         onClose={() => setShowReassignModal(false)}
         handoffId={selectedHandoff?.id}
         currentAgentId={state.currentAgent?.agentId}
+        currentAgent={state.currentAgent}
       />
     </Fragment>
   )

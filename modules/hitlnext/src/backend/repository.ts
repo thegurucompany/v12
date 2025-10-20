@@ -333,9 +333,18 @@ export default class Repository {
       }
     })
 
+    // Get workspace user to retrieve the role
+    const workspaceUsers = await this.bp.workspaces.getWorkspaceUsers(req.workspace!, {
+      includeSuperAdmins: true
+    })
+    const workspaceUser = workspaceUsers.find(
+      u => u.email === data.payload.email && u.strategy === data.payload.strategy
+    )
+
     return {
       agentId,
       online: await this.getAgentOnline(botId, agentId),
+      role: workspaceUser?.role || 'agent',
       attributes: data.payload
     } as IAgent
   }

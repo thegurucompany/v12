@@ -9,6 +9,7 @@ export interface FilterType {
   unassigned: boolean
   assignedMe: boolean
   assignedOther: boolean
+  waiting: boolean
   resolved: boolean
   rejected: boolean
   expired: boolean
@@ -59,6 +60,15 @@ const HandoffListHeader: FC<Props> = ({
           checked={filterOptions.assignedOther}
           label={lang.tr('module.hitlnext.filter.assignedOther')}
           onChange={() => setFilterOptions({ ...filterOptions, assignedOther: !filterOptions.assignedOther })}
+        />
+      )
+    },
+    {
+      content: (
+        <Checkbox
+          checked={filterOptions.waiting}
+          label={lang.tr('module.hitlnext.filter.waiting')}
+          onChange={() => setFilterOptions({ ...filterOptions, waiting: !filterOptions.waiting })}
         />
       )
     },

@@ -9,6 +9,7 @@
     "unassigned": "Non-assigné",
     "assignedMe": "Assigné à moi",
     "assignedOther": "Assigné à d'autres",
+    "waiting": "En attente",
     "resolved": "Résolue",
     "rejected": "Rejeté",
     "expired": "Expiré"
@@ -43,7 +44,8 @@
       "assigned": "assignée",
       "resolved": "résolue",
       "rejected": "rejeté",
-      "expired": "expiré"
+      "expired": "expiré",
+      "waiting": "en attente"
     },
     "assignedToAgent": "Vous avez été assigné à un agent",
     "assignedToYou": "La conversation vous a été assigné",

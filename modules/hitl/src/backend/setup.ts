@@ -31,6 +31,45 @@ export default async (bp: SDK, db: Database) => {
       return next()
     }
 
+    // Convert location messages to text for persistence
+    if (event.channel === 'vonage' && event.type === 'location') {
+      try {
+        const latitude = event.payload.latitude
+        const longitude = event.payload.longitude
+        const address = event.payload.address || ''
+        const title = event.payload.title || 'Ubicación'
+
+        // Convert to text message with Google Maps link
+        const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+        let locationText = `📍 ${title}\n`
+        locationText += `Coordenadas: ${latitude}, ${longitude}\n`
+        if (address) {
+          locationText += `Dirección: ${address}\n`
+        }
+        locationText += `Ver en mapa: ${googleMapsUrl}`
+
+        // Modify event to be treated as text
+        ;(event as any).type = 'text'
+        ;(event as any).payload = {
+          type: 'text',
+          text: locationText
+        }
+
+        // Set preview
+        ;(event as any).preview = `📍 ${title}`
+
+        bp.logger.info('Converted Vonage location message to text in HITL:', {
+          latitude,
+          longitude,
+          address,
+          title
+        })
+      } catch (error) {
+        bp.logger.error('Error converting Vonage location to text in HITL:', error)
+        // Continue with normal processing
+      }
+    }
+
     try {
       const session = await db.getOrCreateUserSession(event)
       if (!session) {

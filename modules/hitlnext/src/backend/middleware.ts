@@ -491,6 +491,46 @@ const registerMiddleware = async (bp: typeof sdk, state: StateType) => {
 
   const incomingHandler = async (event: sdk.IO.IncomingEvent, next: sdk.IO.MiddlewareNextCallback) => {
     updateHitlStatus(event)
+
+    // Convert location messages to text for persistence
+    if (event.channel === 'vonage' && event.type === 'location') {
+      try {
+        const latitude = event.payload.latitude
+        const longitude = event.payload.longitude
+        const address = event.payload.address || ''
+        const title = event.payload.title || 'Ubicación'
+
+        // Convert to text message with Google Maps link
+        const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+        let locationText = `📍 ${title}\n`
+        locationText += `Coordenadas: ${latitude}, ${longitude}\n`
+        if (address) {
+          locationText += `Dirección: ${address}\n`
+        }
+        locationText += `Ver en mapa: ${googleMapsUrl}`
+
+        // Modify event to be treated as text
+        ;(event as any).type = 'text'
+        ;(event as any).payload = {
+          type: 'text',
+          text: locationText
+        }
+
+        // Set preview
+        ;(event as any).preview = `📍 ${title}`
+
+        bp.logger.info('Converted Vonage location message to text:', {
+          latitude,
+          longitude,
+          address,
+          title
+        })
+      } catch (error) {
+        bp.logger.error('Error converting Vonage location to text:', error)
+        // Continue with normal processing
+      }
+    }
+
     // Normalize file, image, video and voice messages from Vonage/WhatsApp
     if (
       event.channel === 'vonage' &&

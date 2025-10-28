@@ -448,3 +448,21 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* Estilos para campos clickeables en Datos de Contacto */
+.clickableField {
+  cursor: pointer;
+  color: #0073b7;
+  transition: color 0.2s ease-in-out;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+
+  &:hover {
+    color: #005a9e;
+    text-decoration-style: solid;
+  }
+
+  &:active {
+    color: #004080;
+  }
+}

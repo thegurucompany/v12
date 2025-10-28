@@ -19,12 +19,47 @@ const UserProfile: FC<IUser> = user => {
   // Ensure user.attributes exists and is an object
   const userAttributes = user.attributes && typeof user.attributes === 'object' ? user.attributes : {}
 
+  const handleConversationClick = (searchParam: string) => {
+    const botId = window.BOT_ID || window['BOT_ID']
+    window.location.href = `/studio/${botId}/modules/hitl?searchText=${encodeURIComponent(searchParam)}`
+  }
+
   return (
     <div>
       <div className={style.profileHeader}>
         <UserName user={user} />
         {(userAttributes as any)?.email && <p>{String((userAttributes as any).email)}</p>}
       </div>
+
+      {/* Nueva sección: Datos de Contacto */}
+      <Collapsible
+        opened={true}
+        toggleExpand={() => {}}
+        name="Datos de contacto"
+        ownProps={{ transitionDuration: 10 }}
+      >
+        <table className={style.table}>
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>ID de Conversación</td>
+              <td
+                className={style['clickableField']}
+                onClick={() => handleConversationClick(user.id)}
+                title="Click para ver en HITL"
+              >
+                {user.id}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Collapsible>
+
       <Collapsible
         opened={expanded}
         toggleExpand={() => setExpanded(!expanded)}

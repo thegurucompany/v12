@@ -13,6 +13,7 @@ interface CssExports {
   'bot': string;
   'bpwChatBubble': string;
   'bpwChatBubbleContent': string;
+  'clickableField': string;
   'clientName': string;
   'column': string;
   'commentForm': string;

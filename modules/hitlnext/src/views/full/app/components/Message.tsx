@@ -163,7 +163,8 @@ const renderPayload = (event: IO.Event) => {
 
     // If we have valid coordinates, show them
     if (latitude !== undefined && longitude !== undefined) {
-      const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+      // Use search API format to avoid ? character issues during JSON serialization
+      const googleMapsUrl = 'https://www.google.com/maps/search/' + String(latitude) + ',' + String(longitude)
 
       return (
         <div className="location-message">
@@ -198,7 +199,7 @@ const renderPayload = (event: IO.Event) => {
                   fontSize: '12px'
                 }}
               >
-                🗺️ Ver en Google Maps
+                🗺️ Ver en Google Maps ESTE ES EL QUE SE RENDERIZA
               </a>
             </div>
           </div>

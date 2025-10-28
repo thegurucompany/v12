@@ -279,13 +279,32 @@ class Message extends Component<MessageProps> {
     const title = payload?.title
 
     if (latitude !== undefined && longitude !== undefined) {
+      const googleMapsUrl = `https://www.google.com/maps?q=${encodeURIComponent(`${latitude},${longitude}`)}`
+
       return (
         <div style={{ padding: '8px' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>📍 {title || address || 'Ubicación'}</div>
-          <div style={{ fontSize: '13px', color: '#666' }}>
+          <div style={{ fontSize: '13px', color: '#666', marginBottom: '8px' }}>
             <div>Latitud: {latitude}</div>
             <div>Longitud: {longitude}</div>
           </div>
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              padding: '6px 12px',
+              backgroundColor: '#0066cc',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '4px',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}
+          >
+            🗺️ Ver en Google Maps
+          </a>
         </div>
       )
     }

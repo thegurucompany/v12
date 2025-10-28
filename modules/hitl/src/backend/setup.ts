@@ -39,8 +39,8 @@ export default async (bp: SDK, db: Database) => {
         const address = event.payload.address || ''
         const title = event.payload.title || 'Ubicación'
 
-        // Convert to text message with Google Maps link
-        const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`
+        // Convert to text message with Google Maps link (using /search/ format to avoid ? character)
+        const googleMapsUrl = 'https://www.google.com/maps/search/' + String(latitude) + ',' + String(longitude)
         let locationText = `📍 ${title}\n`
         locationText += `Coordenadas: ${latitude}, ${longitude}\n`
         if (address) {

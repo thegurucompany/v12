@@ -948,6 +948,9 @@ declare module 'botpress/sdk' {
       disabled: boolean
     }
 
+    /** Custom tags for the bot */
+    tags?: string[]
+
     cloud?: CloudConfig
   }
 

@@ -1,4 +1,4 @@
-import { Button, Classes, ControlGroup, Intent, Tooltip } from '@blueprintjs/core'
+import { Button, Classes, ControlGroup, HTMLSelect, Intent, Tooltip } from '@blueprintjs/core'
 import { ModuleUI } from 'botpress/shared'
 import React, { FC } from 'react'
 
@@ -15,9 +15,17 @@ interface Props {
   filterPaused: boolean
   currentSessionId: string
   sessions: HitlSessionOverview[]
+  availableTags: string[]
+  selectedTag: string
+  setSelectedTag: (tag: string) => void
 }
 
 const Sidebar: FC<Props> = props => {
+  const handleTagChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value
+    props.setSelectedTag(value === '' ? undefined : value)
+  }
+
   return (
     <div className="bph-sidebar">
       <div className="bph-sidebar-header">
@@ -34,6 +42,25 @@ const Sidebar: FC<Props> = props => {
               style={{ marginRight: 10 }}
             />
           </Tooltip>
+
+          {props.availableTags && props.availableTags.length > 0 && (
+            <Tooltip content="Filter by tag" className={Classes.FIXED}>
+              <HTMLSelect
+                value={props.selectedTag || ''}
+                onChange={handleTagChange}
+                style={{ marginRight: 10 }}
+                minimal={true}
+                iconProps={{ icon: 'tag', style: { marginRight: 5 } }}
+              >
+                <option value="">All tags</option>
+                {props.availableTags.map(tag => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </HTMLSelect>
+            </Tooltip>
+          )}
 
           <SearchBar
             onChange={props.setFilterSearchText}

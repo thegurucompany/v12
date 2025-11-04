@@ -440,6 +440,51 @@ video {
   padding: 0px !important;
 }
 
+/* Estilos para el selector de tags */
+.bph-sidebar-header .bp3-html-select select,
+.bph-sidebar-header .bp3-html-select select option {
+  color: #ffffff !important;
+  background-color: #2d3b4a !important;
+}
+
+.bph-sidebar-header .bp3-html-select select {
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  font-weight: 500;
+}
+
+.bph-sidebar-header .bp3-html-select select:hover {
+  background-color: #38495b !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.bph-sidebar-header .bp3-html-select select:focus {
+  outline: none !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Asegurar que las opciones del dropdown tengan buen contraste */
+.bph-sidebar-header .bp3-html-select select option {
+  padding: 8px;
+  font-weight: 500;
+}
+
+.bph-sidebar-header .bp3-html-select select option:checked {
+  background-color: #5c7080 !important;
+  color: #ffffff !important;
+}
+
+/* Asegurar que el texto seleccionado sea visible */
+.bph-sidebar-header .bp3-html-select select::selection {
+  background-color: #5c7080 !important;
+  color: #ffffff !important;
+}
+
+.bph-sidebar-header .bp3-html-select select::-moz-selection {
+  background-color: #5c7080 !important;
+  color: #ffffff !important;
+}
+
 .bph-sidebar-users {
   height: calc(100vh - var(--sidebar-header-height) - var(--statusbar-height));
   overflow-y: auto;

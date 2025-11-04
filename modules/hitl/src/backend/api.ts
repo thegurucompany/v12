@@ -11,6 +11,7 @@ export default async (bp: SDK, db: Database) => {
     try {
       const pausedOnly = req.query.pausedOnly === 'true'
       const searchText = req.query.searchText
+      const filterTag = req.query.filterTag
       let sessionIds = null
 
       if (searchText) {
@@ -18,7 +19,7 @@ export default async (bp: SDK, db: Database) => {
         bp.logger.debug(`Search sessions for "${searchText}" returned ${sessionIds.length} results`)
       }
 
-      const result = await db.getAllSessions(pausedOnly, req.params.botId, sessionIds)
+      const result = await db.getAllSessions(pausedOnly, req.params.botId, sessionIds, filterTag)
       res.send(result)
     } catch (error) {
       bp.logger.error('Error in /sessions endpoint:', error)
@@ -102,6 +103,17 @@ export default async (bp: SDK, db: Database) => {
       res.send(config.attributes)
     } catch (err) {
       res.status(400).send(`Can't find attributes: ${err.message}`)
+    }
+  })
+
+  router.get('/config/tags', async (req, res) => {
+    try {
+      const botConfig = await bp.bots.getBotById(req.params.botId)
+      const tags = botConfig?.tags || []
+      res.send(tags)
+    } catch (err) {
+      bp.logger.error('Error fetching bot tags:', err)
+      res.status(500).send({ error: `Can't find tags: ${err.message}` })
     }
   })
 }

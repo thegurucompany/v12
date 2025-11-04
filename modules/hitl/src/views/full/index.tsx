@@ -21,6 +21,8 @@ interface State {
   currentSession: HitlSessionOverview
   filterSearchText: string
   attributesConfig: Attribute[]
+  availableTags: string[]
+  selectedTag: string
 }
 
 export default class HitlModule extends React.Component<{ bp: any }, State> {
@@ -34,7 +36,9 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
     currentSession: null,
     filterPaused: false,
     filterSearchText: undefined,
-    attributesConfig: undefined
+    attributesConfig: undefined,
+    availableTags: [],
+    selectedTag: undefined
   }
 
   async componentDidMount() {
@@ -54,6 +58,7 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
       }
 
       await this.fetchAttributesConfig()
+      await this.fetchAvailableTags()
       await this.refreshSessions()
     } catch (error) {
       console.error('Error initializing HITL module:', error)
@@ -84,6 +89,21 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
       }
     } catch (error) {
       console.error('Error fetching attributes config:', error)
+    }
+  }
+
+  async fetchAvailableTags() {
+    if (!this._isMounted) {
+      return
+    }
+
+    try {
+      const availableTags = await this.api.getTags()
+      if (this._isMounted) {
+        this.setState({ availableTags })
+      }
+    } catch (error) {
+      console.error('Error fetching available tags:', error)
     }
   }
 
@@ -144,7 +164,11 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
     }
 
     try {
-      const sessions = await this.api.findSessions(this.state.filterSearchText, this.state.filterPaused)
+      const sessions = await this.api.findSessions(
+        this.state.filterSearchText,
+        this.state.filterPaused,
+        this.state.selectedTag
+      )
       if (this._isMounted) {
         this.setState({ loading: false, sessions })
       }
@@ -164,6 +188,12 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
   setFilterSearchText = (filterSearchText: string) => {
     if (this._isMounted) {
       this.setState({ filterSearchText }, this.debounceQuerySessions)
+    }
+  }
+
+  setSelectedTag = (selectedTag: string) => {
+    if (this._isMounted) {
+      this.setState({ selectedTag }, this.debounceQuerySessions)
     }
   }
 
@@ -190,6 +220,9 @@ export default class HitlModule extends React.Component<{ bp: any }, State> {
           querySessions={this.querySessions}
           setFilterSearchText={this.setFilterSearchText}
           toggleFilterPaused={this.toggleFilterPaused}
+          availableTags={this.state.availableTags}
+          selectedTag={this.state.selectedTag}
+          setSelectedTag={this.setSelectedTag}
         />
 
         <div className="bph-layout-main">

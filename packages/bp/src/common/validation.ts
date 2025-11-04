@@ -49,6 +49,7 @@ export const BotEditSchema = Joi.object().keys({
       .min(2)
       .max(3)
   ),
+  tags: Joi.array().items(Joi.string()),
   details: {
     website: Joi.string()
       .uri()

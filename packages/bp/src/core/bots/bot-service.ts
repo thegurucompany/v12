@@ -191,7 +191,8 @@ export class BotService {
       'private',
       'defaultLanguage',
       'languages',
-      'locked'
+      'locked',
+      'tags'
     ]) as Partial<BotConfig>
 
     // bot needs to be mounted to perform the language changes

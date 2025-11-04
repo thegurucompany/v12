@@ -326,7 +326,8 @@ export default class HitlDb {
   async getAllSessions(
     onlyPaused: boolean,
     botId: string,
-    sessionIds?: string[]
+    sessionIds?: string[],
+    filterTag?: string
   ): Promise<{ total: number; sessions: HitlSessionOverview[] }> {
     const knex2 = this.knex
 
@@ -349,6 +350,21 @@ export default class HitlDb {
 
     if (sessionIds) {
       query = query.whereIn(`${TABLE_NAME_SESSIONS}.id`, sessionIds)
+    }
+
+    if (filterTag) {
+      if (this.knex.isLite) {
+        query = query.whereRaw(`json_array_length(${TABLE_NAME_SESSIONS}.tags) > 0`)
+        query = query.whereRaw(
+          `EXISTS (
+          SELECT 1 FROM json_each(${TABLE_NAME_SESSIONS}.tags)
+          WHERE json_each.value = ?
+        )`,
+          [filterTag]
+        )
+      } else {
+        query = query.whereRaw(`${TABLE_NAME_SESSIONS}.tags::jsonb @> ?::jsonb`, [JSON.stringify([filterTag])])
+      }
     }
 
     return query

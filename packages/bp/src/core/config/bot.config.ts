@@ -27,6 +27,8 @@ export interface BotConfig {
   qna: {
     disabled: boolean
   }
+  /** Custom tags for the bot */
+  tags?: string[]
 }
 
 export interface BotPipelineStatus {

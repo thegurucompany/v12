@@ -17,6 +17,17 @@ export type IAgent = sdk.WorkspaceUserWithAttributes & {
 export type AgentWithPermissions = IAgent & UserProfile
 
 export type HandoffStatus = 'pending' | 'assigned' | 'resolved' | 'expired' | 'rejected' | 'waiting'
+
+export interface IAssignmentHistory {
+  id: string
+  handoffId: string
+  botId: string
+  fromAgentId?: string
+  toAgentId: string
+  actionType: 'assigned' | 'reassigned'
+  createdAt: Date
+}
+
 export interface IHandoff {
   id: string
   botId: string
@@ -29,6 +40,7 @@ export interface IHandoff {
   userConversation: IEvent
   comments: IComment[]
   tags: string[]
+  assignmentHistory?: IAssignmentHistory[]
   user: IUser
   assignedAt?: Date
   resolvedAt?: Date

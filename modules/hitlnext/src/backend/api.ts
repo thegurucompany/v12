@@ -279,6 +279,17 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
       handoff = await repository.updateHandoff(req.params.botId, req.params.id, payload)
       state.cacheHandoff(req.params.botId, agentThreadId, handoff)
 
+      // Register assignment in history
+      await repository.createAssignmentHistory({
+        id: require('uuid').v4(),
+        handoffId: handoff.id,
+        botId: req.params.botId,
+        fromAgentId: undefined,
+        toAgentId: agentId,
+        actionType: 'assigned',
+        createdAt: new Date()
+      })
+
       await extendAgentSession(repository, realtime, req.params.botId, agentId)
 
       const configs: Config = await bp.config.getModuleConfigForBot(MODULE_NAME, req.params.botId)

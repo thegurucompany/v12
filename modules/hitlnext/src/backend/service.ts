@@ -134,6 +134,17 @@ class Service {
       const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
       this.state.cacheHandoff(botId, agentThreadId, updatedHandoff)
 
+      // Register auto-assignment in history
+      await this.repository.createAssignmentHistory({
+        id: require('uuid').v4(),
+        handoffId: handoff.id,
+        botId,
+        fromAgentId: undefined,
+        toAgentId: availableAgent.agentId,
+        actionType: 'assigned',
+        createdAt: new Date()
+      })
+
       // Send assignment message to user
       const config: Config = await this.bp.config.getModuleConfigForBot(MODULE_NAME, botId)
       if (config.assignMessage) {
@@ -326,6 +337,17 @@ class Service {
 
         // Update handoff with new assignment
         const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+
+        // Register automatic reassignment in history
+        await this.repository.createAssignmentHistory({
+          id: require('uuid').v4(),
+          handoffId: handoff.id,
+          botId,
+          fromAgentId: excludeAgentId,
+          toAgentId: availableAgent.agentId,
+          actionType: 'reassigned',
+          createdAt: new Date()
+        })
 
         this.bp.logger.forBot(botId).info(`Updated handoff ${handoff.id} in database`, {
           status: updatedHandoff.status,
@@ -671,6 +693,17 @@ class Service {
 
       // Update handoff with new assignment
       const updatedHandoff = await this.repository.updateHandoff(botId, handoff.id, payload)
+
+      // Register reassignment in history
+      await this.repository.createAssignmentHistory({
+        id: require('uuid').v4(),
+        handoffId: handoff.id,
+        botId,
+        fromAgentId: currentAgentId,
+        toAgentId: targetAgentId,
+        actionType: 'reassigned',
+        createdAt: new Date()
+      })
 
       // Cache the handoff for both threads
       this.state.cacheHandoff(botId, updatedHandoff.userThreadId, updatedHandoff)

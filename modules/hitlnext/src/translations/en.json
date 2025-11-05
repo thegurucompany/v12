@@ -127,6 +127,13 @@
     "placeholder": "Add or remove labels",
     "noResults": "No results."
   },
+  "assignmentHistory": {
+    "heading": "Assignment History",
+    "empty": "No assignment history",
+    "assigned": "Assigned to {agentName}",
+    "reassigned": "{fromAgent} reassigned to {toAgent}",
+    "automatic": "Automatic reassignment to {toAgent}"
+  },
   "composer": {
     "messageSent": "Message sent",
     "imageSent": "Image sent",

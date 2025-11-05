@@ -7,9 +7,9 @@ import _ from 'lodash'
 import LRUCache from 'lru-cache'
 import ms from 'ms'
 
-import { COMMENT_TABLE_NAME, HANDOFF_TABLE_NAME, MODULE_NAME } from '../constants'
+import { ASSIGNMENT_HISTORY_TABLE_NAME, COMMENT_TABLE_NAME, HANDOFF_TABLE_NAME, MODULE_NAME } from '../constants'
 
-import { IAgent, IComment, IEvent, IHandoff } from './../types'
+import { IAgent, IAssignmentHistory, IComment, IEvent, IHandoff } from './../types'
 import { makeAgentId } from './helpers'
 
 const debug = DEBUG(MODULE_NAME)
@@ -27,6 +27,7 @@ export interface UserMapping {
 const commentPrefix = 'comment'
 const handoffPrefix = 'handoff'
 const userPrefix = 'user'
+const assignmentHistoryPrefix = 'assignmentHistory'
 
 const handoffColumns = [
   'id',
@@ -46,11 +47,15 @@ const handoffColumns = [
 
 const commentColumns = ['id', 'agentId', 'handoffId', 'threadId', 'content', 'uploadUrl', 'createdAt', 'updatedAt']
 
+const assignmentHistoryColumns = ['id', 'handoffId', 'botId', 'fromAgentId', 'toAgentId', 'actionType', 'createdAt']
+
 const eventColumns = ['id', 'direction', 'botId', 'channel', 'success', 'createdOn', 'threadId', 'type', 'event']
 
 const userColumns = ['id', 'attributes']
 
 const commentColumnsPrefixed = commentColumns.map(s => commentPrefix.concat(':', s))
+
+const assignmentHistoryColumnsPrefixed = assignmentHistoryColumns.map(s => assignmentHistoryPrefix.concat(':', s))
 
 const userColumnsPrefixed = userColumns.map(s => userPrefix.concat(':', s))
 
@@ -118,7 +123,8 @@ export default class Repository {
       (memo, row) => {
         memo[row.id] = memo[row.id] || {
           ..._.pick(row, handoffColumns),
-          comments: {}
+          comments: {},
+          assignmentHistory: {}
         }
 
         if (row['tags']) {
@@ -128,6 +134,11 @@ export default class Repository {
         if (row[`${commentPrefix}:id`]) {
           const record = _.mapKeys(_.pick(row, commentColumnsPrefixed), (v, k) => _.split(k, ':').pop())
           memo[row.id].comments[row[`${commentPrefix}:id`]] = record
+        }
+
+        if (row[`${assignmentHistoryPrefix}:id`]) {
+          const record = _.mapKeys(_.pick(row, assignmentHistoryColumnsPrefixed), (v, k) => _.split(k, ':').pop())
+          memo[row.id].assignmentHistory[row[`${assignmentHistoryPrefix}:id`]] = record
         }
 
         if (row[`${userPrefix}:id`]) {
@@ -165,7 +176,8 @@ export default class Repository {
 
     return _.values(records).map((record: IHandoff) => ({
       ...record,
-      comments: _.values(record.comments)
+      comments: _.values(record.comments),
+      assignmentHistory: _.values(record.assignmentHistory)
     }))
   }
 
@@ -229,15 +241,26 @@ export default class Repository {
         `${COMMENT_TABLE_NAME}.content as ${commentPrefix}:content`,
         `${COMMENT_TABLE_NAME}.updatedAt as ${commentPrefix}:updatedAt`,
         `${COMMENT_TABLE_NAME}.createdAt as ${commentPrefix}:createdAt`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.id as ${assignmentHistoryPrefix}:id`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.handoffId as ${assignmentHistoryPrefix}:handoffId`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.botId as ${assignmentHistoryPrefix}:botId`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.fromAgentId as ${assignmentHistoryPrefix}:fromAgentId`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.toAgentId as ${assignmentHistoryPrefix}:toAgentId`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.actionType as ${assignmentHistoryPrefix}:actionType`,
+        `${ASSIGNMENT_HISTORY_TABLE_NAME}.createdAt as ${assignmentHistoryPrefix}:createdAt`,
         `srv_channel_users.user_id as ${userPrefix}:id`,
         `srv_channel_users.attributes as ${userPrefix}:attributes`
       )
       .leftJoin(COMMENT_TABLE_NAME, `${HANDOFF_TABLE_NAME}.userThreadId`, `${COMMENT_TABLE_NAME}.threadId`)
+      .leftJoin(ASSIGNMENT_HISTORY_TABLE_NAME, `${HANDOFF_TABLE_NAME}.id`, `${ASSIGNMENT_HISTORY_TABLE_NAME}.handoffId`)
       .leftJoin('srv_channel_users', `${HANDOFF_TABLE_NAME}.userId`, 'srv_channel_users.user_id')
       .where(`${HANDOFF_TABLE_NAME}.botId`, botId)
       .modify(this.applyLimit, conditions)
       .modify(this.applyOrderBy, conditions)
-      .orderBy([{ column: `${COMMENT_TABLE_NAME}.createdAt`, order: 'asc' }])
+      .orderBy([
+        { column: `${COMMENT_TABLE_NAME}.createdAt`, order: 'asc' },
+        { column: `${ASSIGNMENT_HISTORY_TABLE_NAME}.createdAt`, order: 'asc' }
+      ])
   }
 
   // hitlnext:online:workspaceId:agentId
@@ -759,6 +782,35 @@ export default class Repository {
     )
 
     return this.bp.database.insertAndRetrieve<IComment>(COMMENT_TABLE_NAME, payload, commentColumns)
+  }
+
+  createAssignmentHistory = (attributes: Partial<IAssignmentHistory>) => {
+    const now = new Date()
+    const payload = this.serializeDate(
+      {
+        ...attributes,
+        createdAt: now
+      },
+      ['createdAt']
+    )
+
+    return this.bp.database.insertAndRetrieve<IAssignmentHistory>(ASSIGNMENT_HISTORY_TABLE_NAME, payload, [
+      'id',
+      'handoffId',
+      'botId',
+      'fromAgentId',
+      'toAgentId',
+      'actionType',
+      'createdAt'
+    ])
+  }
+
+  getAssignmentHistory = async (handoffId: string): Promise<IAssignmentHistory[]> => {
+    return this.bp
+      .database<IAssignmentHistory>(ASSIGNMENT_HISTORY_TABLE_NAME)
+      .where({ handoffId })
+      .orderBy('createdAt', 'asc')
+      .select('*')
   }
 
   listMessages = (botId: string, threadId: string, conditions: CollectionConditions = {}) => {

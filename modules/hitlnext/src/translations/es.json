@@ -127,6 +127,13 @@
     "placeholder": "Agregar o quitar etiquetas",
     "noResults": "No hubo resultados."
   },
+  "assignmentHistory": {
+    "heading": "Historial de Asignaciones",
+    "empty": "No hay historial de asignaciones",
+    "assigned": "Asignado a {agentName}",
+    "reassigned": "{fromAgent} reasignó a {toAgent}",
+    "automatic": "Reasignación automática a {toAgent}"
+  },
   "composer": {
     "messageSent": "Mensaje enviado",
     "imageSent": "Imagen enviada",

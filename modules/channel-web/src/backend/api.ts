@@ -469,24 +469,10 @@ export default async (bp: typeof sdk, db: Database) => {
 
       const displayableMessages = messages.filter(({ payload }) => payload.type !== 'visit' && notEmptyPayload(payload))
 
-      // LOG 1: Mensajes originales con timestamps INCORRECTOS de messaging service
-      bp.logger.info('=== DIAGNÓSTICO TIMESTAMPS - Mensajes originales ===', {
-        conversationId,
-        totalMessages: displayableMessages.length,
-        primerosTreesMensajes: displayableMessages.slice(0, 3).map(msg => ({
-          id: msg.id,
-          text: msg.payload?.text,
-          sentOnOriginal: msg.sentOn,
-          sentOnType: typeof msg.sentOn,
-          sentOnISO: msg.sentOn instanceof Date ? msg.sentOn.toISOString() : msg.sentOn
-        }))
-      })
-
-      // FIX: Obtener timestamps correctos desde hitl_messages
-      // IMPORTANTE: Usamos TEXTO porque messageId del evento != messageId del messaging service
+      // Obtener timestamps correctos desde hitl_messages
       if (displayableMessages.length > 0) {
         try {
-          // Extraer textos y normalizar (trim para eliminar \n)
+          // Extraer textos y normalizar
           const messageTexts = displayableMessages
             .map(msg => {
               const text = msg.payload?.text
@@ -494,33 +480,15 @@ export default async (bp: typeof sdk, db: Database) => {
             })
             .filter(text => text !== null && text !== '')
 
-          // LOG 2: Textos a buscar
-          bp.logger.info('=== DIAGNÓSTICO TIMESTAMPS - Textos a buscar ===', {
-            totalTextos: messageTexts.length,
-            primerosCincoTextos: messageTexts.slice(0, 5).map(t => t.substring(0, 40))
-          })
-
           if (messageTexts.length > 0) {
-            // Consultar hitl_messages por texto (sin filtrar por conversación porque no todos los mensajes se guardan)
+            // Consultar hitl_messages por texto
             const hitlTimestamps = await bp.database
               .select('text', 'ts')
               .from('hitl_messages')
               .whereIn('text', messageTexts)
               .orderBy('ts', 'desc')
 
-            // LOG 3: Resultados de la consulta
-            bp.logger.info('=== DIAGNÓSTICO TIMESTAMPS - Query por texto ejecutado ===', {
-              messageTextsLength: messageTexts.length,
-              rawResultsLength: hitlTimestamps.length,
-              primerosResultados: hitlTimestamps.slice(0, 5).map(r => ({
-                text: r.text?.substring(0, 40),
-                ts: r.ts,
-                tsType: typeof r.ts,
-                tsISO: r.ts instanceof Date ? r.ts.toISOString() : r.ts
-              }))
-            })
-
-            // Crear mapa texto -> timestamp más reciente de hitl_messages
+            // Crear mapa texto -> timestamp más reciente
             const textToTimestampMap = new Map()
             hitlTimestamps.forEach(row => {
               // Solo guardar el más reciente (ya está ordenado desc)
@@ -529,96 +497,37 @@ export default async (bp: typeof sdk, db: Database) => {
               }
             })
 
-            // Detectar textos duplicados EN ESTA CONVERSACIÓN (aparecen >1 vez en displayableMessages)
-            const textCountInConversation = new Map()
-            displayableMessages.forEach((msg: any) => {
+            // Detectar textos duplicados en esta conversación
+            const textFirstOccurrence = new Map()
+            displayableMessages.forEach((msg: any, index) => {
               const text = msg.payload?.text
               const normalizedText = text ? String(text).trim() : null
-              if (normalizedText) {
-                textCountInConversation.set(normalizedText, (textCountInConversation.get(normalizedText) || 0) + 1)
+              if (normalizedText && !textFirstOccurrence.has(normalizedText)) {
+                textFirstOccurrence.set(normalizedText, index)
               }
             })
 
-            const duplicatedTexts = new Set()
-            textCountInConversation.forEach((count, text) => {
-              if (count > 1) {
-                duplicatedTexts.add(text)
-              }
-            })
-
-            // LOG 4: Mapa creado y duplicados detectados
-            bp.logger.info('=== DIAGNÓSTICO TIMESTAMPS - Mapa por texto creado ===', {
-              tamañoMapa: textToTimestampMap.size,
-              textosDuplicados: duplicatedTexts.size,
-              ejemplosDuplicados: Array.from(duplicatedTexts)
-                .slice(0, 3)
-                .map(t => String(t).substring(0, 40))
-            })
-
-            // Asignar timestamps solo a mensajes únicos, marcar duplicados para ocultar fecha
+            // Asignar timestamps a la primera ocurrencia, ocultar fecha en duplicados
             displayableMessages.forEach((msg: any, index) => {
               const text = msg.payload?.text
               const normalizedText = text ? String(text).trim() : null
 
               if (normalizedText && textToTimestampMap.has(normalizedText)) {
                 const timestamp = textToTimestampMap.get(normalizedText)
-                const isDuplicated = duplicatedTexts.has(normalizedText)
+                const isFirstOccurrence = textFirstOccurrence.get(normalizedText) === index
 
-                if (!isDuplicated) {
-                  // Solo asignar timestamp a mensajes únicos
+                if (isFirstOccurrence) {
+                  // Solo asignar timestamp a la primera ocurrencia
                   msg.hitlTimestamp = timestamp
                 } else {
-                  // Marcar duplicados para ocultar la fecha en el frontend
+                  // Ocultar fecha en duplicados (ocurrencias posteriores)
                   msg.hideTimestamp = true
                 }
               }
             })
-
-            // LOG: Mostrar correcciones
-            displayableMessages.forEach((msg: any, index) => {
-              if (index < 5) {
-                const text = msg.payload?.text
-                const normalizedText = text ? String(text).trim() : null
-
-                if (msg.hitlTimestamp) {
-                  bp.logger.info(`=== Mensaje ${index + 1} - Timestamp corregido ===`, {
-                    messageId: msg.id,
-                    text: normalizedText?.substring(0, 40),
-                    hitlTimestamp: msg.hitlTimestamp,
-                    hideTimestamp: !!msg.hideTimestamp
-                  })
-                } else if (msg.hideTimestamp) {
-                  bp.logger.info(`=== Mensaje ${index + 1} - Duplicado (ocultar fecha) ===`, {
-                    messageId: msg.id,
-                    text: normalizedText?.substring(0, 40)
-                  })
-                }
-              }
-            })
-
-            // LOG 7: Estadísticas finales
-            const messagesWithHitlTimestamp = displayableMessages.filter((msg: any) => !!msg.hitlTimestamp)
-            bp.logger.info('=== DIAGNÓSTICO TIMESTAMPS - Mensajes finales (por texto) ===', {
-              correctedCount: messagesWithHitlTimestamp.length,
-              totalMessages: displayableMessages.length,
-              porcentajeCorregido: `${((messagesWithHitlTimestamp.length / displayableMessages.length) * 100).toFixed(
-                1
-              )}%`,
-              primerosCincoMensajesFinales: displayableMessages.slice(0, 5).map((msg: any) => ({
-                id: msg.id,
-                text: msg.payload?.text?.substring(0, 40),
-                sentOnOriginal: msg.sentOn,
-                sentOnISO: msg.sentOn instanceof Date ? msg.sentOn.toISOString() : msg.sentOn,
-                hitlTimestamp: msg.hitlTimestamp,
-                hitlTimestampISO:
-                  msg.hitlTimestamp instanceof Date ? msg.hitlTimestamp.toISOString() : msg.hitlTimestamp,
-                tieneHitlTimestamp: !!msg.hitlTimestamp
-              }))
-            })
           }
         } catch (error) {
-          bp.logger.error('Error al corregir timestamps desde hitl_messages por texto', error)
-          // Continuar sin timestamps corregidos en caso de error
+          bp.logger.error('Error al obtener timestamps desde hitl_messages', error)
         }
       }
 

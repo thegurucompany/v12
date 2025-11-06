@@ -395,7 +395,14 @@ class Message extends Component<MessageProps> {
       return null
     }
 
-    const timestamp = new Date(this.props.sentOn)
+    // No mostrar timestamp si está marcado como hideTimestamp (mensajes duplicados)
+    if ((this.props as any).hideTimestamp) {
+      return null
+    }
+
+    // Usar hitlTimestamp si está disponible, sino usar sentOn
+    const timestampToUse = (this.props as any).hitlTimestamp || this.props.sentOn
+    const timestamp = new Date(timestampToUse)
     const formattedDate = this.props.store.intl.formatDate(timestamp, {
       year: 'numeric',
       month: '2-digit',

@@ -469,6 +469,68 @@ export default async (bp: typeof sdk, db: Database) => {
 
       const displayableMessages = messages.filter(({ payload }) => payload.type !== 'visit' && notEmptyPayload(payload))
 
+      // Obtener timestamps correctos desde hitl_messages
+      if (displayableMessages.length > 0) {
+        try {
+          // Extraer textos y normalizar
+          const messageTexts = displayableMessages
+            .map(msg => {
+              const text = msg.payload?.text
+              return text ? String(text).trim() : null
+            })
+            .filter(text => text !== null && text !== '')
+
+          if (messageTexts.length > 0) {
+            // Consultar hitl_messages por texto
+            const hitlTimestamps = await bp.database
+              .select('text', 'ts')
+              .from('hitl_messages')
+              .whereIn('text', messageTexts)
+              .orderBy('ts', 'desc')
+
+            // Crear mapa texto -> timestamp más reciente
+            const textToTimestampMap = new Map()
+            hitlTimestamps.forEach(row => {
+              // Solo guardar el más reciente (ya está ordenado desc)
+              if (!textToTimestampMap.has(row.text)) {
+                textToTimestampMap.set(row.text, row.ts)
+              }
+            })
+
+            // Detectar textos duplicados en esta conversación
+            const textFirstOccurrence = new Map()
+            displayableMessages.forEach((msg: any, index) => {
+              const text = msg.payload?.text
+              const normalizedText = text ? String(text).trim() : null
+              if (normalizedText && !textFirstOccurrence.has(normalizedText)) {
+                textFirstOccurrence.set(normalizedText, index)
+              }
+            })
+
+            // Asignar timestamps a la primera ocurrencia, ocultar fecha en duplicados
+            displayableMessages.forEach((msg: any, index) => {
+              const text = msg.payload?.text
+              const normalizedText = text ? String(text).trim() : null
+
+              if (normalizedText && textToTimestampMap.has(normalizedText)) {
+                const timestamp = textToTimestampMap.get(normalizedText)
+                const isFirstOccurrence = textFirstOccurrence.get(normalizedText) === index
+
+                if (isFirstOccurrence) {
+                  // Solo asignar timestamp a la primera ocurrencia
+                  msg.hitlTimestamp = timestamp
+                } else {
+                  // Ocultar fecha en duplicados (ocurrencias posteriores)
+                  msg.hideTimestamp = true
+                }
+              }
+            })
+          }
+        } catch (error) {
+          bp.logger.error('Error al obtener timestamps desde hitl_messages', error)
+        }
+      }
+
       return res.send({ ...conversation, messages: displayableMessages })
     })
   )

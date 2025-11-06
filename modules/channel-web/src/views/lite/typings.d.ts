@@ -47,6 +47,8 @@ export namespace Renderer {
     isBotMessage?: boolean
     isLastMessage?: boolean
     sentOn?: Date
+    hitlTimestamp?: Date // Timestamp real desde hitl_messages
+    hideTimestamp?: boolean // Ocultar timestamp en mensajes duplicados
     inlineFeedback?: any
 
     onSendData?: (data: any) => Promise<void>
@@ -299,6 +301,7 @@ export interface Message {
   conversationId: uuid
   authorId: uuid | undefined
   sentOn: Date
+  hitlTimestamp?: Date // Timestamp real desde hitl_messages (cuando está disponible)
   payload: any
   // The typing delay in ms
   timeInMs: number

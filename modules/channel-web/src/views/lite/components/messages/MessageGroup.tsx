@@ -122,6 +122,8 @@ class MessageGroup extends React.Component<Props> {
                   isBotMessage={!message.authorId}
                   payload={payload}
                   sentOn={message.sentOn}
+                  hitlTimestamp={(message as any).hitlTimestamp}
+                  hideTimestamp={(message as any).hideTimestamp}
                   onSendData={this.props.onSendData}
                   onFileUpload={this.props.onFileUpload}
                   bp={this.props.bp}

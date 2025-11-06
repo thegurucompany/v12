@@ -395,7 +395,9 @@ class Message extends Component<MessageProps> {
       return null
     }
 
-    const timestamp = new Date(this.props.sentOn)
+    // Usar hitlTimestamp si está disponible, sino usar sentOn
+    const timestampToUse = (this.props as any).hitlTimestamp || this.props.sentOn
+    const timestamp = new Date(timestampToUse)
     const formattedDate = this.props.store.intl.formatDate(timestamp, {
       year: 'numeric',
       month: '2-digit',

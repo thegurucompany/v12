@@ -256,7 +256,8 @@ export default class HitlDb {
         text,
         source,
         direction,
-        ts: new Date()
+        ts: new Date(),
+        messageId: event.messageId || null // Usar messageId del evento (UUID del mensaje en messaging server)
       }
 
       return Bluebird.join(

@@ -38,6 +38,15 @@ export function castHandoff(item: IHandoff) {
 export function castComment(item: IComment) {
   return castDate(item, ['createdAt', 'updatedAt'])
 }
+export interface IMacro {
+  id: number
+  botId: string
+  name: string
+  content: string
+  created_at: Date
+  updated_at: Date
+}
+
 export interface HitlClient {
   getConfig: () => Promise<Config>
   setOnline: (online: boolean) => Promise<{ online: boolean }>
@@ -58,6 +67,7 @@ export interface HitlClient {
   ) => Promise<{ uploadUrl: string }>
   reassignAllConversations: () => Promise<{ reassigned: number; errors: number }>
   reassignConversation: (handoffId: string, targetAgentId: string) => Promise<{ success: boolean; message: string }>
+  getMacros: () => Promise<IMacro[]>
 }
 
 export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
@@ -149,6 +159,12 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
     },
     reassignAllConversations: async () => bp.axios.post('/agents/me/reassign-all', {}, config).then(res => res.data),
     reassignConversation: async (handoffId, targetAgentId) =>
-      bp.axios.post(`/handoffs/${handoffId}/reassign`, { targetAgentId }, config).then(res => res.data)
+      bp.axios.post(`/handoffs/${handoffId}/reassign`, { targetAgentId }, config).then(res => res.data),
+    getMacros: async () =>
+      bp.axios
+        .get('/macros', {
+          baseURL: bp.axios.defaults.baseURL.concat('/mod/builtin')
+        })
+        .then(res => res.data)
   }
 }

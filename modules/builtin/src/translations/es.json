@@ -1,6 +1,17 @@
 {
   "actionButton": "Botón de Acción",
-  "fullName": "Habilidades básicas",
+  "fullName": "Macros",
+  "macros": {
+    "title": "Macros (Respuestas Rápidas)",
+    "newMacro": "Nueva Macro",
+    "createSuccess": "Macro creada exitosamente",
+    "updateSuccess": "Macro actualizada exitosamente",
+    "deleteSuccess": "Macro eliminada exitosamente",
+    "saveError": "Error al guardar la macro",
+    "deleteError": "Error al eliminar la macro",
+    "errorLoading": "Error al cargar las macros",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar esta macro?"
+  },
   "types": {
     "permissionDenied": "No tiene permiso para cargar archivos para este bot. Habla con el dueño de tu equipo.",
     "uploadFileChoice": "O sube una imagen",

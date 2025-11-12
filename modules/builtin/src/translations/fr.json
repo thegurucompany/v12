@@ -1,6 +1,17 @@
 {
-  "fullName": "Intégré",
+  "fullName": "Macros",
   "actionButton": "Bouton d'action",
+  "macros": {
+    "title": "Macros (Réponses Rapides)",
+    "newMacro": "Nouvelle Macro",
+    "createSuccess": "Macro créée avec succès",
+    "updateSuccess": "Macro mise à jour avec succès",
+    "deleteSuccess": "Macro supprimée avec succès",
+    "saveError": "Erreur lors de l'enregistrement de la macro",
+    "deleteError": "Erreur lors de la suppression de la macro",
+    "errorLoading": "Erreur lors du chargement des macros",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer cette macro?"
+  },
   "types": {
     "permissionDenied": "Vous n'avez pas les permissions pour télécharger un fichier pour ce bot. Contactez votre chef d'équipe.",
     "uploadFileChoice": "Ou téléchargez un fichier",

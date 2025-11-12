@@ -9,6 +9,11 @@ interface CssExports {
   'handoffAssigned': string;
   'imagePreview': string;
   'inputRow': string;
+  'macroItem': string;
+  'macrosButton': string;
+  'macrosListContainer': string;
+  'macrosMenu': string;
+  'macrosSearch': string;
   'progressBar': string;
   'progressContainer': string;
   'progressText': string;

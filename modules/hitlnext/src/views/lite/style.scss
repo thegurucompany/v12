@@ -213,3 +213,85 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* Estilos para el botón y popover de macros */
+.macrosButton {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  min-width: 30px !important;
+  padding: 0 !important;
+  height: 30px !important;
+  margin-right: var(--spacing-small) !important;
+  flex-shrink: 0 !important;
+
+  &:not([disabled]) {
+    cursor: pointer !important;
+  }
+
+  path {
+    fill: var(--shark) !important;
+  }
+
+  &:hover:not([disabled]) {
+    path {
+      fill: var(--ocean) !important;
+    }
+  }
+
+  &[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+}
+
+.macrosMenu {
+  min-width: 300px !important;
+  max-width: 400px !important;
+  max-height: 400px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.macrosSearch {
+  padding: var(--spacing-medium) !important;
+  border-bottom: 1px solid var(--light-gray) !important;
+  background: #fff !important;
+}
+
+.macrosListContainer {
+  max-height: 320px !important;
+  overflow-y: auto !important;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+.macroItem {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+
+  :global(.bp3-menu-item-label) {
+    font-size: 11px !important;
+    color: #999 !important;
+    margin-top: 2px !important;
+    font-style: italic !important;
+  }
+}

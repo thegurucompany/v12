@@ -138,5 +138,11 @@
     "messageSent": "Mensaje enviado",
     "imageSent": "Imagen enviada",
     "fileSent": "Archivo enviado"
+  },
+  "macros": {
+    "button": "Macros",
+    "searchPlaceholder": "Buscar macro...",
+    "noMacros": "No hay macros disponibles",
+    "errorLoading": "Error al cargar las macros"
   }
 }

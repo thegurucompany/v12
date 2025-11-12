@@ -103,5 +103,11 @@
     "empty": "Les étiquettes ne sont pas activées pour ce bot.",
     "placeholder": "Ajoutez ou suprimmez des étiquettes",
     "noResults": "Aucun résultat."
+  },
+  "macros": {
+    "button": "Macros",
+    "searchPlaceholder": "Rechercher une macro...",
+    "noMacros": "Aucune macro disponible",
+    "errorLoading": "Erreur lors du chargement des macros"
   }
 }

@@ -1,6 +1,17 @@
 {
   "actionButton": "Action Button",
-  "fullName": "Basic Skills",
+  "fullName": "Macros",
+  "macros": {
+    "title": "Macros (Quick Replies)",
+    "newMacro": "New Macro",
+    "createSuccess": "Macro created successfully",
+    "updateSuccess": "Macro updated successfully",
+    "deleteSuccess": "Macro deleted successfully",
+    "saveError": "Error saving macro",
+    "deleteError": "Error deleting macro",
+    "errorLoading": "Error loading macros",
+    "confirmDelete": "Are you sure you want to delete this macro?"
+  },
   "types": {
     "permissionDenied": "You don't have permission to upload files for this bot. Talk to your team owner.",
     "uploadFileChoice": "Or upload a file",

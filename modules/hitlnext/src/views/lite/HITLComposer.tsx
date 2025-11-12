@@ -1,10 +1,10 @@
-import { Button } from '@blueprintjs/core'
+import { Button, Menu, MenuItem, Popover, Position, InputGroup } from '@blueprintjs/core'
 import ReactTextareaAutocomplete from '@webscopeio/react-textarea-autocomplete'
 import cx from 'classnames'
 import React, { FC, useEffect, useState } from 'react'
 
 import { IAutoComplete, IShortcut } from '../../config'
-import { makeClient } from '../client'
+import { makeClient, IMacro } from '../client'
 import lang from '../lang'
 
 import FileUpload from './FileUpload'
@@ -110,6 +110,10 @@ const HITLComposer: FC<ComposerProps> = props => {
   const [uploadedFile, setUploadedFile] = useState<{ url: string; name: string; type: string } | null>(null)
   const [currentAgent, setCurrentAgent] = useState<any>(null)
   const [activeHandoff, setActiveHandoff] = useState<any>(null)
+  const [macros, setMacros] = useState<IMacro[]>([])
+  const [filteredMacros, setFilteredMacros] = useState<IMacro[]>([])
+  const [macroSearch, setMacroSearch] = useState('')
+  const [isMacrosPopoverOpen, setIsMacrosPopoverOpen] = useState(false)
 
   const hitlClient = makeClient(props.store.bp)
 
@@ -148,6 +152,19 @@ const HITLComposer: FC<ComposerProps> = props => {
     }
   }
 
+  const fetchMacros = async () => {
+    try {
+      const macrosData = await hitlClient.getMacros()
+      setMacros(macrosData)
+      setFilteredMacros(macrosData)
+    } catch (error) {
+      console.error('Error fetching macros:', error)
+      // Set empty array on error so button is not disabled due to undefined
+      setMacros([])
+      setFilteredMacros([])
+    }
+  }
+
   function hasPermission(): boolean {
     return currentAgent?.online === true
   }
@@ -159,6 +176,8 @@ const HITLComposer: FC<ComposerProps> = props => {
     fetchCurrentAgent()
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     fetchActiveHandoff()
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    fetchMacros()
   }, [])
 
   const sendHitlComment = async (content: string, uploadUrl?: string): Promise<void> => {
@@ -277,9 +296,40 @@ const HITLComposer: FC<ComposerProps> = props => {
     }
   }
 
+  const handleMacroSearch = (searchValue: string) => {
+    setMacroSearch(searchValue)
+    if (!searchValue.trim()) {
+      setFilteredMacros(macros)
+    } else {
+      const filtered = macros.filter(
+        macro =>
+          macro.name.toLowerCase().includes(searchValue.toLowerCase()) ||
+          macro.content.toLowerCase().includes(searchValue.toLowerCase())
+      )
+      setFilteredMacros(filtered)
+    }
+  }
+
+  const handleMacroSelect = (macro: IMacro) => {
+    setText(macro.content)
+    setIsMacrosPopoverOpen(false)
+    setMacroSearch('')
+    setFilteredMacros(macros)
+  }
+
   const canSendMessage = (): boolean => text.trim().length > 0 || uploadedFile !== null
 
   const canSendText = (): boolean => text.trim().length > 0
+
+  const getMacrosButtonTitle = (): string => {
+    if (!hasPermission()) {
+      return 'Debes estar en línea para usar macros'
+    }
+    if (macros.length === 0) {
+      return 'No hay macros disponibles'
+    }
+    return lang.tr('module.hitlnext.macros.button')
+  }
 
   return (
     !isLoading && (
@@ -302,6 +352,58 @@ const HITLComposer: FC<ComposerProps> = props => {
         )}
         <div className={style.inputRow}>
           <FileUpload bp={props.store.bp} onUploadComplete={handleUploadComplete} disabled={!hasPermission()} />
+
+          <Popover
+            content={
+              <Menu className={style.macrosMenu}>
+                <div className={style.macrosSearch}>
+                  <InputGroup
+                    leftIcon="search"
+                    placeholder={lang.tr('module.hitlnext.macros.searchPlaceholder')}
+                    value={macroSearch}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleMacroSearch(e.target.value)}
+                    small
+                  />
+                </div>
+                <div className={style.macrosListContainer}>
+                  {filteredMacros.length === 0 ? (
+                    <MenuItem
+                      disabled
+                      text={
+                        macroSearch
+                          ? lang.tr('module.hitlnext.macros.noMacros')
+                          : lang.tr('module.hitlnext.macros.noMacros')
+                      }
+                    />
+                  ) : (
+                    filteredMacros.map(macro => (
+                      <MenuItem
+                        key={macro.id}
+                        text={macro.name}
+                        label={macro.content.length > 50 ? `${macro.content.substring(0, 50)}...` : macro.content}
+                        onClick={() => handleMacroSelect(macro)}
+                        className={style.macroItem}
+                      />
+                    ))
+                  )}
+                </div>
+              </Menu>
+            }
+            position={Position.TOP}
+            isOpen={isMacrosPopoverOpen}
+            onInteraction={state => setIsMacrosPopoverOpen(state)}
+            disabled={!hasPermission() || macros.length === 0}
+          >
+            <Button
+              className={style.macrosButton}
+              icon="flash"
+              minimal
+              small
+              title={getMacrosButtonTitle()}
+              disabled={!hasPermission() || macros.length === 0}
+            />
+          </Popover>
+
           <ReactTextareaAutocomplete
             containerClassName={cx('bpw-composer', style.composer)}
             className={cx('bpw-composer-inner')}

@@ -101,6 +101,14 @@ export default async (bp: typeof sdk, state: StateType, repository: Repository) 
   )
 
   router.get(
+    '/stats',
+    errorMiddleware(async (req: RequestWithUser, res: Response) => {
+      const stats = await repository.getConversationStatsByDate(req.params.botId)
+      res.send(stats)
+    })
+  )
+
+  router.get(
     '/agents/me',
     errorMiddleware(async (req: RequestWithUser, res: Response) => {
       const { email, strategy } = req.tokenUser!

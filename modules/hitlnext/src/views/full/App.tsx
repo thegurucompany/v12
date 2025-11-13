@@ -11,6 +11,7 @@ import { WEBSOCKET_TOPIC } from './../../constants'
 import AgentList from './app/components/AgentList'
 import AgentStatus from './app/components/AgentStatus'
 import ConversationContainer from './app/components/ConversationContainer'
+import ConversationStats from './app/components/ConversationStats'
 import EmptyConversation from './app/components/EmptyConversation'
 import HandoffList from './app/components/HandoffList'
 import { Context, Store } from './app/Store'
@@ -148,6 +149,8 @@ const App: FC<Props> = ({ bp }) => {
         <AgentList loading={loading} agents={state.agents} />
         <AgentStatus setOnline={setOnline} loading={loading} api={api} {...state.currentAgent} />
       </div>
+
+      <ConversationStats api={api} />
 
       <div className={style.mainContent}>
         <div className={cx(style.sidebar, style.column)}>

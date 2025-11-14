@@ -47,6 +47,15 @@ export interface IMacro {
   updated_at: Date
 }
 
+export interface IConversationStats {
+  totalActive: number
+  unresolved: number
+  pending: number
+  unassigned: number
+  resolvedToday: number
+  onHold: number
+}
+
 export interface HitlClient {
   getConfig: () => Promise<Config>
   setOnline: (online: boolean) => Promise<{ online: boolean }>
@@ -68,6 +77,7 @@ export interface HitlClient {
   reassignAllConversations: () => Promise<{ reassigned: number; errors: number }>
   reassignConversation: (handoffId: string, targetAgentId: string) => Promise<{ success: boolean; message: string }>
   getMacros: () => Promise<IMacro[]>
+  getConversationStats: () => Promise<IConversationStats>
 }
 
 export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
@@ -165,6 +175,7 @@ export const makeClient = (bp: { axios: AxiosInstance }): HitlClient => {
         .get('/macros', {
           baseURL: bp.axios.defaults.baseURL.concat('/mod/builtin')
         })
-        .then(res => res.data)
+        .then(res => res.data),
+    getConversationStats: async () => bp.axios.get('/stats', config).then(res => res.data)
   }
 }

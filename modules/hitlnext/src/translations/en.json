@@ -144,5 +144,13 @@
     "searchPlaceholder": "Search macro...",
     "noMacros": "No macros available",
     "errorLoading": "Error loading macros"
+  },
+  "stats": {
+    "totalActive": "Total Active",
+    "unresolved": "Unresolved",
+    "pending": "Pending",
+    "unassigned": "Unassigned",
+    "resolvedToday": "Resolved Today",
+    "onHold": "On Hold"
   }
 }

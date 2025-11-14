@@ -902,6 +902,80 @@ export default class Repository {
   }
 
   //===================================
+  // Dashboard Stats
+  //===================================
+
+  async getConversationStatsByDate(botId: string, date?: Date): Promise<any> {
+    const targetDate = date || new Date()
+    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0))
+    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999))
+
+    try {
+      // Get total active conversations (not resolved, rejected or expired)
+      const totalActive = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .whereNotIn('status', ['resolved', 'rejected', 'expired'])
+        .count('* as count')
+        .first()
+
+      // Get unresolved (pending + assigned + waiting)
+      const unresolved = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .whereIn('status', ['pending', 'assigned', 'waiting'])
+        .count('* as count')
+        .first()
+
+      // Get pending conversations
+      const pending = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .where('status', 'pending')
+        .count('* as count')
+        .first()
+
+      // Get unassigned (pending conversations that haven't been assigned yet)
+      const unassigned = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .where('status', 'pending')
+        .whereNull('agentId')
+        .count('* as count')
+        .first()
+
+      // Get resolved today
+      const resolvedToday = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .where('status', 'resolved')
+        .whereBetween('resolvedAt', [this.bp.database.date.format(startOfDay), this.bp.database.date.format(endOfDay)])
+        .count('* as count')
+        .first()
+
+      // Get on hold (waiting status)
+      const onHold = await this.bp
+        .database<IHandoff>(HANDOFF_TABLE_NAME)
+        .where('botId', botId)
+        .where('status', 'waiting')
+        .count('* as count')
+        .first()
+
+      return {
+        totalActive: parseInt((totalActive as any)?.count || '0'),
+        unresolved: parseInt((unresolved as any)?.count || '0'),
+        pending: parseInt((pending as any)?.count || '0'),
+        unassigned: parseInt((unassigned as any)?.count || '0'),
+        resolvedToday: parseInt((resolvedToday as any)?.count || '0'),
+        onHold: parseInt((onHold as any)?.count || '0')
+      }
+    } catch (error) {
+      this.bp.logger.error('Error fetching conversation stats:', error)
+      throw error
+    }
+  }
+
+  //===================================
   // Copy pasted from channel-web db.ts
   //===================================
 }

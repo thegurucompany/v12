@@ -23,17 +23,20 @@
   flex-direction: column;
   height: 100%;
   background-color: #fff;
+  overflow: hidden;
 
   .mainNav {
     display: flex;
     justify-content: space-between;
     padding: var(--spacing-large);
+    flex-shrink: 0;
   }
 
   .mainContent {
     display: flex;
     flex: 1 1 auto;
-    height: calc(100% - 50px);
+    min-height: 0;
+    overflow: hidden;
 
     .column {
       padding-left: var(--spacing-large);
@@ -57,6 +60,8 @@
       flex-direction: column;
       flex-grow: 1;
       height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .sidebarContainer {
@@ -316,16 +321,26 @@
 
   .liveConversation {
     flex-grow: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
     .webchatWrapper {
       height: 100%;
       display: flex;
       flex-direction: column;
+      min-height: 0;
+
       > div {
         height: 100%;
+        min-height: 0;
       }
+
       .webchatIframe {
         position: relative;
         width: 100%;
+        height: 100%;
         z-index: 10;
       }
     }
@@ -337,13 +352,14 @@
   flex-direction: column;
   align-items: flex-end;
   height: 100%;
+  min-height: 0;
 
   .handoffList {
     background-color: var(--bg);
-    overflow-y: scroll;
+    overflow-y: auto;
     flex-direction: column;
     flex-grow: 1;
-    height: 100%;
+    min-height: 0;
     width: 100%;
   }
 }

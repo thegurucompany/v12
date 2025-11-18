@@ -1,12 +1,13 @@
 .statsContainer {
-  padding: 0 var(--spacing-large) var(--spacing-large);
+  padding: 0 var(--spacing-large) var(--spacing-medium);
   width: 100%;
+  flex-shrink: 0;
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--spacing-medium);
+  gap: var(--spacing-small);
   width: 100%;
 }
 
@@ -14,7 +15,7 @@
   background-color: var(--white);
   border: 1px solid var(--seashell);
   border-radius: 8px;
-  padding: var(--spacing-medium) var(--spacing-small);
+  padding: var(--spacing-small);
   text-align: center;
   transition: all 0.3s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -27,15 +28,15 @@
 }
 
 .statValue {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--ocean);
   line-height: 1.2;
-  margin-bottom: var(--spacing-small);
+  margin-bottom: 4px;
 }
 
 .statLabel {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--shark);
   text-transform: uppercase;
   letter-spacing: 0.5px;

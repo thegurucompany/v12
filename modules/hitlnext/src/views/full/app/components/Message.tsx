@@ -1,6 +1,7 @@
 import { IO } from 'botpress/sdk'
-import { Collapsible } from 'botpress/shared'
+import { Collapsible, lang } from 'botpress/shared'
 import cx from 'classnames'
+import moment from 'moment'
 import React, { FC } from 'react'
 
 import style from '../../style.scss'
@@ -244,11 +245,27 @@ const renderPayload = (event: IO.Event) => {
 //TODO: To support complex content types, export message from webchat in ui-shared lite and show it here
 export const Message: FC<IO.StoredEvent> = props => {
   const { preview } = props.event
+  moment.locale(lang.getLocale())
+
   return (
     <div className={cx(style.messageContainer, props.direction === 'incoming' ? style.user : style.bot)}>
-      <div className={cx(style.message)}>
-        {preview && <span>{preview}</span>}
-        {!preview && renderPayload(props.event)}
+      <div className={cx(style.message)} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+        <div>
+          {preview && <span>{preview}</span>}
+          {!preview && renderPayload(props.event)}
+        </div>
+        <div
+          style={{
+            fontSize: '10px',
+            color: '#757575',
+            textAlign: 'right',
+            marginTop: '4px',
+            alignSelf: 'flex-end',
+            lineHeight: '1'
+          }}
+        >
+          {moment(props.createdOn).format('DD/MM/YYYY HH:mm')}
+        </div>
       </div>
     </div>
   )

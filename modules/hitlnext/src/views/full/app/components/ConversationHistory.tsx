@@ -1,7 +1,9 @@
 import { Spinner } from '@blueprintjs/core'
 import { AxiosInstance } from 'axios'
 import { IO } from 'botpress/sdk'
+import { lang } from 'botpress/shared'
 import _ from 'lodash'
+import moment from 'moment'
 import React, { FC, Fragment, useContext, useEffect, useCallback, useState } from 'react'
 
 import { WEBSOCKET_TOPIC } from '../../../../constants'
@@ -39,16 +41,41 @@ const ConversationHistory: FC<Props> = ({ api, bp, conversationId }) => {
   }, [conversationId])
 
   useEffect(() => {
-    void api.getMessages(conversationId, 'id', true, state.config.messageCount).then(evts => {
+    void api.getMessages(conversationId, 'id', true, 5).then(evts => {
       setEvents(evts)
       setLoading(false)
     })
   }, [conversationId])
 
+  const lastEvent = _.maxBy(events, 'id')
+  moment.locale(lang.getLocale())
+  const timeElapsed = lastEvent ? moment(lastEvent.createdOn).fromNow() : ''
+
   return (
     <Fragment>
       {loading && <Spinner></Spinner>}
-      {!loading && <MessageList events={events}></MessageList>}
+      {!loading && (
+        <Fragment>
+          <MessageList events={events}></MessageList>
+          {lastEvent && (
+            <div
+              style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                margin: '10px 0',
+                padding: '15px',
+                color: '#444',
+                backgroundColor: '#f5f5f5',
+                borderRadius: '5px',
+                border: '1px solid #e0e0e0'
+              }}
+            >
+              Tiempo transcurrido desde la última respuesta: {timeElapsed}
+            </div>
+          )}
+        </Fragment>
+      )}
     </Fragment>
   )
 }

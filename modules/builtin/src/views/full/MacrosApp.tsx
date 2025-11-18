@@ -26,6 +26,8 @@ const MacrosApp: FC<Props> = ({ bp }) => {
   const [loading, setLoading] = useState(true)
   const [editingMacro, setEditingMacro] = useState<IMacro | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 4
 
   const loadMacros = async () => {
     try {
@@ -94,9 +96,19 @@ const MacrosApp: FC<Props> = ({ bp }) => {
     setShowForm(true)
   }
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
   if (loading) {
     return <div className={styles.container}>Cargando...</div>
   }
+
+  // Calcular los macros a mostrar en la página actual
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentMacros = macros.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(macros.length / itemsPerPage)
 
   return (
     <div className={styles.container}>
@@ -113,7 +125,14 @@ const MacrosApp: FC<Props> = ({ bp }) => {
       {showForm ? (
         <MacroForm macro={editingMacro} onSave={handleSave} onCancel={handleCancel} />
       ) : (
-        <MacrosList macros={macros} onEdit={handleEdit} onDelete={handleDelete} />
+        <MacrosList
+          macros={currentMacros}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   )

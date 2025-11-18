@@ -1,6 +1,16 @@
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
 .list {
   display: grid;
   gap: 15px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+  padding-bottom: 10px;
 }
 
 .macroCard {
@@ -30,6 +40,23 @@
   font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  padding: 20px 0 10px;
+  margin-top: 15px;
+  border-top: 1px solid #e1e8ed;
+}
+
+.pageInfo {
+  font-size: 14px;
+  color: #5c7080;
+  min-width: 120px;
+  text-align: center;
 }
 
 .empty {

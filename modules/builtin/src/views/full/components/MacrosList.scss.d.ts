@@ -4,9 +4,12 @@ interface CssExports {
   'actions': string;
   'empty': string;
   'list': string;
+  'listContainer': string;
   'macroCard': string;
   'macroContent': string;
   'macroHeader': string;
+  'pageInfo': string;
+  'pagination': string;
 }
 declare var cssExports: CssExports;
 export = cssExports;

@@ -1,0 +1,26 @@
+{
+  "name": "mass-incidents",
+  "fullName": "Incidencias Masivas",
+  "version": "12.0.0",
+  "status": "stable",
+  "description": "Módulo para gestión de incidencias masivas con mensajes globales de alta prioridad",
+  "private": true,
+  "main": "dist/backend/index.js",
+  "botpress": {
+    "src": "src",
+    "webBundle": "bin/web.bundle.js"
+  },
+  "homepage": "https://botpress.com",
+  "scripts": {
+    "build": "node ../../build/module-builder/bin/entry build",
+    "watch": "node ../../build/module-builder/bin/entry watch",
+    "package": "node ../../build/module-builder/bin/entry package"
+  },
+  "author": "The Guru Company",
+  "license": "AGPL-3.0-only",
+  "dependencies": {
+    "joi": "^17.4.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {}
+}

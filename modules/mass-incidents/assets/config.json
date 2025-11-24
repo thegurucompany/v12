@@ -1,0 +1,6 @@
+{
+  "$schema": "../../assets/modules/mass-incidents/config.schema.json",
+  "enabled": true,
+  "maxMessageLength": 5000,
+  "logLevel": "info"
+}

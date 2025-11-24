@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  min-height: 100vh;
+  background-color: #f5f8fa;
+}
+
+.bp3-callout ul {
+  padding-left: 20px;
+}
+
+.bp3-callout li {
+  margin: 5px 0;
+}
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.mass-incidents-container {
+  /* Para Firefox */
+  scrollbar-width: none;
+  
+  /* Para Chrome, Safari y Edge */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

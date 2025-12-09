@@ -1,0 +1,50 @@
+{
+  "fullName": "Outbound Campaigns",
+  "module": {
+    "title": "Outbound Campaigns",
+    "description": "Mass WhatsApp message sending using Meta templates via Vonage"
+  },
+  "status": {
+    "enabled": "Module enabled",
+    "disabled": "Module disabled - Vonage credentials not configured"
+  },
+  "campaign": {
+    "name": "Campaign Name",
+    "templateId": "Meta Template ID",
+    "batchSize": "Batch Size",
+    "batchInterval": "Batch Interval (seconds)",
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "running": "Running",
+      "paused": "Paused",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "actions": {
+      "create": "Create Campaign",
+      "edit": "Edit Campaign",
+      "delete": "Delete Campaign",
+      "start": "Start Campaign",
+      "pause": "Pause Campaign",
+      "resume": "Resume Campaign"
+    }
+  },
+  "csv": {
+    "upload": "Upload CSV",
+    "dragDrop": "Drag & drop your CSV file here",
+    "processing": "Processing file...",
+    "result": {
+      "valid": "Valid recipients",
+      "invalid": "Invalid recipients",
+      "duplicates": "Duplicates removed"
+    }
+  },
+  "errors": {
+    "noVonage": "Vonage credentials are not configured for this bot",
+    "invalidCsv": "Invalid CSV file format",
+    "invalidPhone": "Invalid phone number format",
+    "campaignNotFound": "Campaign not found",
+    "cannotModify": "Cannot modify campaign in current state"
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "fullName": "Campañas Salientes",
+  "module": {
+    "title": "Campañas Salientes",
+    "description": "Envío masivo de mensajes de WhatsApp usando templates de Meta vía Vonage"
+  },
+  "status": {
+    "enabled": "Módulo habilitado",
+    "disabled": "Módulo deshabilitado - Credenciales de Vonage no configuradas"
+  },
+  "campaign": {
+    "name": "Nombre de la Campaña",
+    "templateId": "Template ID de Meta",
+    "batchSize": "Tamaño de Lote",
+    "batchInterval": "Intervalo entre Lotes (segundos)",
+    "status": {
+      "draft": "Borrador",
+      "scheduled": "Programada",
+      "running": "En ejecución",
+      "paused": "Pausada",
+      "completed": "Completada",
+      "failed": "Fallida"
+    },
+    "actions": {
+      "create": "Crear Campaña",
+      "edit": "Editar Campaña",
+      "delete": "Eliminar Campaña",
+      "start": "Iniciar Campaña",
+      "pause": "Pausar Campaña",
+      "resume": "Reanudar Campaña"
+    }
+  },
+  "csv": {
+    "upload": "Subir CSV",
+    "dragDrop": "Arrastra y suelta tu archivo CSV aquí",
+    "processing": "Procesando archivo...",
+    "result": {
+      "valid": "Destinatarios válidos",
+      "invalid": "Destinatarios inválidos",
+      "duplicates": "Duplicados eliminados"
+    }
+  },
+  "errors": {
+    "noVonage": "Las credenciales de Vonage no están configuradas para este bot",
+    "invalidCsv": "Formato de archivo CSV inválido",
+    "invalidPhone": "Formato de número de teléfono inválido",
+    "campaignNotFound": "Campaña no encontrada",
+    "cannotModify": "No se puede modificar la campaña en el estado actual"
+  }
+}

@@ -1,0 +1,285 @@
+// Estilos globales para el módulo Outbound Campaigns
+// Usamos :global para evitar que CSS Modules transforme los nombres de clase
+
+:global {
+  .outbound-campaigns-container {
+    padding: 30px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+  }
+
+  .outbound-campaigns-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    gap: 20px;
+  }
+
+  .outbound-campaigns-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e1e8ed;
+    
+    h3 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 20px;
+    }
+  }
+
+  // Campaign List Component
+  .campaign-list {
+    &__header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 24px;
+      gap: 16px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    &__filters {
+      display: flex;
+      justify-content: center;
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    &__card {
+      overflow-x: auto;
+    }
+  }
+
+  .campaigns-table {
+    width: 100%;
+    
+    th, td {
+      vertical-align: middle !important;
+    }
+    
+    td small {
+      display: block;
+      margin-top: 2px;
+    }
+  }
+
+  // Status colors
+  .campaign-status {
+    &--draft {
+      background-color: #8a8a8a;
+    }
+    
+    &--scheduled {
+      background-color: #2b95d6;
+    }
+    
+    &--running {
+      background-color: #0f9960;
+      animation: pulse 2s infinite;
+    }
+    
+    &--paused {
+      background-color: #d9822b;
+    }
+    
+    &--completed {
+      background-color: #0f9960;
+    }
+    
+    &--failed {
+      background-color: #db3737;
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  // Campaign detail
+  .campaign-detail {
+    &__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    
+    &__metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    &__metric-card {
+      text-align: center;
+      padding: 15px;
+      
+      h4 {
+        margin: 0 0 5px 0;
+        font-size: 24px;
+      }
+      
+      p {
+        margin: 0;
+        color: #5c7080;
+        font-size: 12px;
+      }
+    }
+
+    h4 {
+      margin: 0;
+    }
+
+    &__actions-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    &__progress-section {
+      margin-bottom: 20px;
+    }
+
+    &__tabs {
+      margin-top: 20px;
+    }
+
+    &__log-item {
+      display: flex;
+      gap: 15px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ced9e0;
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  // CSV Upload
+  .csv-upload {
+    &__dropzone {
+      border: 2px dashed #ced9e0;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      
+      &:hover {
+        border-color: #2b95d6;
+        background-color: rgba(43, 149, 214, 0.05);
+      }
+      
+      &--active {
+        border-color: #0f9960;
+        background-color: rgba(15, 153, 96, 0.1);
+      }
+    }
+    
+    &__icon {
+      font-size: 48px;
+      color: #5c7080;
+      margin-bottom: 15px;
+    }
+    
+    &__text {
+      font-size: 16px;
+      color: #5c7080;
+    }
+    
+    &__result {
+      margin-top: 20px;
+    }
+
+    &__preview {
+      margin-top: 15px;
+    }
+
+    &__error-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  }
+
+  // Form
+  .campaign-form {
+    &__field {
+      margin-bottom: 15px;
+    }
+    
+    &__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    &__advanced {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #ced9e0;
+    }
+
+    &__info {
+      margin: 15px 0;
+    }
+
+    &__next-step {
+      margin-top: 20px;
+    }
+  }
+
+  // Form Dialog
+  .campaign-form-dialog {
+    width: 500px;
+    max-width: 90vw;
+  }
+
+  // Empty state centering
+  .campaign-list .bp3-non-ideal-state,
+  .outbound-campaigns-container .bp3-non-ideal-state {
+    padding: 60px 40px;
+    margin: 40px auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    background-color: white;
+  }
+
+  // Alert dialog button spacing
+  .bp3-alert-footer,
+  .bp5-alert-footer {
+    gap: 12px;
+    margin-bottom: 10px;
+    
+    .bp3-button,
+    .bp5-button {
+      margin-left: 0 !important;
+    }
+  }
+}

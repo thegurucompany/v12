@@ -14,6 +14,7 @@ import {
   Toaster,
   Position
 } from '@blueprintjs/core'
+import ExportModal from './ExportModal'
 
 const toaster = Toaster.create({ position: Position.TOP })
 
@@ -35,6 +36,7 @@ const CampaignList = ({ bp, campaigns, onRefresh, onCreateNew, onViewDetail }) =
   const [isPolling, setIsPolling] = useState(false)
   const [actionLoading, setActionLoading] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [exportModalOpen, setExportModalOpen] = useState(false)
 
   // Polling automático cuando hay campañas en ejecución
   useEffect(() => {
@@ -254,6 +256,13 @@ const CampaignList = ({ bp, campaigns, onRefresh, onCreateNew, onViewDetail }) =
             title="Actualizar lista"
           />
           <Button 
+            icon="download" 
+            intent={Intent.SUCCESS}
+            text="Exportar Historial"
+            onClick={() => setExportModalOpen(true)}
+            title="Descargar historial de envíos masivos (CSV + MD)"
+          />
+          <Button 
             intent={Intent.PRIMARY} 
             icon="plus"
             text="Nueva Campaña"
@@ -409,6 +418,13 @@ const CampaignList = ({ bp, campaigns, onRefresh, onCreateNew, onViewDetail }) =
           Esta acción eliminará todos los destinatarios y logs asociados. No se puede deshacer.
         </p>
       </Alert>
+
+      {/* Modal de exportación */}
+      <ExportModal 
+        bp={bp}
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+      />
     </div>
   )
 }

@@ -449,6 +449,108 @@ export default class OutboundCampaignsDb {
     return rows.map(row => this.mapLogRowToModel(row))
   }
 
+  // ==================== BULK SEND HISTORY ====================
+
+  /**
+   * Obtiene el historial de envíos masivos filtrado por bot y rango de fechas
+   */
+  async getBulkSendHistory(
+    botId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<Array<{
+    campaign_id: number
+    campaign_name: string
+    recipient_id: number
+    phone_number: string
+    status: string
+    message_uuid: string | undefined
+    sent_at: Date | undefined
+    error_message: string | undefined
+    retry_count: number
+    variables: Record<string, any>
+  }>> {
+    const rows = await this.knex('outbound_campaign_recipients as r')
+      .innerJoin('outbound_campaigns as c', 'r.campaign_id', 'c.id')
+      .select(
+        'c.id as campaign_id',
+        'c.name as campaign_name',
+        'r.id as recipient_id',
+        'r.phone_number',
+        'r.status',
+        'r.message_uuid',
+        'r.sent_at',
+        'r.error_message',
+        'r.retry_count',
+        'r.variables',
+        'r.created_at'
+      )
+      .where('c.bot_id', botId)
+      .where(function() {
+        this.whereBetween('c.created_at', [startDate, endDate])
+          .orWhereBetween('r.created_at', [startDate, endDate])
+      })
+      .orderBy('r.created_at', 'desc')
+      .orderBy('r.id', 'desc')
+
+    return rows.map(row => ({
+      campaign_id: row.campaign_id,
+      campaign_name: row.campaign_name,
+      recipient_id: row.recipient_id,
+      phone_number: row.phone_number,
+      status: row.status,
+      message_uuid: row.message_uuid,
+      sent_at: row.sent_at ? new Date(row.sent_at) : undefined,
+      error_message: row.error_message,
+      retry_count: row.retry_count,
+      variables: JSON.parse(row.variables || '{}')
+    }))
+  }
+
+  /**
+   * Obtiene estadísticas por campaña para un período
+   */
+  async getCampaignStatsForPeriod(
+    botId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<Array<{
+    id: number
+    name: string
+    total: number
+    sent: number
+    failed: number
+    pending: number
+  }>> {
+    const rows = await this.knex('outbound_campaigns as c')
+      .leftJoin('outbound_campaign_recipients as r', 'c.id', 'r.campaign_id')
+      .select('c.id', 'c.name')
+      .count('r.id as total')
+      .sum(this.knex.raw("CASE WHEN r.status = 'sent' THEN 1 ELSE 0 END")).as('sent')
+      .sum(this.knex.raw("CASE WHEN r.status = 'failed' THEN 1 ELSE 0 END")).as('failed')
+      .sum(this.knex.raw("CASE WHEN r.status = 'pending' THEN 1 ELSE 0 END")).as('pending')
+      .where('c.bot_id', botId)
+      .where(function() {
+        this.whereBetween('c.created_at', [startDate, endDate])
+          .orWhere(function() {
+            this.whereNotNull('r.id')
+              .whereBetween('r.created_at', [startDate, endDate])
+          })
+      })
+      .groupBy('c.id', 'c.name')
+      .havingRaw('COUNT(r.id) > 0')
+      .orderBy('c.name')
+
+    return rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      total: parseInt(row.total as string) || 0,
+      sent: parseInt(row.sent as string) || 0,
+      failed: parseInt(row.failed as string) || 0,
+      pending: parseInt(row.pending as string) || 0
+    }))
+  }
+
   // ==================== MAPPERS ====================
 
   private mapCampaignRowToModel(row: CampaignRow): Campaign {

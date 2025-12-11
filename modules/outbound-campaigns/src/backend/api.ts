@@ -364,4 +364,50 @@ export function setupApi(bp: typeof sdk, service: OutboundCampaignsService) {
       res.status(500).json({ success: false, error: error.message })
     }
   })
+
+  /**
+   * GET /export-bulk-sends
+   * Exporta el historial de envíos masivos filtrados por fecha
+   */
+  router.get('/export-bulk-sends', checkVonageMiddleware, async (req, res) => {
+    try {
+      const botId = req.params.botId
+      const startDate = req.query.startDate as string
+      const endDate = req.query.endDate as string
+
+      if (!startDate || !endDate) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'startDate and endDate are required' 
+        })
+      }
+
+      // Validar formato de fechas
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Invalid date format. Use ISO 8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss.sssZ)' 
+        })
+      }
+
+      if (start > end) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'startDate must be before endDate' 
+        })
+      }
+
+      // Ajustar la fecha de fin al final del día (23:59:59.999)
+      end.setHours(23, 59, 59, 999)
+
+      const result = await service.exportBulkSends(botId, start, end)
+      res.json({ success: true, ...result })
+    } catch (error) {
+      bp.logger.error(`[outbound-campaigns] Error in GET /export-bulk-sends: ${error.message}`)
+      res.status(500).json({ success: false, error: error.message })
+    }
+  })
 }

@@ -1,6 +1,9 @@
 // Estilos globales para el módulo Outbound Campaigns
 // Usamos :global para evitar que CSS Modules transforme los nombres de clase
 
+// Importar estilos de Blueprint DateTime para el DatePicker
+@import '~@blueprintjs/datetime/lib/css/blueprint-datetime.css';
+
 :global {
   .outbound-campaigns-container {
     padding: 30px 40px;

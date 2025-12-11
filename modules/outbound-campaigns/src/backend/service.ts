@@ -491,4 +491,100 @@ export class OutboundCampaignsService {
       `Sent: ${campaign.sent_count}, Failed: ${campaign.failed_count}`
     )
   }
+
+  /**
+   * Exporta el historial de envíos masivos filtrado por fecha
+   * Retorna CSV y MD con estadísticas
+   */
+  async exportBulkSends(botId: string, startDate: Date, endDate: Date): Promise<{ csv: string; markdown: string; stats: any }> {
+    const recipients = await this.db.getBulkSendHistory(botId, startDate, endDate)
+    
+    // Calcular estadísticas
+    const stats = {
+      total: recipients.length,
+      sent: recipients.filter(r => r.status === 'sent').length,
+      failed: recipients.filter(r => r.status === 'failed').length,
+      pending: recipients.filter(r => r.status === 'pending').length,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    }
+
+    // Generar CSV con información detallada
+    const csvLines = [
+      'campaign_id,campaign_name,recipient_id,phone_number,status,message_uuid,sent_at,error_message,retry_count,variables'
+    ]
+
+    for (const record of recipients) {
+      const escapedError = (record.error_message || '').replace(/"/g, '""')
+      const escapedVars = JSON.stringify(record.variables).replace(/"/g, '""')
+      const escapedName = (record.campaign_name || '').replace(/"/g, '""')
+      const sentAt = record.sent_at ? new Date(record.sent_at).toISOString() : ''
+      const messageUuid = record.message_uuid || ''
+
+      csvLines.push(
+        `${record.campaign_id},"${escapedName}",${record.recipient_id},${record.phone_number},${record.status},"${messageUuid}",${sentAt},"${escapedError}",${record.retry_count},"${escapedVars}"`
+      )
+    }
+
+    const csv = csvLines.join('\n')
+
+    // Generar Markdown con estadísticas detalladas
+    const markdown = `# Reporte de Envíos Masivos
+
+## Período de Consulta
+- **Fecha Inicio:** ${startDate.toISOString()}
+- **Fecha Fin:** ${endDate.toISOString()}
+
+## Estadísticas Generales
+
+| Métrica | Cantidad |
+|---------|----------|
+| **Total de Envíos** | ${stats.total} |
+| **Enviados Exitosamente** | ${stats.sent} |
+| **Fallidos** | ${stats.failed} |
+| **Pendientes** | ${stats.pending} |
+
+## Desglose por Campaña
+
+${await this.generateCampaignBreakdown(botId, startDate, endDate)}
+
+## Detalle de Envíos
+
+El archivo CSV adjunto contiene el detalle completo de todos los envíos, incluyendo:
+- Identificación de campaña (campaign_id, campaign_name)
+- Identificación del destinatario (recipient_id, phone_number)
+- Estado del envío (status)
+- UUID del mensaje (message_uuid) para rastreo
+- Fecha y hora de envío (sent_at)
+- Mensaje de error en caso de fallo (error_message)
+- Número de reintentos (retry_count)
+- Variables de personalización utilizadas (variables)
+
+---
+*Reporte generado el: ${new Date().toISOString()}*
+`
+
+    return { csv, markdown, stats }
+  }
+
+  /**
+   * Genera un desglose por campaña para el reporte
+   */
+  private async generateCampaignBreakdown(botId: string, startDate: Date, endDate: Date): Promise<string> {
+    const campaigns = await this.db.getCampaignStatsForPeriod(botId, startDate, endDate)
+    
+    if (campaigns.length === 0) {
+      return '*No hay campañas en el período seleccionado*'
+    }
+
+    let markdown = '| Campaña | Total | Enviados | Fallidos | Pendientes |\n'
+    markdown += '|---------|-------|----------|----------|------------|\n'
+
+    for (const campaign of campaigns) {
+      markdown += `| ${campaign.name} | ${campaign.total} | ${campaign.sent} | ${campaign.failed} | ${campaign.pending} |\n`
+    }
+
+    return markdown
+  }
 }
+

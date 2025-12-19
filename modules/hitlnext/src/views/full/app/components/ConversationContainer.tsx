@@ -214,7 +214,7 @@ const ConversationContainer: FC<Props> = ({ api, bp }) => {
         />
         {content}
       </div>
-      <ConversationDetails api={api} handoff={selectedHandoff}></ConversationDetails>
+      <ConversationDetails api={api} handoff={selectedHandoff} bp={bp}></ConversationDetails>
 
       {/* Reassign Modal */}
       <ReassignModal

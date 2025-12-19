@@ -1,0 +1,40 @@
+{
+  "name": "tag-management",
+  "fullName": "Gestion des Étiquettes",
+  "categories": {
+    "title": "Catégories",
+    "empty": "Pas encore de catégories. Créez-en une pour commencer.",
+    "create": "Nouvelle Catégorie",
+    "edit": "Modifier la Catégorie",
+    "delete": "Supprimer la Catégorie",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette catégorie ? Toutes les étiquettes de cette catégorie seront également supprimées.",
+    "name": "Nom",
+    "description": "Description",
+    "color": "Couleur"
+  },
+  "tags": {
+    "title": "Étiquettes",
+    "empty": "Pas d'étiquettes dans cette catégorie.",
+    "create": "Nouvelle Étiquette",
+    "edit": "Modifier l'Étiquette",
+    "delete": "Supprimer l'Étiquette",
+    "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette étiquette ?",
+    "name": "Nom",
+    "description": "Description"
+  },
+  "actions": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier"
+  },
+  "messages": {
+    "categoryCreated": "Catégorie créée avec succès",
+    "categoryUpdated": "Catégorie mise à jour avec succès",
+    "categoryDeleted": "Catégorie supprimée avec succès",
+    "tagCreated": "Étiquette créée avec succès",
+    "tagUpdated": "Étiquette mise à jour avec succès",
+    "tagDeleted": "Étiquette supprimée avec succès",
+    "error": "Une erreur est survenue"
+  }
+}

@@ -61,6 +61,12 @@ export const Tags: FC<Props> = ({ handoff, api, bp }) => {
   )
 
   function currentAgentHasPermission(operation: PermissionOperation): boolean {
+    // Supervisors and admins should always have access even if not "online" as agents
+    const isSupervisorOrAdmin = state.currentAgent?.role === 'supervisor' || state.currentAgent?.role === 'admin'
+    if (isSupervisorOrAdmin) {
+      return true
+    }
+    // For agents, check online status and permissions
     return (
       state.currentAgent?.online &&
       isOperationAllowed({ user: state.currentAgent, resource: 'module.hitlnext', operation })

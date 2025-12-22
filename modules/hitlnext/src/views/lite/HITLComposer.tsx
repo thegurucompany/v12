@@ -166,6 +166,12 @@ const HITLComposer: FC<ComposerProps> = props => {
   }
 
   function hasPermission(): boolean {
+    // Supervisors and admins should always have access even if not "online" as agents
+    const isSupervisorOrAdmin = currentAgent?.role === 'supervisor' || currentAgent?.role === 'admin'
+    if (isSupervisorOrAdmin) {
+      return true
+    }
+    // For agents, check online status
     return currentAgent?.online === true
   }
 

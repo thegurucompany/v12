@@ -26,6 +26,23 @@ const App: FC<Props> = ({ bp }) => {
   const [loading, setLoading] = useState(true)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 4
+
+  // Calculate pagination
+  const totalPages = Math.ceil(categories.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const visibleCategories = categories.slice(startIndex, startIndex + itemsPerPage)
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(prev => prev - 1)
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1)
+  }
+  
   // Dialog states
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
   const [tagDialogOpen, setTagDialogOpen] = useState(false)
@@ -184,8 +201,9 @@ const App: FC<Props> = ({ bp }) => {
 
   return (
     <div className={style.tagManagement}>
-      <div className={style.header}>
-        <h1 className={style.title}>{lang.tr('module.tag-management.categories.title')}</h1>
+      <div className={style.container}>
+        <div className={style.header}>
+          <h1 className={style.title}>{lang.tr('module.tag-management.categories.title')}</h1>
         <Button
           intent={Intent.PRIMARY}
           icon="plus"
@@ -201,7 +219,7 @@ const App: FC<Props> = ({ bp }) => {
         </div>
       )}
 
-      {categories.map(category => (
+      {visibleCategories.map(category => (
         <div key={category.id} className={style.categoryCard}>
           <div className={style.categoryHeader} onClick={() => toggleCategory(category.id)}>
             <div className={style.categoryTitle}>
@@ -281,6 +299,28 @@ const App: FC<Props> = ({ bp }) => {
           )}
         </div>
       ))}
+
+      {categories.length > 0 && (
+        <div className={style.pagination}>
+          <Button
+            icon="chevron-left"
+            disabled={currentPage === 1}
+            onClick={handlePreviousPage}
+          />
+          <span className={style.pageInfo}>
+            {lang.tr('module.tag-management.pagination.info', {  
+              current: currentPage, 
+              total: totalPages 
+            }) || `Page ${currentPage} of ${totalPages}`}
+          </span>
+          <Button
+            icon="chevron-right"
+            disabled={currentPage === totalPages}
+            onClick={handleNextPage}
+          />
+        </div>
+      )}
+      </div>
 
       {/* Category Dialog */}
       <Dialog
@@ -373,7 +413,7 @@ const App: FC<Props> = ({ bp }) => {
           </div>
         </div>
         <div className={Classes.DIALOG_FOOTER}>
-          <div className={style.dialogActions}>
+          <div className={style.dialogActions} style={{marginBottom: 20 }}>
             <Button onClick={() => setTagDialogOpen(false)}>
               {lang.tr('module.tag-management.actions.cancel')}
             </Button>

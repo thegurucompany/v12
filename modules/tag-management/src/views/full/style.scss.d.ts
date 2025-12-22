@@ -10,12 +10,15 @@ interface CssExports {
   'categoryTitle': string;
   'chevron': string;
   'chevronExpanded': string;
+  'container': string;
   'dialogActions': string;
   'emptyIcon': string;
   'emptyState': string;
   'formGroup': string;
   'formLabel': string;
   'header': string;
+  'pageInfo': string;
+  'pagination': string;
   'tagDescription': string;
   'tagItem': string;
   'tagList': string;

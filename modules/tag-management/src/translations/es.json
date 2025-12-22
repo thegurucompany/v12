@@ -28,6 +28,9 @@
     "delete": "Eliminar",
     "edit": "Editar"
   },
+  "pagination": {
+    "info": "Página {current} de {total}"
+  },
   "messages": {
     "categoryCreated": "Categoría creada exitosamente",
     "categoryUpdated": "Categoría actualizada exitosamente",

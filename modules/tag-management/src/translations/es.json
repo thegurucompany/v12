@@ -1,0 +1,43 @@
+{
+  "name": "tag-management",
+  "fullName": "Gestión de Etiquetas",
+  "categories": {
+    "title": "Categorías",
+    "empty": "Aún no hay categorías. Crea una para comenzar.",
+    "create": "Nueva Categoría",
+    "edit": "Editar Categoría",
+    "delete": "Eliminar Categoría",
+    "deleteConfirm": "¿Está seguro de que desea eliminar esta categoría? Todas las etiquetas de esta categoría también serán eliminadas.",
+    "name": "Nombre",
+    "description": "Descripción",
+    "color": "Color"
+  },
+  "tags": {
+    "title": "Etiquetas",
+    "empty": "No hay etiquetas en esta categoría.",
+    "create": "Nueva Etiqueta",
+    "edit": "Editar Etiqueta",
+    "delete": "Eliminar Etiqueta",
+    "deleteConfirm": "¿Está seguro de que desea eliminar esta etiqueta?",
+    "name": "Nombre",
+    "description": "Descripción"
+  },
+  "actions": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar"
+  },
+  "pagination": {
+    "info": "Página {current} de {total}"
+  },
+  "messages": {
+    "categoryCreated": "Categoría creada exitosamente",
+    "categoryUpdated": "Categoría actualizada exitosamente",
+    "categoryDeleted": "Categoría eliminada exitosamente",
+    "tagCreated": "Etiqueta creada exitosamente",
+    "tagUpdated": "Etiqueta actualizada exitosamente",
+    "tagDeleted": "Etiqueta eliminada exitosamente",
+    "error": "Ocurrió un error"
+  }
+}

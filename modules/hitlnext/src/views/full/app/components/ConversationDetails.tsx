@@ -1,3 +1,4 @@
+import { AxiosInstance } from 'axios'
 import { lang, Tabs } from 'botpress/shared'
 import cx from 'classnames'
 import _ from 'lodash'
@@ -15,14 +16,15 @@ import UserProfile from './UserProfile'
 interface Props {
   api: HitlClient
   handoff: IHandoff
+  bp: { axios: AxiosInstance }
 }
 
-const ConversationDetails: FC<Props> = ({ api, handoff }) => (
+const ConversationDetails: FC<Props> = ({ api, handoff, bp }) => (
   <div className={cx(style.column, style.sidebarContainer)}>
     <Tabs tabs={[{ id: 'user', title: lang.tr('module.hitlnext.handoff.contactDetails') }]} />
     <UserProfile {...handoff.user} />
     <div className={style.divider}></div>
-    <Tags handoff={handoff} api={api} />
+    <Tags handoff={handoff} api={api} bp={bp} />
     <div className={style.divider}></div>
     <AssignmentHistory handoff={handoff} api={api} />
     <div className={style.divider}></div>

@@ -237,6 +237,8 @@ export interface Config {
    * Defaults to 'Embedded'
    */
   viewMode?: 'Embedded' | 'Fullscreen'
+  /** Primary color for the header, user bubbles, and send button */
+  primaryColor?: string
 }
 
 type OverridableComponents = 'below_conversation' | 'before_container' | 'composer' | 'before_widget'

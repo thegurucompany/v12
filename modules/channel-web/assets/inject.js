@@ -38,11 +38,11 @@ function _generateIFrameHTML(host, config) {
     iframeId +
     '" title="' +
     encodeURIComponent(title) +
-    '" frameborder="0" src="' +
+    '" frameborder="0" allowtransparency="true" src="' +
     iframeSrc +
     '" class="' +
     DEFAULT_IFRAME_CLASS +
-    '"/>'
+    '" style="background:transparent;"/>'
   )
 }
 
@@ -121,6 +121,11 @@ window.addEventListener('message', function(payload) {
   if (data.type === 'setClass') {
     document.querySelector(iframeSelector).setAttribute('class', data.value)
   } else if (data.type === 'setWidth') {
+    // Skip inline width on mobile so CSS media queries can take over
+    if (window.innerWidth <= 768) {
+      document.querySelector(iframeSelector).style.width = ''
+      return
+    }
     const width = typeof data.value === 'number' ? data.value + 'px' : data.value
 
     document.querySelector(iframeSelector).style.width = width

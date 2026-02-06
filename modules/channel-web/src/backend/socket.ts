@@ -4,6 +4,21 @@ import _ from 'lodash'
 import Database from './db'
 
 const DEFAULT_TYPING_DELAY = 500
+const MIN_TYPING_DELAY = 400
+const MAX_TYPING_DELAY = 2000
+const CHARS_PER_MS = 15 // ~15 chars per ms of typing delay
+
+function calculateTypingDelay(text?: string): number {
+  if (!text) {
+    return DEFAULT_TYPING_DELAY
+  }
+  const delay = Math.max(MIN_TYPING_DELAY, Math.min(text.length * CHARS_PER_MS, MAX_TYPING_DELAY))
+  return delay
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 export default async (bp: typeof sdk, db: Database) => {
   bp.events.registerMiddleware({
@@ -51,7 +66,6 @@ export default async (bp: typeof sdk, db: Database) => {
       if (event.payload.typing === true || event.payload.type === 'typing') {
         const value = (event.payload.type === 'typing' ? event.payload.value : undefined) || DEFAULT_TYPING_DELAY
         const payload = bp.RealTimePayload.forVisitor(visitorId, 'webchat.typing', { timeInMs: value, conversationId })
-        // Don't store "typing" in DB
         bp.realtime.sendPayload(payload)
       }
 

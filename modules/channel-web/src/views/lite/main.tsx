@@ -350,7 +350,6 @@ class Web extends React.Component<MainProps> {
           />
         )}
         {!isIE && <Stylesheet href={'assets/modules/channel-web/font.css'} />}
-        {!!extraStylesheet?.length && <Stylesheet href={extraStylesheet} />}
         {primaryColor && (
           <style
             dangerouslySetInnerHTML={{
@@ -361,6 +360,7 @@ class Web extends React.Component<MainProps> {
                 --primary-gradient: ${primaryColor};
                 --shadow-button: 0 4px 16px ${primaryColor}66;
               }
+              ${!extraStylesheet?.length ? `
               .bpw-header-container {
                 background: ${primaryColor} !important;
               }
@@ -382,10 +382,12 @@ class Web extends React.Component<MainProps> {
               .bpw-floating-button:hover {
                 box-shadow: 0 6px 24px ${primaryColor}80 !important;
               }
+              ` : ''}
             `
             }}
           />
         )}
+        {!!extraStylesheet?.length && <Stylesheet href={extraStylesheet} />}
       </React.Fragment>
     )
   }

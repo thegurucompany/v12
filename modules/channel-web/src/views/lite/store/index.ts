@@ -63,6 +63,7 @@ class RootStore {
   public intl: InjectedIntl
 
   public isBotTyping = observable.box(false)
+  private _pendingTypingTimeout: ReturnType<typeof setTimeout> | undefined
 
   /** When a wrapper is defined, every messages are wrapped by the specified component */
   @observable
@@ -184,6 +185,15 @@ class RootStore {
     // Autoplay bot voice messages
     if (event.payload?.type === 'voice' && !event.authorId) {
       event.payload.autoPlay = true
+    }
+
+    // Cancel typing when bot message arrives
+    if (!event.authorId) {
+      if (this._pendingTypingTimeout) {
+        clearTimeout(this._pendingTypingTimeout)
+        this._pendingTypingTimeout = undefined
+      }
+      this.isBotTyping.set(false)
     }
 
     const message: Message = { ...event, conversationId: event.conversationId }
@@ -434,6 +444,17 @@ class RootStore {
     if (!constants.MESSAGE_TYPES.includes(data.type)) {
       return this.api.sendEvent(data, this.currentConversationId)
     }
+
+    // Show typing animation after 2s delay (visual only, no message queuing)
+    if (this._pendingTypingTimeout) {
+      clearTimeout(this._pendingTypingTimeout)
+    }
+    this._pendingTypingTimeout = setTimeout(() => {
+      runInAction(() => {
+        this.isBotTyping.set(true)
+      })
+      this._pendingTypingTimeout = undefined
+    }, 2000)
 
     await this.api.sendMessage(data, this.currentConversationId)
   }

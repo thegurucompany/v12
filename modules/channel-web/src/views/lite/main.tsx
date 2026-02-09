@@ -339,7 +339,7 @@ class Web extends React.Component<MainProps> {
       this.parentClass = parentClass
     }
 
-    const { isEmulator, stylesheet, extraStylesheet } = this.props.config
+    const { isEmulator, stylesheet, extraStylesheet, primaryColor } = this.props.config
     return (
       <React.Fragment>
         {!!stylesheet?.length && <Stylesheet href={stylesheet} />}
@@ -350,6 +350,43 @@ class Web extends React.Component<MainProps> {
           />
         )}
         {!isIE && <Stylesheet href={'assets/modules/channel-web/font.css'} />}
+        {primaryColor && (
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+              :root {
+                --primary: ${primaryColor};
+                --primary-dark: ${primaryColor};
+                --primary-gradient: ${primaryColor};
+                --shadow-button: 0 4px 16px ${primaryColor}66;
+              }
+              ${!extraStylesheet?.length ? `
+              .bpw-header-container {
+                background: ${primaryColor} !important;
+              }
+              .bpw-from-user .bpw-chat-bubble .bpw-chat-bubble-content {
+                background: ${primaryColor} !important;
+              }
+              .bpw-send-button {
+                background: ${primaryColor} !important;
+              }
+              .bpw-send-button:hover,
+              .bpw-send-button:focus {
+                background: ${primaryColor} !important;
+                filter: brightness(0.9);
+              }
+              .bpw-floating-button {
+                background-color: ${primaryColor} !important;
+                box-shadow: 0 4px 16px ${primaryColor}66 !important;
+              }
+              .bpw-floating-button:hover {
+                box-shadow: 0 6px 24px ${primaryColor}80 !important;
+              }
+              ` : ''}
+            `
+            }}
+          />
+        )}
         {!!extraStylesheet?.length && <Stylesheet href={extraStylesheet} />}
       </React.Fragment>
     )

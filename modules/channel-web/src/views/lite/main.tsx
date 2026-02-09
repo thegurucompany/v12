@@ -382,11 +382,6 @@ class Web extends React.Component<MainProps> {
               .bpw-floating-button:hover {
                 box-shadow: 0 6px 24px ${primaryColor}80 !important;
               }
-              @keyframes pulse {
-                to {
-                  box-shadow: 0 0 0 45px ${primaryColor}03;
-                }
-              }
             `
             }}
           />

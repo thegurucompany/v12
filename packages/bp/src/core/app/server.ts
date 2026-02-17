@@ -241,6 +241,10 @@ export class HTTPServer {
     app.use(process.ROOT_PATH, this.app)
     this.httpServer = createServer(app)
 
+    // Voice WebSocket proxy — forwards LiveKit and voice API WebSocket connections
+    // through our server so clients never see upstream provider domains
+    this.setupVoiceWebSocketProxy()
+
     const { keepAliveTimeout } = botpressConfig.httpServer
 
     if (keepAliveTimeout && Number.isInteger(keepAliveTimeout)) {
@@ -443,6 +447,82 @@ export class HTTPServer {
     })
 
     return this.app
+  }
+
+  private setupVoiceWebSocketProxy() {
+    const VOICE_LK_PREFIX = `${process.ROOT_PATH}/voice-lk`
+    const VOICE_WS_US_PREFIX = `${process.ROOT_PATH}/voice-ws-us`
+    const VOICE_WS_PREFIX = `${process.ROOT_PATH}/voice-ws`
+
+    const LK_UPSTREAM = 'https://livekit.rtc.elevenlabs.io'
+    const WS_UPSTREAM = 'https://api.elevenlabs.io'
+    const WS_US_UPSTREAM = 'https://api.us.elevenlabs.io'
+
+    try {
+      const httpProxy = require('http-proxy')
+
+      const createWsProxy = (label: string, target: string) => {
+        const proxy = httpProxy.createProxyServer({
+          target,
+          ws: true,
+          changeOrigin: true,
+          secure: true,
+          headers: {
+            host: new URL(target).host
+          }
+        })
+
+        proxy.on('error', (err: Error, _req: any, socket: any) => {
+          this.logger.error(`Voice WS proxy [${label}] error: ${err.message}`)
+          if (socket && !socket.destroyed) {
+            socket.end()
+          }
+        })
+
+        proxy.on('proxyReqWs', (_proxyReq: any, _req: any, _socket: any) => {
+          this.logger.debug(`Voice WS proxy [${label}] upgrading`)
+        })
+
+        return proxy
+      }
+
+      const lkProxy = createWsProxy('livekit', LK_UPSTREAM)
+      const wsProxy = createWsProxy('api', WS_UPSTREAM)
+      const wsUsProxy = createWsProxy('api-us', WS_US_UPSTREAM)
+
+      // Helper: check if URL starts with prefix (with optional / or ? after)
+      const matchesPrefix = (url: string, prefix: string) => {
+        return url === prefix || url.startsWith(prefix + '/') || url.startsWith(prefix + '?')
+      }
+
+      const stripPrefix = (url: string, prefix: string) => {
+        const remainder = url.slice(prefix.length)
+        return remainder.startsWith('/') ? remainder : '/' + remainder
+      }
+
+      this.httpServer.on('upgrade', (req, socket, head) => {
+        const url = req.url || ''
+
+        if (matchesPrefix(url, VOICE_LK_PREFIX)) {
+          req.url = stripPrefix(url, VOICE_LK_PREFIX)
+          this.logger.debug(`Voice WS: routing to livekit -> ${req.url}`)
+          lkProxy.ws(req, socket, head)
+        } else if (matchesPrefix(url, VOICE_WS_US_PREFIX)) {
+          req.url = stripPrefix(url, VOICE_WS_US_PREFIX)
+          this.logger.debug(`Voice WS: routing to api-us -> ${req.url}`)
+          wsUsProxy.ws(req, socket, head)
+        } else if (matchesPrefix(url, VOICE_WS_PREFIX)) {
+          req.url = stripPrefix(url, VOICE_WS_PREFIX)
+          this.logger.debug(`Voice WS: routing to api -> ${req.url}`)
+          wsProxy.ws(req, socket, head)
+        }
+        // Other upgrade requests (Socket.io) fall through naturally
+      })
+
+      this.logger.info(`Voice WebSocket proxy initialized (prefixes: ${VOICE_LK_PREFIX}, ${VOICE_WS_PREFIX}, ${VOICE_WS_US_PREFIX})`)
+    } catch (err) {
+      this.logger.warn(`Voice WebSocket proxy not available: ${err.message || err}`)
+    }
   }
 
   private setupUILite(app) {

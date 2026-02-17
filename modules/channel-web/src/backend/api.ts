@@ -217,6 +217,157 @@ export default async (bp: typeof sdk, db: Database) => {
     })
   )
 
+  // ── Voice Agent endpoints ──────────────────────────────────────────
+
+  const VOICE_UPSTREAM = 'https://api.elevenlabs.io'
+
+  // Helper: get validated voice config for a bot
+  // Checks channel-web module config first, then falls back to bot.config.json
+  // so users can configure voiceAgent from the Studio UI without filesystem access
+  const getVoiceConfig = async (botId: string) => {
+    // 1. Check channel-web module config (bot-level or global)
+    const config = (await bp.config.getModuleConfigForBot('channel-web', botId)) as Config
+    if (config.voiceAgent?.enabled && config.voiceAgent?.agentId && config.voiceAgent?.apiKey) {
+      return config.voiceAgent
+    }
+
+    // 2. Fallback: check bot.config.json (editable from Studio UI)
+    const botInfo = await bp.bots.getBotById(botId)
+    const botVoice = (botInfo as any)?.voiceAgent
+    if (botVoice?.enabled && botVoice?.agentId && botVoice?.apiKey) {
+      return botVoice
+    }
+
+    return null
+  }
+
+  // Voice config (widget init) — returns only what the client needs
+  router.get(
+    '/voiceConfig',
+    perBotCache('1 minute'),
+    asyncMiddleware(async (req: BPRequest, res: Response) => {
+      const { botId } = req.params
+      const botInfo = await bp.bots.getBotById(botId)
+      if (!botInfo) {
+        return res.sendStatus(404)
+      }
+
+      const voice = await getVoiceConfig(botId)
+      if (!voice) {
+        return res.status(404).send({ error: 'Voice agent not configured for this bot' })
+      }
+
+      res.send({
+        enabled: true,
+        agentId: voice.agentId,
+        avatarUrl: voice.avatarUrl || null,
+        size: voice.size || 'compact'
+      })
+    })
+  )
+
+  // Voice signed URL — get a conversation token without exposing API key
+  router.get(
+    '/voiceSignedUrl',
+    asyncMiddleware(async (req: BPRequest, res: Response) => {
+      const { botId } = req.params
+      const voice = await getVoiceConfig(botId)
+      if (!voice) {
+        return res.status(404).send({ error: 'Voice agent not configured' })
+      }
+
+      try {
+        const resp = await axios.get(
+          `${VOICE_UPSTREAM}/v1/convai/conversation/get_signed_url?agent_id=${voice.agentId}`,
+          { headers: { 'xi-api-key': voice.apiKey } }
+        )
+        res.send(resp.data)
+      } catch (err) {
+        bp.logger.error('Voice signed URL error', err?.response?.data || err.message)
+        res.status(err?.response?.status || 500).send({ error: 'Failed to get voice session' })
+      }
+    })
+  )
+
+  // Voice HTTP proxy — forwards REST requests to the upstream voice API
+  router.all(
+    '/voiceProxy/*',
+    asyncMiddleware(async (req: BPRequest, res: Response) => {
+      const { botId } = req.params
+      const voice = await getVoiceConfig(botId)
+      if (!voice) {
+        return res.status(404).send({ error: 'Voice agent not configured' })
+      }
+
+      // Extract the path after /voiceProxy/
+      const proxyPath = req.originalUrl.split('/voiceProxy/')[1]
+      if (!proxyPath) {
+        return res.status(400).send({ error: 'Missing proxy path' })
+      }
+
+      const targetUrl = `${VOICE_UPSTREAM}/${proxyPath}`
+
+      try {
+        const headers: Record<string, string> = {
+          'xi-api-key': voice.apiKey
+        }
+        if (req.headers['content-type']) {
+          headers['content-type'] = req.headers['content-type'] as string
+        }
+
+        const resp = await axios({
+          method: req.method as any,
+          url: targetUrl,
+          headers,
+          data: req.method !== 'GET' ? req.body : undefined,
+          params: req.method === 'GET' ? req.query : undefined,
+          responseType: 'arraybuffer',
+          timeout: 30000
+        })
+
+        // Forward response headers that matter
+        if (resp.headers['content-type']) {
+          res.setHeader('content-type', resp.headers['content-type'])
+        }
+
+        // Map text_contents to legacy widget fields (newer ElevenLabs API returns
+        // customized texts inside text_contents but the widget bundle reads the
+        // top-level action_text / start_call_text / end_call_text fields)
+        if (proxyPath.includes('/widget') && resp.headers['content-type']?.includes('application/json')) {
+          try {
+            const body = JSON.parse(Buffer.from(resp.data).toString('utf-8'))
+            const wc = body?.widget_config
+            const tc = wc?.text_contents
+            if (wc) {
+              // Ensure avatar stays visible when widget collapses after a call
+              wc.show_avatar_when_collapsed = true
+
+              // Map text_contents → legacy top-level fields
+              if (tc) {
+                if (tc.main_label && !wc.action_text) wc.action_text = tc.main_label
+                if (tc.start_call && !wc.start_call_text) wc.start_call_text = tc.start_call
+                if (tc.end_call && !wc.end_call_text) wc.end_call_text = tc.end_call
+                if (tc.expand && !wc.expand_text) wc.expand_text = tc.expand
+                if (tc.listening_status && !wc.listening_text) wc.listening_text = tc.listening_status
+                if (tc.speaking_status && !wc.speaking_text) wc.speaking_text = tc.speaking_status
+              }
+            }
+            return res.status(resp.status).json(body)
+          } catch (_) {
+            // If parsing fails, fall through to raw response
+          }
+        }
+
+        res.status(resp.status).send(resp.data)
+      } catch (err) {
+        const status = err?.response?.status || 500
+        const data = err?.response?.data || { error: 'Voice proxy error' }
+        res.status(status).send(data)
+      }
+    })
+  )
+
+
   router.post(
     '/users/customId',
     bp.http.extractExternalToken,

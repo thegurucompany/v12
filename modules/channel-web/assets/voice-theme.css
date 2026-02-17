@@ -1,0 +1,190 @@
+/*
+ * Lendero — SINDI Voice Widget Theme (Horizontal Layout)
+ *
+ * Primary:   #1A2A6C (dark navy)
+ * Secondary: #2AA7FF (bright blue)
+ * Bot:       SINDI
+ *
+ * Overrides the default widget appearance inside the Shadow DOM.
+ */
+
+/* ── Wrapper / Container ─────────────────────────────────────────── */
+[class*="_wrapper_"] {
+  font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif !important;
+}
+
+/* ── Collapsed card — HORIZONTAL layout ──────────────────────────── */
+[class*="_box_"] {
+  background: #ffffff !important;
+  border: 1px solid rgba(26, 42, 108, 0.10) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 6px 28px rgba(26, 42, 108, 0.14),
+    0 2px 6px rgba(26, 42, 108, 0.08) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+  /* Force horizontal layout */
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 18px 12px 12px !important;
+}
+
+[class*="_box_"]:hover {
+  box-shadow:
+    0 8px 32px rgba(26, 42, 108, 0.18),
+    0 2px 8px rgba(26, 42, 108, 0.10) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Avatar — smaller for horizontal ─────────────────────────────── */
+[class*="_avatar_"]:not([class*="_avatarImage_"]):not([class*="_avatarButton_"]):not([class*="_avatarBackground_"]) {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 12px rgba(26, 42, 108, 0.25) !important;
+  flex-shrink: 0 !important;
+}
+
+[class*="_avatarBackground_"] {
+  background: linear-gradient(135deg, #1A2A6C 0%, #2AA7FF 100%) !important;
+}
+
+[class*="_avatarImage_"] {
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* ── Call-to-action button — pill shape for horizontal ────────────── */
+[class*="_btn_"]:not([class*="_btnIcon_"]):not([class*="_iconBtn_"]) {
+  background: linear-gradient(135deg, #1A2A6C 0%, #2AA7FF 100%) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.01em !important;
+  padding: 8px 18px !important;
+  box-shadow: 0 2px 8px rgba(26, 42, 108, 0.30) !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+
+[class*="_btn_"]:not([class*="_btnIcon_"]):not([class*="_iconBtn_"]):hover {
+  background: linear-gradient(135deg, #142254 0%, #1E8FE0 100%) !important;
+  box-shadow: 0 4px 16px rgba(26, 42, 108, 0.40) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Status text — inline for horizontal ─────────────────────────── */
+[class*="_status_"] {
+  color: #1A2A6C !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+
+/* ── Secondary / icon buttons ────────────────────────────────────── */
+[class*="_secondary_"] {
+  background: #f0f6ff !important;
+  border: 1px solid rgba(42, 167, 255, 0.20) !important;
+  border-radius: 12px !important;
+  color: #1A2A6C !important;
+}
+
+[class*="_secondary_"]:hover {
+  background: #e0efff !important;
+  border-color: rgba(42, 167, 255, 0.35) !important;
+}
+
+[class*="_iconBtn_"] {
+  border-radius: 50% !important;
+  transition: all 0.15s ease !important;
+}
+
+[class*="_iconBtn_"]:hover {
+  background: #f0f6ff !important;
+}
+
+/* ── Actions bar — horizontal alignment ──────────────────────────── */
+[class*="_actions_"]:not([class*="_actionButtons_"]) {
+  border-top: none !important;
+  padding-top: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+[class*="_actionButtons_"] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+/* ── Canvas (animated orb area) ──────────────────────────────────── */
+[class*="_canvas_"] {
+  border-radius: 50% !important;
+}
+
+/* ── Minimize button ─────────────────────────────────────────────── */
+[class*="_minimize_"] {
+  opacity: 0.6 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+[class*="_minimize_"]:hover {
+  opacity: 1 !important;
+}
+
+/* ── Terms / footer / branding (hide completely) ─────────────────── */
+[class*="_terms_"],
+[class*="_termsFooter_"],
+[class*="_poweredBy_"] {
+  display: none !important;
+}
+
+/* ── Error state ─────────────────────────────────────────────────── */
+[class*="_error_"] {
+  color: #ef4444 !important;
+  font-size: 13px !important;
+}
+
+/* ── Feedback section (hide) ─────────────────────────────────────── */
+[class*="_feedback_"],
+[class*="_inlineFeedback_"] {
+  display: none !important;
+}
+
+/* ── Expanded widget panel — keeps rounded but bigger ────────────── */
+[class*="_show_"] [class*="_box_"] {
+  border-radius: 24px !important;
+  flex-direction: column !important;
+  padding: 20px !important;
+}
+
+/* ── Select dropdowns ────────────────────────────────────────────── */
+[class*="_select_"]:not([class*="_selectContent_"]):not([class*="_selectIcon_"]):not([class*="_selectItem_"]):not([class*="_selectValue_"]):not([class*="_selectViewport_"]):not([class*="_selectScrollButton_"]):not([class*="_selectItemIndicator_"]) {
+  border-radius: 8px !important;
+  border: 1px solid rgba(42, 167, 255, 0.20) !important;
+}
+
+[class*="_selectContent_"] {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(26, 42, 108, 0.10) !important;
+  border: 1px solid rgba(42, 167, 255, 0.15) !important;
+}
+
+[class*="_selectItem_"]:not([class*="_selectItemIndicator_"]) {
+  border-radius: 6px !important;
+}
+
+/* ── Smooth transitions ──────────────────────────────────────────── */
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}

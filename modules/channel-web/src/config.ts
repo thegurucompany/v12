@@ -108,4 +108,40 @@ export interface Config {
    * @default false
    */
   disableNotificationSound: boolean
+
+  /**
+   * Voice Agent Configuration.
+   * When enabled, the bot can serve a voice agent widget via a separate injection script.
+   * The agent ID and API key are stored server-side and never exposed in client-side code.
+   * All voice API traffic is proxied through the backend to hide the upstream provider.
+   */
+  voiceAgent?: {
+    /**
+     * Enable voice agent for this bot
+     * @default false
+     */
+    enabled: boolean
+
+    /**
+     * Voice Agent ID — stored securely, never exposed in client-side code
+     */
+    agentId: string
+
+    /**
+     * Voice provider API key — used server-side for proxy authentication.
+     * Never exposed to the client.
+     */
+    apiKey: string
+
+    /**
+     * Optional custom avatar image URL for the voice widget
+     */
+    avatarUrl?: string
+
+    /**
+     * Widget size: 'compact' or 'full'
+     * @default compact
+     */
+    size?: 'compact' | 'full'
+  }
 }

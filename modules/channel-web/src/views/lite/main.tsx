@@ -329,17 +329,21 @@ class Web extends React.Component<MainProps> {
 
   applyAndRenderStyle() {
     const emulatorClass = this.props.isEmulator ? ' emulator' : ''
+    const { isEmulator, stylesheet, extraStylesheet, primaryColor } = this.props.config
+    // Derive a CSS class from the extraStylesheet filename (e.g. "flo-ohos.css" -> "flo-ohos")
+    const stylesheetClass = extraStylesheet
+      ? extraStylesheet.replace(/^.*\//, '').replace(/\.css$/i, '')
+      : ''
     const parentClass = classnames(`bp-widget-web bp-widget-${this.props.activeView}${emulatorClass}`, {
       'bp-widget-hidden': !this.props.showWidgetButton && this.props.displayWidgetView,
-      [this.props.config.className]: !!this.props.config.className
+      [this.props.config.className]: !!this.props.config.className,
+      [stylesheetClass]: !!stylesheetClass
     })
 
     if (this.parentClass !== parentClass) {
       this.postMessageToParent('setClass', parentClass)
       this.parentClass = parentClass
     }
-
-    const { isEmulator, stylesheet, extraStylesheet, primaryColor } = this.props.config
     return (
       <React.Fragment>
         {!!stylesheet?.length && <Stylesheet href={stylesheet} />}

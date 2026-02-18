@@ -46,6 +46,12 @@
   height: 110px !important;
 }
 
+/* Flo OHOS - wider widget for banner-style button */
+.bp-widget-widget.flo-ohos {
+  width: 210px !important;
+  height: 80px !important;
+}
+
 .bp-widget-hidden {
   display: none;
 }

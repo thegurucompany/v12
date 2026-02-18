@@ -34,9 +34,9 @@
 
 [class*="_box_"]:hover {
   box-shadow:
-    0 8px 32px rgba(26, 42, 108, 0.18),
-    0 2px 8px rgba(26, 42, 108, 0.10) !important;
-  transform: translateY(-2px) !important;
+    0 6px 28px rgba(26, 42, 108, 0.14),
+    0 2px 6px rgba(26, 42, 108, 0.08) !important;
+  transform: none !important;
 }
 
 /* ── Avatar — smaller for horizontal ─────────────────────────────── */

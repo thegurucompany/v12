@@ -42,7 +42,7 @@ function _generateIFrameHTML(host, config) {
     iframeSrc +
     '" class="' +
     DEFAULT_IFRAME_CLASS +
-    '" style="background:transparent;"/>'
+    '" style="background:transparent !important;"/>'
   )
 }
 

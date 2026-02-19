@@ -5,7 +5,7 @@
 }
 
 .bpw-floating-button {
-  background: #ffffff url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/flo-ohos.png') no-repeat right center / contain;
+  background: transparent url('https://cdn-chato.s3.us-west-2.amazonaws.com/logos/flo-ohos.png') no-repeat right center / contain;
   border-radius: 28px;
   width: 170px;
   height: 56px;
@@ -15,12 +15,16 @@
   right: 12px;
   margin: 0;
   position: absolute;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* changed from box-shadow to filter: drop-shadow perfectly outlines the PNG's white pill */
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.15));
+  box-shadow: none; /* overriding any default box-shadow */
 }
 
 .bpw-floating-button:hover {
-  transform: scale(1.03);
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.15);
+  /* Avoiding scale() which blurs/thins the image on dark backgrounds, using subtle lift instead */
+  transform: translateY(-2px);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  box-shadow: none;
 }
 
 .bpw-floating-button i {

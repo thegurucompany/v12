@@ -201,11 +201,6 @@ class Web extends React.Component<MainProps> {
       await this.socket.waitForUserId()
 
       await this.props.initializeChat()
-    } else if (action === 'setHostBackground') {
-      // Apply host page background to iframe html element for CRM theme blending
-      if (payload && payload.color) {
-        document.documentElement.style.setProperty('background', payload.color, 'important')
-      }
     } else if (action === 'event') {
       const { type, text } = payload
 

@@ -26,6 +26,7 @@
 
 html {
   background: transparent !important;
+  color-scheme: only light !important;
 }
 
 body {

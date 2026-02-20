@@ -98,8 +98,66 @@ function init(config, targetSelector) {
   const iframeId = _getIframeId(config.chatId)
   _injectDOMElement('div', targetSelector, { id: containerId, innerHTML: iframeHTML })
 
-  const iframeRef = document.querySelector('#' + containerId + ' #' + iframeId).contentWindow
+  const iframeEl = document.querySelector('#' + containerId + ' #' + iframeId)
+  const iframeRef = iframeEl.contentWindow
   chatRefs[chatId] = iframeRef
+
+  // Sync background with host page to work around browsers refusing transparent iframes
+  _syncBackgroundWithHost(iframeEl, iframeRef)
+}
+
+/**
+ * Reads the host page's computed background color and applies it to the iframe
+ * so it visually blends with the host, bypassing browsers that refuse to honor
+ * transparent backgrounds on iframe canvases (e.g. PrimeVue dark mode).
+ * A MutationObserver watches for theme class changes on the host <html>/<body>.
+ */
+function _syncBackgroundWithHost(iframeEl, iframeRef) {
+  function getHostBg() {
+    // Try <html> first, then <body>
+    var bg = window.getComputedStyle(document.documentElement).backgroundColor
+    if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') {
+      bg = window.getComputedStyle(document.body).backgroundColor
+    }
+    // If still transparent, try the first meaningful parent
+    if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') {
+      var el = iframeEl.parentElement
+      while (el && el !== document.documentElement) {
+        bg = window.getComputedStyle(el).backgroundColor
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') break
+        el = el.parentElement
+      }
+    }
+    return bg
+  }
+
+  function applyBg() {
+    var bg = getHostBg()
+    if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+      iframeEl.style.setProperty('background-color', bg, 'important')
+      // Also tell the iframe content to set its html background
+      iframeRef.postMessage({ action: 'setHostBackground', payload: { color: bg } }, '*')
+    }
+  }
+
+  // Apply once the iframe has loaded
+  if (iframeEl.contentDocument && iframeEl.contentDocument.readyState === 'complete') {
+    applyBg()
+  } else {
+    iframeEl.addEventListener('load', applyBg)
+  }
+  // Also apply after a short delay (in case CRM loads styles async)
+  setTimeout(applyBg, 1000)
+  setTimeout(applyBg, 3000)
+
+  // Watch for theme changes on <html> and <body> (class or data-* attribute changes)
+  var observer = new MutationObserver(function() {
+    setTimeout(applyBg, 100)
+  })
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-mode', 'style'] })
+  if (document.body) {
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme', 'data-mode', 'style'] })
+  }
 }
 
 window.botpressWebChat = {

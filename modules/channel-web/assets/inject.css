@@ -3,6 +3,7 @@
   position: relative;
   background: transparent !important;
   background-color: transparent !important;
+  color-scheme: only light !important;
 }
 
 .chato-proactive-message {
@@ -38,6 +39,7 @@
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   padding: 0;
+  color-scheme: only light !important;
 }
 
 .bp-widget-widget {
@@ -49,6 +51,7 @@
   height: 110px !important;
   background: transparent !important;
   background-color: transparent !important;
+  color-scheme: only light !important;
 }
 
 /* Flo OHOS - wider widget for banner-style button */

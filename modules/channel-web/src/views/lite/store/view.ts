@@ -102,6 +102,11 @@ class ViewStore {
   }
 
   @computed
+  get showTopbar() {
+    return !this.rootStore.config?.removeTopbar
+  }
+
+  @computed
   get hasUnreadMessages(): boolean {
     return this.unreadCount > 0
   }

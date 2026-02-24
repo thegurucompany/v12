@@ -239,6 +239,8 @@ export interface Config {
   viewMode?: 'Embedded' | 'Fullscreen'
   /** Primary color for the header, user bubbles, and send button */
   primaryColor?: string
+  /** When true, the header bar (bot name, avatar, and buttons) is hidden */
+  removeTopbar?: boolean
 }
 
 type OverridableComponents = 'below_conversation' | 'before_container' | 'composer' | 'before_widget'

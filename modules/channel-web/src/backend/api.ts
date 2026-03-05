@@ -289,6 +289,30 @@ export default async (bp: typeof sdk, db: Database) => {
     })
   )
 
+  // In-memory store for dynamic variables per bot (keyed by botId)
+  // These are set by the client-side injection script and injected into proxied requests
+  const voiceDynamicVarsStore: Record<string, Record<string, string>> = {}
+
+  // Voice dynamic variables — receives variables from the injection script
+  // and stores them so the voiceProxy can inject them server-side
+  router.post(
+    '/voiceDynamicVars',
+    asyncMiddleware(async (req: BPRequest, res: Response) => {
+      const { botId } = req.params
+      const voice = await getVoiceConfig(botId)
+      if (!voice) {
+        return res.status(404).send({ error: 'Voice agent not configured' })
+      }
+
+      const { dynamicVariables } = req.body || {}
+      if (dynamicVariables && typeof dynamicVariables === 'object') {
+        voiceDynamicVarsStore[botId] = dynamicVariables
+      }
+
+      res.sendStatus(200)
+    })
+  )
+
   // Voice HTTP proxy — forwards REST requests to the upstream voice API
   router.all(
     '/voiceProxy/*',
@@ -307,6 +331,22 @@ export default async (bp: typeof sdk, db: Database) => {
 
       const targetUrl = `${VOICE_UPSTREAM}/${proxyPath}`
 
+      // Inject stored dynamic variables into conversation-related requests
+      let requestBody = req.method !== 'GET' ? req.body : undefined
+      if (requestBody && proxyPath.includes('conversation') && voiceDynamicVarsStore[botId]) {
+        try {
+          const body = typeof requestBody === 'string' ? JSON.parse(requestBody) : { ...requestBody }
+          if (!body.dynamic_variables) {
+            body.dynamic_variables = {}
+          }
+          // Merge stored variables (server-side takes precedence)
+          Object.assign(body.dynamic_variables, voiceDynamicVarsStore[botId])
+          requestBody = body
+        } catch (_) {
+          // If body isn't JSON, skip injection
+        }
+      }
+
       try {
         const headers: Record<string, string> = {
           'xi-api-key': voice.apiKey
@@ -319,7 +359,7 @@ export default async (bp: typeof sdk, db: Database) => {
           method: req.method as any,
           url: targetUrl,
           headers,
-          data: req.method !== 'GET' ? req.body : undefined,
+          data: requestBody,
           params: req.method === 'GET' ? req.query : undefined,
           responseType: 'arraybuffer',
           timeout: 30000

@@ -36,6 +36,7 @@ export default {
     enableVoiceComposer: false,
     enableFileUpload: false,
     enableConversationDeletion: false,
-    closeOnEscape: true
+    closeOnEscape: true,
+    removeTopbar: false
   }
 }

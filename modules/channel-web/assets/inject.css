@@ -1,6 +1,9 @@
 #bp-web-widget {
   z-index: 99999;
   position: relative;
+  background: transparent !important;
+  background-color: transparent !important;
+  color-scheme: only light !important;
 }
 
 .chato-proactive-message {
@@ -29,12 +32,14 @@
   max-height: 100vh;
   max-width: 100vw;
   transition: none;
-  background: none transparent;
+  background: none transparent !important;
+  background-color: transparent !important;
   opacity: 1;
   font-size: 16px;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   padding: 0;
+  color-scheme: only light !important;
 }
 
 .bp-widget-widget {
@@ -44,6 +49,9 @@
   right: 0px;
   width: 110px !important;
   height: 110px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  color-scheme: only light !important;
 }
 
 /* Flo OHOS - wider widget for banner-style button */
@@ -63,7 +71,8 @@
   right: 0px;
   width: 373px;
   height: 80% !important;
-  border-radius: 0;
+  border-radius: 16px;
+  overflow: hidden;
   box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
 }
 

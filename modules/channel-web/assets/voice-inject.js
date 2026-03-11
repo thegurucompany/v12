@@ -6,7 +6,11 @@
  *   <script>
  *     window.chatoVoiceAgent.init({
  *       host: "https://studio.thegurucompany.com",
- *       botId: "your-bot-id"
+ *       botId: "your-bot-id",
+ *       // Optional: pass user data as dynamic variables (same shape as text webchat)
+ *       userId: { id: "123", firstName: "John", lastName: "Doe", email: "john@example.com" },
+ *       // Optional: pass additional/custom dynamic variables
+ *       dynamicVariables: { plan: "premium", company: "Acme" }
  *     });
  *   </script>
  *
@@ -34,6 +38,7 @@
   var _rootPath = ''
   var _botId = ''
   var _customCssUrl = ''
+  var _dynamicVariables = null
   var _interceptsInstalled = false
   var _origFetch = null
   var _origWebSocket = null
@@ -65,6 +70,14 @@
         _customCssUrl = config.customCssUrl
       }
 
+      // Build dynamic variables from userId and/or explicit dynamicVariables
+      _dynamicVariables = _buildDynamicVariables(config)
+
+      // Send dynamic variables to backend for server-side injection
+      if (_dynamicVariables && _botId) {
+        _sendDynamicVarsToBackend()
+      }
+
       // Direct mode: agentId provided in config
       if (config.agentId) {
         _startWidget({
@@ -90,6 +103,53 @@
     if (level === 'error') {
       console.error(prefix + message)
     }
+  }
+
+  // ── Build dynamic variables from config ─────────────────────────────
+  // Accepts userId (same shape as text webchat) and/or explicit dynamicVariables.
+  // userId fields are mapped to snake_case keys for ElevenLabs {{variable}} syntax.
+  function _buildDynamicVariables(config) {
+    var vars = {}
+    var hasVars = false
+
+    // Map userId fields → dynamic variables
+    if (config.userId && typeof config.userId === 'object') {
+      var u = config.userId
+      if (u.id)        { vars.user_id = String(u.id);       hasVars = true }
+      if (u.firstName) { vars.first_name = String(u.firstName); hasVars = true }
+      if (u.lastName)  { vars.last_name = String(u.lastName);  hasVars = true }
+      if (u.email)     { vars.email = String(u.email);      hasVars = true }
+
+      // Forward any extra properties (e.g. phone, company, plan…)
+      for (var key in u) {
+        if (u.hasOwnProperty(key) && key !== 'id' && key !== 'firstName' && key !== 'lastName' && key !== 'email') {
+          vars[key] = String(u[key])
+          hasVars = true
+        }
+      }
+    }
+
+    // Merge explicit dynamicVariables (overrides userId-derived keys)
+    if (config.dynamicVariables && typeof config.dynamicVariables === 'object') {
+      for (var k in config.dynamicVariables) {
+        if (config.dynamicVariables.hasOwnProperty(k)) {
+          vars[k] = String(config.dynamicVariables[k])
+          hasVars = true
+        }
+      }
+    }
+
+    return hasVars ? vars : null
+  }
+
+  // ── Send dynamic variables to backend for server-side injection ─────
+  function _sendDynamicVarsToBackend() {
+    var url = _host + '/api/v1/bots/' + _botId + '/mod/channel-web/voiceDynamicVars'
+    var xhr = new XMLHttpRequest()
+    xhr.open('POST', url, true)
+    xhr.setRequestHeader('Content-Type', 'application/json')
+    xhr.send(JSON.stringify({ dynamicVariables: _dynamicVariables }))
+    // Fire-and-forget — errors are non-fatal
   }
 
   // ── Fetch voice config from backend ────────────────────────────────
@@ -255,6 +315,15 @@
 
     if (config.avatarUrl) {
       widget.setAttribute('avatar-image-url', config.avatarUrl)
+    }
+
+    // Pass dynamic variables to the ElevenLabs widget
+    if (_dynamicVariables) {
+      try {
+        widget.setAttribute('dynamic-variables', JSON.stringify(_dynamicVariables))
+      } catch (e) {
+        _log('error', 'Failed to serialize dynamic variables')
+      }
     }
 
     // Hide until customized

@@ -4,6 +4,7 @@ import React from 'react'
 import { InjectedIntlProps, injectIntl } from 'react-intl'
 
 import { RootStore, StoreDef } from '../store'
+import Close from '../icons/Close'
 
 import BotInfo from './common/BotInfo'
 import Composer from './Composer'
@@ -55,7 +56,18 @@ class Container extends React.Component<ContainerProps> {
       <React.Fragment>
         <OverridableComponent name={'before_container'} original={null} />
         <div className={classNames} style={{ width: window.innerWidth <= 768 ? '100%' : this.props.dimensions.layout }}>
-          <Header />
+          {this.props.showTopbar && <Header />}
+          {!this.props.showTopbar && !this.props.isFullscreen && (
+            <button
+              type="button"
+              className="bpw-floating-close-btn"
+              onClick={this.props.hideChat}
+              aria-label="Close chat"
+              title="Close chat"
+            >
+              <Close />
+            </button>
+          )}
           {this.renderBody()}
           <OverridableComponent name={'below_conversation'} original={null} />
           {this.props.isPoweredByDisplayed && <Footer />}
@@ -75,6 +87,8 @@ export default inject(({ store }: { store: RootStore }) => ({
   isEmulator: store.isEmulator,
   isInitialized: store.isInitialized,
   isPoweredByDisplayed: store.view.isPoweredByDisplayed,
+  showTopbar: store.view.showTopbar,
+  hideChat: store.view.hideChat,
   config: store.config,
   botName: store.botName,
   rtl: store.rtl
@@ -94,4 +108,6 @@ type ContainerProps = { store?: RootStore } & InjectedIntlProps &
     | 'isEmulator'
     | 'isPoweredByDisplayed'
     | 'rtl'
+    | 'showTopbar'
+    | 'hideChat'
   >

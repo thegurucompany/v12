@@ -143,5 +143,24 @@ export interface Config {
      * @default compact
      */
     size?: 'compact' | 'full'
+
+    /**
+     * Enable 3D animated avatar (TalkingHead) with real-time lip-sync.
+     * When enabled, replaces the static avatar with a 3D character.
+     * @default false
+     */
+    avatar3dEnabled?: boolean
+
+    /**
+     * URL to the 3D avatar model (.glb file with Oculus viseme blend shapes).
+     * Can be an absolute URL or a path relative to the host.
+     */
+    avatar3dModelUrl?: string
+
+    /**
+     * Camera view for the 3D avatar
+     * @default upper
+     */
+    avatar3dCameraView?: 'full' | 'mid' | 'upper' | 'head'
   }
 }

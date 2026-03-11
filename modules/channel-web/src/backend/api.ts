@@ -261,7 +261,10 @@ export default async (bp: typeof sdk, db: Database) => {
         enabled: true,
         agentId: voice.agentId,
         avatarUrl: voice.avatarUrl || null,
-        size: voice.size || 'compact'
+        size: voice.size || 'compact',
+        avatar3dEnabled: voice.avatar3dEnabled || false,
+        avatar3dModelUrl: voice.avatar3dModelUrl || null,
+        avatar3dCameraView: voice.avatar3dCameraView || 'upper'
       })
     })
   )

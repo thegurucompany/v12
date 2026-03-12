@@ -59,31 +59,124 @@
   // ── Public API ─────────────────────────────────────────────────────
   window.chatoTalkingHead = {
     init: function (config) {
-      if (_initialized) {
-        _log('warn', 'Already initialized')
-        return
-      }
       if (!config || !config.host) {
         _log('error', 'host is required')
         return
       }
 
+      var newBotId = config.botId || config.agentId || ''
+
+      // Auto-cleanup: if already initialized with a DIFFERENT bot, destroy first
+      if (_initialized && newBotId !== _botId) {
+        _destroy()
+      }
+
+      // Already initialized with the same bot — no-op
+      if (_initialized) {
+        return
+      }
+
       _host = config.host.replace(/\/$/, '')
-      _botId = config.botId || ''
+      _botId = newBotId
       _config = config
 
       // Intercept RTCPeerConnection + AudioContext BEFORE voice-inject.js loads the widget
       _installEarlyIntercepts()
 
       // Fetch voice config to get 3D avatar settings
-      if (_botId) {
+      if (config.botId) {
         _fetchConfigAndStart(config)
       } else if (config.agentId) {
         _startDirect(config)
       } else {
         _log('error', 'Either agentId or botId is required')
       }
+    },
+
+    destroy: function () {
+      _destroy()
     }
+  }
+
+  // ── Internal destroy ────────────────────────────────────────────────
+  // Tears down 3D avatar, voice widget, DOM elements, and resets state
+  // so init() can be called again (e.g. with a different bot).
+  function _destroy() {
+    if (!_initialized) return
+
+    // 1. End active call
+    if (_callActive) {
+      try { _endCall() } catch (e) {}
+    }
+
+    // 2. Dispose TalkingHead + HeadAudio (Three.js cleanup)
+    var head = window.__chato3dHead
+    var headaudio = window.__chato3dHeadAudio
+    if (headaudio) {
+      try { headaudio.disconnect() } catch (e) {}
+    }
+    if (head) {
+      // stop() must come BEFORE close() — stop() calls suspend() internally,
+      // which throws if the AudioContext is already closed.
+      try { head.stop() } catch (e) {}
+      try {
+        if (head.audioCtx && head.audioCtx.state !== 'closed') {
+          head.audioCtx.close()
+        }
+      } catch (e) {}
+    }
+    window.__chato3dHead = null
+    window.__chato3dHeadAudio = null
+
+    // 3. Remove DOM elements
+    if (_containerEl && _containerEl.parentNode) {
+      _containerEl.parentNode.removeChild(_containerEl)
+    }
+    if (_minimizedEl && _minimizedEl.parentNode) {
+      _minimizedEl.parentNode.removeChild(_minimizedEl)
+    }
+
+    // 4. Destroy voice-inject.js (removes widget + restores intercepts)
+    if (window.chatoVoiceAgent && window.chatoVoiceAgent.destroy) {
+      window.chatoVoiceAgent.destroy()
+    } else {
+      // Fallback: at least remove the widget element
+      var voiceWidget = document.querySelector('chato-voice-agent')
+      if (voiceWidget) voiceWidget.remove()
+    }
+
+    // 5. Remove injected CSS
+    var css = document.querySelector('link[href*="talking-head.css"]')
+    if (css) css.remove()
+
+    // 6. Remove event listeners
+    if (_speakingListener) {
+      window.removeEventListener('chato3d:speaking', _speakingListener)
+      _speakingListener = null
+    }
+    if (_callEndedListener) {
+      window.removeEventListener('chato3d:callended', _callEndedListener)
+      _callEndedListener = null
+    }
+
+    // 7. Clear captured streams/elements arrays
+    _capturedRemoteStreams = []
+    _capturedAudioElements = []
+    _capturedWebRTCStreams = []
+    _pendingStreams = []
+    _pendingBridgeNodes = []
+
+    // 8. Reset state
+    _containerEl = null
+    _statusEl = null
+    _callBtnEl = null
+    _minimizedEl = null
+    _isMinimized = false
+    _callActive = false
+    _host = ''
+    _botId = ''
+    _config = null
+    _initialized = false
   }
 
   // ── Logging ──────────────────────────────────────────────────────────
